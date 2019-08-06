@@ -1,0 +1,280 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite_simple.hyperparams &mdash; ignite-simple 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ignite-simple
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ignite-simple</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite_simple.hyperparams</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite_simple.hyperparams</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module is used to describe the hyperparameter tuning settings and</span>
+<span class="sd">presets used for training.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="HyperparameterSettings"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.HyperparameterSettings">[docs]</a><span class="k">class</span> <span class="nc">HyperparameterSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Describes settings for tuning hyperparameters</span>
+
+<span class="sd">    :ivar float lr_start: the smallest learning rate that is checked</span>
+
+<span class="sd">    :ivar float lr_end: the largest learning rate that is checked</span>
+
+<span class="sd">    :ivar int lr_min_inits: the minimum number of model initializations that</span>
+<span class="sd">        are averaged together and then smoothed to get the lr-vs-accuracy plot.</span>
+<span class="sd">        Note that when multiple physical cores are available they will be</span>
+<span class="sd">        utilized since this process is well-suited to parallelization</span>
+
+<span class="sd">    :ivar int batch_start: the smallest batch size that is checked during the</span>
+<span class="sd">        initial reasonableness sweep (a single pass)</span>
+
+<span class="sd">    :ivar int batch_end: the largest batch size that is checked during the</span>
+<span class="sd">        initial reasonableness sweep (a single pass)</span>
+
+<span class="sd">    :ivar int batch_rn_min_inits: the minimum number of model initializations</span>
+<span class="sd">        that are averaged together then smoothed to get the batch-vs-accuracy</span>
+<span class="sd">        plot.</span>
+
+<span class="sd">    :ivar int batch_pts: the number of different batch sizes which are checked,</span>
+<span class="sd">        which are equally spaced. Must be either 0 or greater than 1. If 0, the</span>
+<span class="sd">        batch size corresponding to the greatest increase in accuracy during</span>
+<span class="sd">        the reasonableness sweep is used.</span>
+
+<span class="sd">    :ivar int batch_pt_min_inits: the minimum number of model initializations</span>
+<span class="sd">        that are averaged together then smoothed for each batch point</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lr_min_inits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">batch_start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_end</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_rn_min_inits</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">batch_pts</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">batch_pt_min_inits</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_start</span> <span class="o">=</span> <span class="n">lr_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_end</span> <span class="o">=</span> <span class="n">lr_end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_min_inits</span> <span class="o">=</span> <span class="n">lr_min_inits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_start</span> <span class="o">=</span> <span class="n">batch_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_end</span> <span class="o">=</span> <span class="n">batch_end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_rn_min_inits</span> <span class="o">=</span> <span class="n">batch_rn_min_inits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_pts</span> <span class="o">=</span> <span class="n">batch_pts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_pt_min_inits</span> <span class="o">=</span> <span class="n">batch_pt_min_inits</span></div>
+
+<div class="viewcode-block" id="fastest"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.fastest">[docs]</a><span class="k">def</span> <span class="nf">fastest</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HyperparameterSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns the fastest (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
+        <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_start</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">batch_end</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">batch_rn_min_inits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_pts</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">batch_pt_min_inits</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="fast"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.fast">[docs]</a><span class="k">def</span> <span class="nf">fast</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HyperparameterSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns a reasonably fast (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
+        <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_start</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">batch_end</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">batch_rn_min_inits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_pts</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">batch_pt_min_inits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="slow"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.slow">[docs]</a><span class="k">def</span> <span class="nf">slow</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HyperparameterSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns a somewhat slow (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
+        <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">batch_start</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">batch_end</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">batch_rn_min_inits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+        <span class="n">batch_pts</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+        <span class="n">batch_pt_min_inits</span><span class="o">=</span><span class="mi">3</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="slowest"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.slowest">[docs]</a><span class="k">def</span> <span class="nf">slowest</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HyperparameterSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns the slowest (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
+        <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">batch_start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">batch_end</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+        <span class="n">batch_rn_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">batch_pts</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+        <span class="n">batch_pt_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

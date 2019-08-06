@@ -1,0 +1,303 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite_simple.trainer &mdash; ignite-simple 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ignite-simple
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ignite-simple</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite_simple.trainer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite_simple.trainer</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module manages preparing and running the training environment for given</span>
+<span class="sd">settings.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.utils.data</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">ignite.engine</span>
+<span class="kn">import</span> <span class="nn">ignite.contrib.handlers.param_scheduler</span>
+
+<div class="viewcode-block" id="TrainSettings"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainSettings">[docs]</a><span class="k">class</span> <span class="nc">TrainSettings</span><span class="p">:</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Describes the settings which ultimately go into a training session. This</span>
+<span class="sd">    is intended to be trivially serializable, in that all attributes are built-</span>
+<span class="sd">    ins that can be json serialized.</span>
+
+<span class="sd">    :ivar str accuracy_style: one of the following constants:</span>
+
+<span class="sd">        * classification</span>
+<span class="sd">            labels are integers which correspond to the class,</span>
+<span class="sd">            outputs are one-hot encoded classes</span>
+<span class="sd">        * multiclass</span>
+<span class="sd">            labels are one-hot encoded multi-class labels, outputs are the same</span>
+<span class="sd">        * inv-loss</span>
+<span class="sd">            accuracy is not measured and inverse loss is used as the</span>
+<span class="sd">            performance metric instead. for stability, instead of exactly</span>
+<span class="sd">            inverse loss,</span>
+
+<span class="sd">            .. math::</span>
+<span class="sd">                \frac{1}{\text{loss} + 10^{-6}}</span>
+
+<span class="sd">            is used instead.</span>
+
+<span class="sd">    :ivar tuple[str, str] model_loader: the tuple contains the module and</span>
+<span class="sd">        corresponding attribute name for a function which returns the</span>
+<span class="sd">        nn.Module to train. The module must have the calling convention</span>
+<span class="sd">        `model(inp) -&gt; out`</span>
+
+<span class="sd">    :ivar tuple[str, str] task_loader: the tuple contains the module and</span>
+<span class="sd">        corresponding attribute name for a function which returns</span>
+<span class="sd">        :code:`(train_set, val_set, train_loader)`, each as described in</span>
+<span class="sd">        TrainState.</span>
+
+<span class="sd">    :ivar float lr_start`: the learning rate at the start of each cycle</span>
+
+<span class="sd">    :ivar float lr_end: the learning rate at the end of each cycle</span>
+
+<span class="sd">    :ivar int cycle_time_epochs: the number of epochs for the learning rate</span>
+<span class="sd">        scheduler</span>
+
+<span class="sd">    :ivar int epochs: the number of epochs to train for</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">accuracy_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">model_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                 <span class="n">task_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                 <span class="n">lr_start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                 <span class="n">lr_end</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                 <span class="n">cycle_time_epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">accuracy_style</span> <span class="o">=</span> <span class="n">accuracy_style</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_loader</span> <span class="o">=</span> <span class="n">model_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task_loader</span> <span class="o">=</span> <span class="n">task_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_start</span> <span class="o">=</span> <span class="n">lr_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_end</span> <span class="o">=</span> <span class="n">lr_end</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cycle_time_epochs</span> <span class="o">=</span> <span class="n">cycle_time_epochs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span></div>
+
+<div class="viewcode-block" id="TrainState"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainState">[docs]</a><span class="k">class</span> <span class="nc">TrainState</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Describes the state which is passed as the second positional argument to</span>
+<span class="sd">    each event handler, which contains generic information about the training</span>
+<span class="sd">    session that may be useful.</span>
+
+<span class="sd">    :ivar torch.nn.Module model: the model which is being trained</span>
+
+<span class="sd">    :ivar torch.utils.data.Dataset train_set: the dataset which is used to</span>
+<span class="sd">        train the model</span>
+
+<span class="sd">    :ivar torch.utils.data.Dataset val_set: the dataset which is used to</span>
+<span class="sd">        validate the models performance on unseen / held out data.</span>
+
+<span class="sd">    :ivar torch.utils.data.DataLoader train_loader: the dataloader which is</span>
+<span class="sd">        being used to generate batches from the train set to be passed into the</span>
+<span class="sd">        model. This incorporates the batch size.</span>
+
+<span class="sd">    :ivar torch.optim.Optimizer optimizer: the optimizer which is used to</span>
+<span class="sd">        update the parameters of the model.</span>
+
+<span class="sd">    :ivar int cycle_time_epochs: the number of epochs in a complete cycle</span>
+<span class="sd">        of the learning rate, always even.</span>
+
+<span class="sd">    :ivar ignite.contrib.handlers.param_scheduler.CyclicalScheduler lr_scheduler:</span>
+<span class="sd">        the parameter scheduler for the learning rate. Its instance values can</span>
+<span class="sd">        be used to get the learning rate range and length in batches.</span>
+
+<span class="sd">    :ivar torch.nn.Module loss: the loss function, which accepts</span>
+<span class="sd">        :code:`(input, target)` and returns a scalar which is to be minimized.</span>
+
+<span class="sd">    :ivar ignite.engine.Engine evaluator: the engine which can be used to</span>
+<span class="sd">        gather metrics. Always has a :code:`&#39;loss&#39;` and :code:`&#39;perf&#39;` metric, but</span>
+<span class="sd">        may or may not have an :code:`&#39;accuracy&#39;` metric.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+                 <span class="n">train_set</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+                 <span class="n">val_set</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+                 <span class="n">train_loader</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">,</span>
+                 <span class="n">optimizer</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">,</span>
+                 <span class="n">cycle_time_epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">lr_scheduler</span><span class="p">:</span> <span class="n">ignite</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">param_scheduler</span><span class="o">.</span><span class="n">CyclicalScheduler</span><span class="p">,</span>
+                 <span class="n">loss</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+                 <span class="n">evaluator</span><span class="p">:</span> <span class="n">ignite</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">Engine</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_set</span> <span class="o">=</span> <span class="n">train_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">val_set</span> <span class="o">=</span> <span class="n">val_set</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_loader</span> <span class="o">=</span> <span class="n">train_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cycle_time_epochs</span> <span class="o">=</span> <span class="n">cycle_time_epochs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">evaluator</span> <span class="o">=</span> <span class="n">evaluator</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

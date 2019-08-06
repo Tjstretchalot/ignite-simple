@@ -1,0 +1,507 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Ignite Simple &mdash; ignite-simple 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="#" class="icon icon-home"> ignite-simple
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Ignite Simple</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">ignite-simple</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="#">Docs</a> &raquo;</li>
+        
+      <li>Ignite Simple</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="ignite-simple">
+<h1>Ignite Simple<a class="headerlink" href="#ignite-simple" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<span class="target" id="module-ignite_simple.analarams"></span><p>Describes parameters relevant for analysis. The parameters are specified
+for the output, and what’s required to produce that output is calculated from
+that.</p>
+<dl class="class">
+<dt id="ignite_simple.analarams.AnalysisSettings">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">AnalysisSettings</code><span class="sig-paren">(</span><em class="sig-param">lr_selection_explanation: bool</em>, <em class="sig-param">lr_selection_results: bool</em>, <em class="sig-param">batch_selection_explanation: bool</em>, <em class="sig-param">batch_selection_results: bool</em>, <em class="sig-param">hparam_selection_specifics: bool</em>, <em class="sig-param">hparam_selection_specific_imgs: bool</em>, <em class="sig-param">training_explanation: bool</em>, <em class="sig-param">training_metrics: bool</em>, <em class="sig-param">training_metric_imgs: bool</em>, <em class="sig-param">final_metrics: bool</em>, <em class="sig-param">typical_run_pca3dvis: bool</em>, <em class="sig-param">typical_run_pca3dvis_draft: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/analarams.html#AnalysisSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.AnalysisSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes the analysis settings. Note that, where relevant and
+equivalent, parallel computations are described as if they were
+performed sequentially.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lr_selection_explanation</strong> (<em>bool</em>) – True if the output should include a
+broad text explanation of how the learning rate was selected, False
+otherwise.</p></li>
+<li><p><strong>lr_selection_results</strong> (<em>bool</em>) – True if the output should include a text
+explanation of the selected learning rate, False otherwise.</p></li>
+<li><p><strong>batch_selection_explanation</strong> (<em>bool</em>) – True if the output should include
+a broad text explanation of how the minibatch size was selected, False
+otherwise.</p></li>
+<li><p><strong>batch_selection_results</strong> (<em>bool</em>) – True if the output should include a
+text explanation of the selected minibatch size, False otherwise.</p></li>
+<li><p><strong>hparam_selection_specifics</strong> (<em>bool</em>) – True if the output should include
+a text explanation about how specifically we came about selecting the
+learning rate and batch size, by going through the numbers, False
+otherwise.</p></li>
+<li><p><strong>hparam_selection_specific_imgs</strong> (<em>bool</em>) – True if the output should
+include figures with captions for the hyper paramater selection process
+as it occurred for this model specifically, False otherwise.</p></li>
+<li><p><strong>training_explanation</strong> (<em>bool</em>) – True if the output should include a broad
+text explanation of the training procedure, False otherwise.</p></li>
+<li><p><strong>training_metrics</strong> (<em>bool</em>) – True if the output should include text metrics
+for the models performance through training, False otherwise.</p></li>
+<li><p><strong>training_metric_imgs</strong> (<em>bool</em>) – True if the output should include figures
+with captions for the performance of the model through training, i.e.,
+accuracy vs epoch and loss vs epoch figures.</p></li>
+<li><p><strong>final_metrics</strong> (<em>bool</em>) – True if the output should include in text the
+final accuracy and loss, False otherwise.</p></li>
+<li><p><strong>typical_run_pca3dvis</strong> (<em>bool</em>) – True if the output should include a video
+from pca3dvis for the points as they moved through the network, False
+otherwise.</p></li>
+<li><p><strong>typical_run_pca3dvis_draft</strong> (<em>bool</em>) – If <cite>typical_run_pca3dvis</cite> is True,
+then the value of <cite>typical_run_pca3dvis_draft</cite> corresponds to if the
+video should have draft settings. If <cite>typical_run_pca3dvis</cite> is False,
+this has no effect.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.animations">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">animations</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#animations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.animations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text, images, and animations. Animations are
+videos which are under 15 seconds for the purpose of this module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the animations preset for analysis settings, which produces text,
+images, and animations in the output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.animations_draft">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">animations_draft</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#animations_draft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.animations_draft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text, images, and animations but the
+animations are given draft settings (i.e. low-fps and low resolution)
+to speed up output. For the purposes of this module, animations are
+simply videos under 15 seconds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the animations-draft preset for analysis settings, which produces
+text, image, and draft-quality animations in the output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.images">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">images</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#images"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text and images only</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the images preset for analysis settings, which produces text
+and image output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.none">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">none</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#none"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.none" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis settings that produce absolutely nothing</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the none preset for analysis settings, which produces no output</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.text">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">text</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text only</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the text preset for analysis settings, which produces text
+output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.video">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">video</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#video"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.video" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text, images, animations, and video</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the video preset for analysis settings, which produces text,
+images, animations, and videos in the output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.video_draft">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">video_draft</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#video_draft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.video_draft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text, images, animations, and video but the
+animations and video(s) are given draft settings (i.e. low-fps and
+low-resolution) to speed up output</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the video-draft preset for analysis settings, which produces
+text, images, draft-quality animations, and draft-quality videos in the
+output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-ignite_simple.hyperparams"></span><p>This module is used to describe the hyperparameter tuning settings and
+presets used for training.</p>
+<dl class="class">
+<dt id="ignite_simple.hyperparams.HyperparameterSettings">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">HyperparameterSettings</code><span class="sig-paren">(</span><em class="sig-param">lr_start: float</em>, <em class="sig-param">lr_end: float</em>, <em class="sig-param">lr_min_inits: int</em>, <em class="sig-param">batch_start: int</em>, <em class="sig-param">batch_end: int</em>, <em class="sig-param">batch_rn_min_inits: int</em>, <em class="sig-param">batch_pts: int</em>, <em class="sig-param">batch_pt_min_inits: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/hyperparams.html#HyperparameterSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.HyperparameterSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes settings for tuning hyperparameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lr_start</strong> (<em>float</em>) – the smallest learning rate that is checked</p></li>
+<li><p><strong>lr_end</strong> (<em>float</em>) – the largest learning rate that is checked</p></li>
+<li><p><strong>lr_min_inits</strong> (<em>int</em>) – the minimum number of model initializations that
+are averaged together and then smoothed to get the lr-vs-accuracy plot.
+Note that when multiple physical cores are available they will be
+utilized since this process is well-suited to parallelization</p></li>
+<li><p><strong>batch_start</strong> (<em>int</em>) – the smallest batch size that is checked during the
+initial reasonableness sweep (a single pass)</p></li>
+<li><p><strong>batch_end</strong> (<em>int</em>) – the largest batch size that is checked during the
+initial reasonableness sweep (a single pass)</p></li>
+<li><p><strong>batch_rn_min_inits</strong> (<em>int</em>) – the minimum number of model initializations
+that are averaged together then smoothed to get the batch-vs-accuracy
+plot.</p></li>
+<li><p><strong>batch_pts</strong> (<em>int</em>) – the number of different batch sizes which are checked,
+which are equally spaced. Must be either 0 or greater than 1. If 0, the
+batch size corresponding to the greatest increase in accuracy during
+the reasonableness sweep is used.</p></li>
+<li><p><strong>batch_pt_min_inits</strong> (<em>int</em>) – the minimum number of model initializations
+that are averaged together then smoothed for each batch point</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.hyperparams.fast">
+<code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">fast</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.hyperparams.HyperparameterSettings<a class="reference internal" href="_modules/ignite_simple/hyperparams.html#fast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.fast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a reasonably fast (in time spent tuning parameters) preset</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.hyperparams.fastest">
+<code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">fastest</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.hyperparams.HyperparameterSettings<a class="reference internal" href="_modules/ignite_simple/hyperparams.html#fastest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.fastest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the fastest (in time spent tuning parameters) preset</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.hyperparams.slow">
+<code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">slow</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.hyperparams.HyperparameterSettings<a class="reference internal" href="_modules/ignite_simple/hyperparams.html#slow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.slow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a somewhat slow (in time spent tuning parameters) preset</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.hyperparams.slowest">
+<code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">slowest</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.hyperparams.HyperparameterSettings<a class="reference internal" href="_modules/ignite_simple/hyperparams.html#slowest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.slowest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the slowest (in time spent tuning parameters) preset</p>
+</dd></dl>
+
+<span class="target" id="module-ignite_simple.trainer"></span><p>This module manages preparing and running the training environment for given
+settings.</p>
+<dl class="class">
+<dt id="ignite_simple.trainer.TrainSettings">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.trainer.</code><code class="sig-name descname">TrainSettings</code><span class="sig-paren">(</span><em class="sig-param">accuracy_style: str, model_loader: Tuple[str, str], task_loader: Tuple[str, str], lr_start: float, lr_end: float, cycle_time_epochs: int, epochs: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes the settings which ultimately go into a training session. This
+is intended to be trivially serializable, in that all attributes are built-
+ins that can be json serialized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>accuracy_style</strong> (<em>str</em>) – <p>one of the following constants:</p>
+<ul>
+<li><dl class="simple">
+<dt>classification</dt><dd><p>labels are integers which correspond to the class,
+outputs are one-hot encoded classes</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>multiclass</dt><dd><p>labels are one-hot encoded multi-class labels, outputs are the same</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>inv-loss</dt><dd><p>accuracy is not measured and inverse loss is used as the
+performance metric instead. for stability, instead of exactly
+inverse loss,</p>
+<div class="math">
+<p><img src="_images/math/5ef9beb093b043cd92526190c668543adb9d71ed.svg" alt="\frac{1}{\text{loss} + 10^{-6}}"/></p>
+</div><p>is used instead.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+<li><p><strong>str</strong><strong>] </strong><strong>model_loader</strong> (<em>tuple</em><em>[</em><em>str</em><em>,</em>) – the tuple contains the module and
+corresponding attribute name for a function which returns the
+nn.Module to train. The module must have the calling convention
+<cite>model(inp) -&gt; out</cite></p></li>
+<li><p><strong>str</strong><strong>] </strong><strong>task_loader</strong> (<em>tuple</em><em>[</em><em>str</em><em>,</em>) – the tuple contains the module and
+corresponding attribute name for a function which returns
+<code class="code docutils literal notranslate"><span class="pre">(train_set,</span> <span class="pre">val_set,</span> <span class="pre">train_loader)</span></code>, each as described in
+TrainState.</p></li>
+<li><p><strong>lr_start`</strong> (<em>float</em>) – the learning rate at the start of each cycle</p></li>
+<li><p><strong>lr_end</strong> (<em>float</em>) – the learning rate at the end of each cycle</p></li>
+<li><p><strong>cycle_time_epochs</strong> (<em>int</em>) – the number of epochs for the learning rate
+scheduler</p></li>
+<li><p><strong>epochs</strong> (<em>int</em>) – the number of epochs to train for</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite_simple.trainer.TrainState">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.trainer.</code><code class="sig-name descname">TrainState</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module</em>, <em class="sig-param">train_set: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">val_set: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">train_loader: torch.utils.data.dataloader.DataLoader</em>, <em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">cycle_time_epochs: int</em>, <em class="sig-param">lr_scheduler: ignite.contrib.handlers.param_scheduler.CyclicalScheduler</em>, <em class="sig-param">loss: torch.nn.modules.module.Module</em>, <em class="sig-param">evaluator: ignite.engine.engine.Engine</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes the state which is passed as the second positional argument to
+each event handler, which contains generic information about the training
+session that may be useful.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – the model which is being trained</p></li>
+<li><p><strong>train_set</strong> (<em>torch.utils.data.Dataset</em>) – the dataset which is used to
+train the model</p></li>
+<li><p><strong>val_set</strong> (<em>torch.utils.data.Dataset</em>) – the dataset which is used to
+validate the models performance on unseen / held out data.</p></li>
+<li><p><strong>train_loader</strong> (<em>torch.utils.data.DataLoader</em>) – the dataloader which is
+being used to generate batches from the train set to be passed into the
+model. This incorporates the batch size.</p></li>
+<li><p><strong>optimizer</strong> (<em>torch.optim.Optimizer</em>) – the optimizer which is used to
+update the parameters of the model.</p></li>
+<li><p><strong>cycle_time_epochs</strong> (<em>int</em>) – the number of epochs in a complete cycle
+of the learning rate, always even.</p></li>
+<li><p><strong>lr_scheduler</strong> (<em>ignite.contrib.handlers.param_scheduler.CyclicalScheduler</em>) – the parameter scheduler for the learning rate. Its instance values can
+be used to get the learning rate range and length in batches.</p></li>
+<li><p><strong>loss</strong> (<em>torch.nn.Module</em>) – the loss function, which accepts
+<code class="code docutils literal notranslate"><span class="pre">(input,</span> <span class="pre">target)</span></code> and returns a scalar which is to be minimized.</p></li>
+<li><p><strong>evaluator</strong> (<em>ignite.engine.Engine</em>) – the engine which can be used to
+gather metrics. Always has a <code class="code docutils literal notranslate"><span class="pre">'loss'</span></code> and <code class="code docutils literal notranslate"><span class="pre">'perf'</span></code> metric, but
+may or may not have an <code class="code docutils literal notranslate"><span class="pre">'accuracy'</span></code> metric.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
