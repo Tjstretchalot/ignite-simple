@@ -81,6 +81,9 @@
               <!-- Local TOC -->
               <div class="local-toc"><ul>
 <li><a class="reference internal" href="#">Ignite Simple</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.analarams">ignite_simple.analarams</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.hyperparams">ignite_simple.hyperparams</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.trainer">ignite_simple.trainer</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 </div>
@@ -150,7 +153,10 @@
 <h1>Ignite Simple<a class="headerlink" href="#ignite-simple" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<span class="target" id="module-ignite_simple.analarams"></span><p>Describes parameters relevant for analysis. The parameters are specified
+</div>
+<div class="section" id="module-ignite_simple.analarams">
+<span id="ignite-simple-analarams"></span><h1>ignite_simple.analarams<a class="headerlink" href="#module-ignite_simple.analarams" title="Permalink to this headline">¶</a></h1>
+<p>Describes parameters relevant for analysis. The parameters are specified
 for the output, and what’s required to produce that output is calculated from
 that.</p>
 <dl class="class">
@@ -311,7 +317,10 @@ output.</p>
 </dl>
 </dd></dl>
 
-<span class="target" id="module-ignite_simple.hyperparams"></span><p>This module is used to describe the hyperparameter tuning settings and
+</div>
+<div class="section" id="module-ignite_simple.hyperparams">
+<span id="ignite-simple-hyperparams"></span><h1>ignite_simple.hyperparams<a class="headerlink" href="#module-ignite_simple.hyperparams" title="Permalink to this headline">¶</a></h1>
+<p>This module is used to describe the hyperparameter tuning settings and
 presets used for training.</p>
 <dl class="class">
 <dt id="ignite_simple.hyperparams.HyperparameterSettings">
@@ -368,7 +377,10 @@ that are averaged together then smoothed for each batch point</p></li>
 <dd><p>Returns the slowest (in time spent tuning parameters) preset</p>
 </dd></dl>
 
-<span class="target" id="module-ignite_simple.trainer"></span><p>This module manages preparing and running the training environment for given
+</div>
+<div class="section" id="module-ignite_simple.trainer">
+<span id="ignite-simple-trainer"></span><h1>ignite_simple.trainer<a class="headerlink" href="#module-ignite_simple.trainer" title="Permalink to this headline">¶</a></h1>
+<p>This module manages preparing and running the training environment for given
 settings.</p>
 <dl class="class">
 <dt id="ignite_simple.trainer.TrainSettings">
@@ -394,11 +406,11 @@ outputs are one-hot encoded classes</p>
 </li>
 <li><dl>
 <dt>inv-loss</dt><dd><p>accuracy is not measured and inverse loss is used as the
-performance metric instead. for stability, instead of exactly
+performance metric instead. For stability, instead of exactly
 inverse loss,</p>
 <div class="math">
 <p><img src="_images/math/5ef9beb093b043cd92526190c668543adb9d71ed.svg" alt="\frac{1}{\text{loss} + 10^{-6}}"/></p>
-</div><p>is used instead.</p>
+</div><p>is used.</p>
 </dd>
 </dl>
 </li>

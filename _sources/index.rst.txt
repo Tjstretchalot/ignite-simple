@@ -10,11 +10,21 @@ Ignite Simple
    :maxdepth: 2
    :caption: Contents:
 
+ignite_simple.analarams
+=======================
+
 .. automodule:: ignite_simple.analarams
    :members:
 
+ignite_simple.hyperparams
+=========================
+
 .. automodule:: ignite_simple.hyperparams
    :members:
+
+
+ignite_simple.trainer
+=====================
 
 .. automodule:: ignite_simple.trainer
    :members:
