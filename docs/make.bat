@@ -8,7 +8,7 @@ if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
 set SOURCEDIR=.
-set BUILDDIR=../../torchluent-docs
+set BUILDDIR=../../ignite-simple-docs
 
 if "%1" == "" goto help
 

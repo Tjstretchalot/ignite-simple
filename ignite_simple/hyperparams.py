@@ -9,26 +9,27 @@ class HyperparameterSettings:
     :ivar float lr_end: the largest learning rate that is checked
 
     :ivar int lr_min_inits: the minimum number of model initializations that
-    are averaged together and then smoothed to get the lr-vs-accuracy plot.
-    Note that when multiple physical cores are available they will be utilized
-    since this process is well-suited to parallelization
+        are averaged together and then smoothed to get the lr-vs-accuracy plot.
+        Note that when multiple physical cores are available they will be
+        utilized since this process is well-suited to parallelization
 
     :ivar int batch_start: the smallest batch size that is checked during the
-    initial reasonableness sweep (a single pass)
+        initial reasonableness sweep (a single pass)
 
     :ivar int batch_end: the largest batch size that is checked during the
-    initial reasonableness sweep (a single pass)
+        initial reasonableness sweep (a single pass)
 
     :ivar int batch_rn_min_inits: the minimum number of model initializations
-    that are averaged together then smoothed to get the batch-vs-accuracy plot.
+        that are averaged together then smoothed to get the batch-vs-accuracy
+        plot.
 
     :ivar int batch_pts: the number of different batch sizes which are checked,
-    which are equally spaced. Must be either 0 or greater than 1. If 0, the
-    batch size corresponding to the greatest increase in accuracy during the
-    reasonableness sweep is used.
+        which are equally spaced. Must be either 0 or greater than 1. If 0, the
+        batch size corresponding to the greatest increase in accuracy during
+        the reasonableness sweep is used.
 
     :ivar int batch_pt_min_inits: the minimum number of model initializations
-    that are averaged together then smoothed for each batch point
+        that are averaged together then smoothed for each batch point
     """
     def __init__(self, lr_start: float, lr_end: float, lr_min_inits: int,
                  batch_start: int, batch_end: int, batch_rn_min_inits: int,

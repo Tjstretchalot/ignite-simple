@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'torchluent'
+project = 'ignite-simple'
 html_show_copyright = False
 author = 'Timothy Moore'
 
@@ -32,7 +32,7 @@ release = '0.0.1'
 # ones.
 extensions = [
     'sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc',
-    'sphinx_rtd_theme',
+    'sphinx_rtd_theme', 'sphinx.ext.imgmath'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -43,6 +43,7 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+imgmath_image_format = 'svg'
 
 # -- Options for HTML output -------------------------------------------------
 

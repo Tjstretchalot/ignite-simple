@@ -2,43 +2,49 @@
 settings."""
 
 import torch
+import torch.utils.data
 import typing
 import ignite.engine
 import ignite.contrib.handlers.param_scheduler
 
 class TrainSettings:
-    """Describes the settings which ultimately go into a training session. This
+    r"""Describes the settings which ultimately go into a training session. This
     is intended to be trivially serializable, in that all attributes are built-
     ins that can be json serialized.
 
     :ivar str accuracy_style: one of the following constants:
 
-    * 'classification': labels are integers which correspond to the class,
-    outputs are one-hot encoded classes
+        * classification
+            labels are integers which correspond to the class,
+            outputs are one-hot encoded classes
+        * multiclass
+            labels are one-hot encoded multi-class labels, outputs are the same
+        * inv-loss
+            accuracy is not measured and inverse loss is used as the
+            performance metric instead. For stability, instead of exactly
+            inverse loss,
 
-    * 'multiclass': labels are one-hot encoded multi-class labels, outputs are
-    the same
+            .. math::
+                \frac{1}{\text{loss} + 10^{-6}}
 
-    * 'inv-loss': accuracy is not measured and inverse loss is used as the
-    performance metric instead. for stability, instead of exactly inverse loss,
-    :math:`\frac{1}{\text{loss} + 1e-6}` is used instead.
+            is used instead.
 
     :ivar tuple[str, str] model_loader: the tuple contains the module and
-    corresponding attribute name for a function which returns the
-    nn.Module to train. The module must have the calling convention
-    `model(inp) -> out`
+        corresponding attribute name for a function which returns the
+        nn.Module to train. The module must have the calling convention
+        `model(inp) -> out`
 
     :ivar tuple[str, str] task_loader: the tuple contains the module and
-    corresponding attribute name for a function which returns
-    :code:`(train_set, val_set, train_loader)`, each as described in
-    TrainState.
+        corresponding attribute name for a function which returns
+        :code:`(train_set, val_set, train_loader)`, each as described in
+        TrainState.
 
     :ivar float lr_start`: the learning rate at the start of each cycle
 
     :ivar float lr_end: the learning rate at the end of each cycle
 
     :ivar int cycle_time_epochs: the number of epochs for the learning rate
-    scheduler
+        scheduler
 
     :ivar int epochs: the number of epochs to train for
     """
@@ -66,31 +72,31 @@ class TrainState:
     :ivar torch.nn.Module model: the model which is being trained
 
     :ivar torch.utils.data.Dataset train_set: the dataset which is used to
-    train the model
+        train the model
 
     :ivar torch.utils.data.Dataset val_set: the dataset which is used to
-    validate the models performance on unseen / held out data.
+        validate the models performance on unseen / held out data.
 
     :ivar torch.utils.data.DataLoader train_loader: the dataloader which is
-    being used to generate batches from the train set to be passed into the
-    model. This incorporates the batch size
+        being used to generate batches from the train set to be passed into the
+        model. This incorporates the batch size.
 
     :ivar torch.optim.Optimizer optimizer: the optimizer which is used to
-    update the parameters of the model
+        update the parameters of the model.
 
     :ivar int cycle_time_epochs: the number of epochs in a complete cycle
-    of the learning rate, always even
+        of the learning rate, always even.
 
     :ivar ignite.contrib.handlers.param_scheduler.CyclicalScheduler lr_scheduler:
-    the parameter scheduler for the learning rate. Its instance values can be
-    used to get the learning rate range and length in batches
+        the parameter scheduler for the learning rate. Its instance values can
+        be used to get the learning rate range and length in batches.
 
     :ivar torch.nn.Module loss: the loss function, which accepts
-    :code:`(input, target)` and returns a scalar which is to be minimized
+        :code:`(input, target)` and returns a scalar which is to be minimized.
 
     :ivar ignite.engine.Engine evaluator: the engine which can be used to
-    gather metrics. Always has a :code:`'loss'` and :code:`'perf'` metric, but
-    may or may not have an :code:`'accuracy'` metric.
+        gather metrics. Always has a :code:`'loss'` and :code:`'perf'` metric, but
+        may or may not have an :code:`'accuracy'` metric.
     """
     def __init__(self,
                  model: torch.nn.Module,

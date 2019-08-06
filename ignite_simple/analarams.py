@@ -9,49 +9,49 @@ class AnalysisSettings:
     performed sequentially.
 
     :ivar bool lr_selection_explanation: True if the output should include a
-    broad text explanation of how the learning rate was selected, False
-    otherwise.
+        broad text explanation of how the learning rate was selected, False
+        otherwise.
 
     :ivar bool lr_selection_results: True if the output should include a text
-    explanation of the selected learning rate, False otherwise.
+        explanation of the selected learning rate, False otherwise.
 
     :ivar bool batch_selection_explanation: True if the output should include
-    a broad text explanation of how the minibatch size was selected, False
-    otherwise.
+        a broad text explanation of how the minibatch size was selected, False
+        otherwise.
 
     :ivar bool batch_selection_results: True if the output should include a
-    text explanation of the selected minibatch size, False otherwise.
+        text explanation of the selected minibatch size, False otherwise.
 
     :ivar bool hparam_selection_specifics: True if the output should include
-    a text explanation about how specifically we came about selecting the
-    learning rate and batch size, by going through the numbers, False
-    otherwise.
+        a text explanation about how specifically we came about selecting the
+        learning rate and batch size, by going through the numbers, False
+        otherwise.
 
     :ivar bool hparam_selection_specific_imgs: True if the output should
-    include figures with captions for the hyper paramater selection process as
-    it occurred for this model specifically, False otherwise.
+        include figures with captions for the hyper paramater selection process
+        as it occurred for this model specifically, False otherwise.
 
     :ivar bool training_explanation: True if the output should include a broad
-    text explanation of the training procedure, False otherwise.
+        text explanation of the training procedure, False otherwise.
 
     :ivar bool training_metrics: True if the output should include text metrics
-    for the models performance through training, False otherwise.
+        for the models performance through training, False otherwise.
 
     :ivar bool training_metric_imgs: True if the output should include figures
-    with captions for the performance of the model through training, i.e.,
-    accuracy vs epoch and loss vs epoch figures.
+        with captions for the performance of the model through training, i.e.,
+        accuracy vs epoch and loss vs epoch figures.
 
     :ivar bool final_metrics: True if the output should include in text the
-    final accuracy and loss, False otherwise.
+        final accuracy and loss, False otherwise.
 
     :ivar bool typical_run_pca3dvis: True if the output should include a video
-    from pca3dvis for the points as they moved through the network, False
-    otherwise.
+        from pca3dvis for the points as they moved through the network, False
+        otherwise.
 
     :ivar bool typical_run_pca3dvis_draft: If `typical_run_pca3dvis` is True,
-    then the value of `typical_run_pca3dvis_draft` corresponds to if the video
-    should have draft settings. If `typical_run_pca3dvis` is False, this has
-    no effect.
+        then the value of `typical_run_pca3dvis_draft` corresponds to if the
+        video should have draft settings. If `typical_run_pca3dvis` is False,
+        this has no effect.
     """
     def __init__(self,
                  lr_selection_explanation: bool,
@@ -104,7 +104,7 @@ def text() -> AnalysisSettings:
     """Analysis output that uses text only
 
     :returns: the text preset for analysis settings, which produces text
-    output.
+        output.
     :rtype: AnalysisSettings
     """
     res = none()
@@ -122,7 +122,7 @@ def images() -> AnalysisSettings:
     """Analysis output that uses text and images only
 
     :returns: the images preset for analysis settings, which produces text
-    and image output.
+        and image output.
     :rtype: AnalysisSettings
     """
     res = text()
@@ -137,7 +137,7 @@ def animations_draft() -> AnalysisSettings:
     simply videos under 15 seconds.
 
     :returns: the animations-draft preset for analysis settings, which produces
-    text, image, and draft-quality animations in the output.
+        text, image, and draft-quality animations in the output.
     :rtype: AnalysisSettings
     """
     return images()
@@ -147,7 +147,7 @@ def animations() -> AnalysisSettings:
     videos which are under 15 seconds for the purpose of this module.
 
     :returns: the animations preset for analysis settings, which produces text,
-    images, and animations in the output.
+        images, and animations in the output.
     :rtype: AnalysisSettings
     """
     return images()
@@ -158,8 +158,8 @@ def video_draft() -> AnalysisSettings:
     low-resolution) to speed up output
 
     :returns: the video-draft preset for analysis settings, which produces
-    text, images, draft-quality animations, and draft-quality videos in the
-    output.
+        text, images, draft-quality animations, and draft-quality videos in the
+        output.
     :rtype: AnalysisSettings
     """
     res = animations_draft()
@@ -171,7 +171,7 @@ def video() -> AnalysisSettings:
     """Analysis output that uses text, images, animations, and video
 
     :returns: the video preset for analysis settings, which produces text,
-    images, animations, and videos in the output.
+        images, animations, and videos in the output.
     :rtype: AnalysisSettings
     """
     res = animations()
