@@ -27,7 +27,7 @@ class TrainSettings:
             .. math::
                 \frac{1}{\text{loss} + 10^{-6}}
 
-            is used instead.
+            is used.
 
     :ivar tuple[str, str] model_loader: the tuple contains the module and
         corresponding attribute name for a function which returns the

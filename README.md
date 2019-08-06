@@ -20,6 +20,8 @@ either by specifying the number of repeats with `trials` or by simply
 setting `is_continuation` to `True` and calling `train` with the same output
 directory, or both.
 
+[API Reference](https://tjstretchalot.github.io/ignite-simple/index.html)
+
 ```py
 import torchluent
 import ignite_simple
