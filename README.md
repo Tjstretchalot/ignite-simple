@@ -25,16 +25,11 @@ directory, or both.
 ```py
 import torchluent
 import ignite_simple
+import torch
 import torchvision
 
-def main():
-    transform = torchvision.transforms.ToTensor()
-    train_set = torchvision.datasets.MNIST(
-        'datasets/mnist', download=True, transform=transform)
-    val_set = torchvision.datasets.MNIST(
-        'datasets/mnist', train=False, download=True, transform=transform)
-
-    model = (
+def model():
+    return (
         torchluent.FluentModule((1, 28, 28))
         .wrap(True)
         .conv2d(32, 5)
@@ -50,11 +45,22 @@ def main():
         .build()
     )
 
-    loss = torch.nn.CrossEntropyLoss()
+def dataset():
+    transform = torchvision.transforms.ToTensor()
+    train_set = torchvision.datasets.MNIST(
+        'datasets/mnist', download=True, transform=transform)
+    val_set = torchvision.datasets.MNIST(
+        'datasets/mnist', train=False, download=True, transform=transform)
+    return train_set, val_set
 
-    ignite_simple.train(model, train_set, val_set, loss, folder='out',
-                        hyperparameters='fast', analysis='images',
-                        allow_later_analysis_up_to='video',
+loss = torch.nn.CrossEntropyLoss
+
+def main():
+    ignite_simple.train((__name__, 'model', tuple(), dict()),
+                        (__name__, 'dataset', tuple(), dict()),
+                        (__name__, 'loss', tuple(), dict()),
+                        folder='out', hyperparameters='fast',
+                        analysis='images', allow_later_analysis_up_to='video',
                         trials=1, is_continuation=False,
                         history_folder='history', cores='all')
 

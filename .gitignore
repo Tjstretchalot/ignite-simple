@@ -125,3 +125,6 @@ dmypy.json
 
 # Output
 out/
+
+# Downloadable
+datasets/
