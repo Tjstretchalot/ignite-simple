@@ -54,8 +54,9 @@ def find_with_derivs(xs: np.ndarray, derivs: np.ndarray
 
     :param np.ndarray derivs: with shape `(points,)`, the relevant derivatives
 
-    :returns: the `(start_ind, end_ind)` for the best interval in derivs such
-        that the desired points are `pts[start_ind:end_ind]`
+    :returns: the `(min, max)` for the best interval in xs that has positive
+        derivative in ys. Where multiple such intervals exist, this is the
+        one with the greatest integral
     """
     derivs = derivs.copy()
     derivs[derivs < 0] = 0

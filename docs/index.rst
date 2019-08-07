@@ -29,6 +29,30 @@ ignite_simple.trainer
 .. automodule:: ignite_simple.trainer
    :members:
 
+ignite_simple.range_finder
+==========================
+
+.. automodule:: ignite_simple.range_finder
+    :members:
+
+ignite_simple.tuner
+===================
+
+.. automodule:: ignite_simple.tuner
+    :members:
+
+ignite_simple.utils
+===================
+
+.. automodule:: ignite_simple.utils
+    :members:
+
+ignite_simple.vary_bs_loader
+============================
+
+.. automodule:: ignite_simple.vary_bs_loader
+    :members:
+
 Indices and tables
 ==================
 
