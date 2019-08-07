@@ -149,6 +149,8 @@
 <span class="kn">import</span> <span class="nn">typing</span>
 <span class="kn">import</span> <span class="nn">ignite.engine</span>
 <span class="kn">import</span> <span class="nn">ignite.contrib.handlers.param_scheduler</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 
 <div class="viewcode-block" id="TrainSettings"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainSettings">[docs]</a><span class="k">class</span> <span class="nc">TrainSettings</span><span class="p">:</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Describes the settings which ultimately go into a training session. This</span>
@@ -172,17 +174,46 @@
 
 <span class="sd">            is used.</span>
 
-<span class="sd">    :ivar tuple[str, str] model_loader: the tuple contains the module and</span>
-<span class="sd">        corresponding attribute name for a function which returns the</span>
-<span class="sd">        nn.Module to train. The module must have the calling convention</span>
-<span class="sd">        `model(inp) -&gt; out`</span>
+<span class="sd">    :ivar tuple[str, str, tuple, dict] model_loader: the tuple contains the</span>
+<span class="sd">        module and corresponding attribute name for a function which returns</span>
+<span class="sd">        the nn.Module to train. The module must have the calling convention</span>
+<span class="sd">        `model(inp) -&gt; out`. The next two arguments are the args and keyword</span>
+<span class="sd">        args to the callable respectively.</span>
 
-<span class="sd">    :ivar tuple[str, str] task_loader: the tuple contains the module and</span>
-<span class="sd">        corresponding attribute name for a function which returns</span>
+<span class="sd">    :ivar tuple[str, str, tuple, dict] loss_loader: the tuple contains the</span>
+<span class="sd">        model and corresponding attribute name for a function which returns</span>
+<span class="sd">        the loss function to minimize.</span>
+
+<span class="sd">    :ivar tuple[str, str, tuple, dict] task_loader: the tuple contains the</span>
+<span class="sd">        module and corresponding attribute name for a function which returns</span>
 <span class="sd">        :code:`(train_set, val_set, train_loader)`, each as described in</span>
-<span class="sd">        TrainState.</span>
+<span class="sd">        TrainState. The next two arguments are the args and keyword args</span>
+<span class="sd">        to the callable respectively.</span>
 
-<span class="sd">    :ivar float lr_start`: the learning rate at the start of each cycle</span>
+<span class="sd">    :ivar tuple[tuple[str, tuple[str, str, tuple, dict]]] handlers: the event</span>
+<span class="sd">        handlers for the engine which will perform training. After the</span>
+<span class="sd">        specified positional arguments, the handlers will be passed the Engine</span>
+<span class="sd">        that is training the model and the TrainState that is in use. The str</span>
+<span class="sd">        associated with each callable is the event that each callable listens</span>
+<span class="sd">        to.</span>
+
+<span class="sd">        .. code::python</span>
+
+<span class="sd">            import ignite.engine as engine</span>
+
+<span class="sd">            def log_epoch(format, tnr, state):</span>
+<span class="sd">                print(format.format(tnr.state.epoch))</span>
+
+<span class="sd">            handlers = (</span>
+<span class="sd">                (engine.Event.EPOCH_COMPLETED,</span>
+<span class="sd">                 (__name__, &#39;log_epoch&#39;, (&#39;Completed Epoch {}&#39;,), dict())),</span>
+<span class="sd">            )</span>
+
+<span class="sd">            # handlers is suitable for this variable now, so long as the</span>
+<span class="sd">            # __name__ was not __main__</span>
+
+
+<span class="sd">    :ivar float lr_start: the learning rate at the start of each cycle</span>
 
 <span class="sd">    :ivar float lr_end: the learning rate at the end of each cycle</span>
 
@@ -193,19 +224,70 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">accuracy_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                 <span class="n">model_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-                 <span class="n">task_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                 <span class="n">model_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+                 <span class="n">loss_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+                 <span class="n">task_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+                 <span class="n">handlers</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span>
+                     <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]],</span>
                  <span class="n">lr_start</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
                  <span class="n">lr_end</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
                  <span class="n">cycle_time_epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
                  <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">accuracy_style</span> <span class="o">=</span> <span class="n">accuracy_style</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model_loader</span> <span class="o">=</span> <span class="n">model_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_loader</span> <span class="o">=</span> <span class="n">loss_loader</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">task_loader</span> <span class="o">=</span> <span class="n">task_loader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="n">handlers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lr_start</span> <span class="o">=</span> <span class="n">lr_start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lr_end</span> <span class="o">=</span> <span class="n">lr_end</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cycle_time_epochs</span> <span class="o">=</span> <span class="n">cycle_time_epochs</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epochs</span> <span class="o">=</span> <span class="n">epochs</span>
+
+<div class="viewcode-block" id="TrainSettings.get_model_loader"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainSettings.get_model_loader">[docs]</a>    <span class="k">def</span> <span class="nf">get_model_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the actual model loader callable, which is defined through</span>
+<span class="sd">        model_loader. This is a callable which returns the `torch.nn.Module`</span>
+<span class="sd">        to train. The resulting callable already has the required arguments</span>
+<span class="sd">        and keyword arguments bound.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_loader</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_loader</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">model_loader</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">model_loader</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TrainSettings.get_loss_loader"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainSettings.get_loss_loader">[docs]</a>    <span class="k">def</span> <span class="nf">get_loss_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the actual loss loader callable, which is defined through</span>
+<span class="sd">        loss_loader. This is a callable which returns the `torch.nn.Module`</span>
+<span class="sd">        that goes from the output of the model to a scalar which should be</span>
+<span class="sd">        minimized.&quot;&quot;&quot;</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_loader</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_loader</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_loader</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_loader</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TrainSettings.get_task_loader"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainSettings.get_task_loader">[docs]</a>    <span class="k">def</span> <span class="nf">get_task_loader</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the actual task loader callable, which is defined through</span>
+<span class="sd">        task_loader. This is a callable which returns</span>
+<span class="sd">        `(train_set, val_set, train_loader)`, each as defined in TrainState.</span>
+<span class="sd">        The resulting callable already has the required arguments</span>
+<span class="sd">        and keyword arguments bound.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_loader</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_loader</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+            <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">task_loader</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">task_loader</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TrainSettings.get_handlers"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainSettings.get_handlers">[docs]</a>    <span class="k">def</span> <span class="nf">get_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;This returns handlers except instead of the function descriptions</span>
+<span class="sd">        (module, attribute, args, kwargs), actual callables are provided with</span>
+<span class="sd">        the necessary arguments and keyword arguments already bound.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">evt</span><span class="p">,</span> <span class="p">(</span><span class="n">modnm</span><span class="p">,</span> <span class="n">attrnm</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">handlers</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">modnm</span><span class="p">)</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">attrnm</span><span class="p">)</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">evt</span><span class="p">,</span> <span class="n">func</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div></div>
 
 <div class="viewcode-block" id="TrainState"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.TrainState">[docs]</a><span class="k">class</span> <span class="nc">TrainState</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Describes the state which is passed as the second positional argument to</span>
@@ -260,6 +342,76 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">lr_scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">evaluator</span> <span class="o">=</span> <span class="n">evaluator</span></div>
+
+<span class="k">def</span> <span class="nf">_multiclass_threshold</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+    <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">output</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">y_pred</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">y_pred</span><span class="p">[</span><span class="n">y_pred</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">y_pred</span><span class="p">[</span><span class="n">y_pred</span> <span class="o">&gt;=</span> <span class="mf">0.5</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">y</span>
+
+<span class="k">def</span> <span class="nf">_inv_loss</span><span class="p">(</span><span class="n">loss</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">loss</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_iden</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+<div class="viewcode-block" id="train"><a class="viewcode-back" href="../../index.html#ignite_simple.trainer.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">settings</span><span class="p">:</span> <span class="n">TrainSettings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Trains a model with the given settings.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        In order to store anything you will need to use a handler. For example,</span>
+<span class="sd">        a handler for `ignite.engine.Event.COMPLETED` and stores the</span>
+<span class="sd">        model somewhere.</span>
+
+<span class="sd">    :param TrainSettings settings: The settings to use for training</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get_model_loader</span><span class="p">()()</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get_loss_loader</span><span class="p">()()</span>
+    <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span><span class="p">,</span> <span class="n">train_loader</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get_task_loader</span><span class="p">()()</span>
+
+    <span class="n">handlers</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get_handlers</span><span class="p">()</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">ignite</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Loss</span><span class="p">(</span><span class="n">loss</span><span class="p">)}</span>
+    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">accuracy_style</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Accuracy</span><span class="p">()</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">MetricsLambda</span><span class="p">(</span>
+            <span class="n">_iden</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">settings</span><span class="o">.</span><span class="n">accuracy_style</span> <span class="o">==</span> <span class="s1">&#39;multiclass&#39;</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Accuracy</span><span class="p">(</span><span class="n">_multiclass_threshold</span><span class="p">,</span>
+                                                      <span class="n">is_multilabel</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">MetricsLambda</span><span class="p">(</span>
+            <span class="n">_iden</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">MetricsLambda</span><span class="p">(</span>
+            <span class="n">_inv_loss</span><span class="p">,</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">SGD</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># lr irrelevant here</span>
+    <span class="n">scheduler</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">ignite</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">param_scheduler</span><span class="o">.</span><span class="n">LinearCyclicalScheduler</span><span class="p">(</span>
+            <span class="n">optimizer</span><span class="p">,</span> <span class="s1">&#39;lr&#39;</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_start</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_end</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">train_loader</span><span class="p">)</span> <span class="o">*</span> <span class="n">settings</span><span class="o">.</span><span class="n">cycle_time_epochs</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">trainer</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">create_supervised_trainer</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">loss</span><span class="p">)</span>
+    <span class="n">evaluator</span> <span class="o">=</span> <span class="n">ignite</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">create_supervised_evaluator</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">metrics</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">TrainState</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span>
+        <span class="n">settings</span><span class="o">.</span><span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">evaluator</span>
+    <span class="p">)</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span>
+        <span class="n">ignite</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">Events</span><span class="o">.</span><span class="n">ITERATION_STARTED</span><span class="p">,</span>
+        <span class="n">scheduler</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">evt</span><span class="p">,</span> <span class="n">hndlr</span> <span class="ow">in</span> <span class="n">handlers</span><span class="p">:</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">add_event_handler</span><span class="p">(</span><span class="n">evt</span><span class="p">,</span> <span class="n">hndlr</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">train_loader</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">epochs</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
