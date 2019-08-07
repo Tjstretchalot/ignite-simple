@@ -197,8 +197,9 @@
 
 <span class="sd">    :param np.ndarray derivs: with shape `(points,)`, the relevant derivatives</span>
 
-<span class="sd">    :returns: the `(start_ind, end_ind)` for the best interval in derivs such</span>
-<span class="sd">        that the desired points are `pts[start_ind:end_ind]`</span>
+<span class="sd">    :returns: the `(min, max)` for the best interval in xs that has positive</span>
+<span class="sd">        derivative in ys. Where multiple such intervals exist, this is the</span>
+<span class="sd">        one with the greatest integral</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">derivs</span> <span class="o">=</span> <span class="n">derivs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">derivs</span><span class="p">[</span><span class="n">derivs</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
