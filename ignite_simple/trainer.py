@@ -4,15 +4,18 @@ settings."""
 import torch
 import torch.utils.data
 import typing
+from ignite_simple.utils import noop
 import ignite.engine
 import ignite.contrib.handlers.param_scheduler
 import importlib
 import functools
 
 class TrainSettings:
-    r"""Describes the settings which ultimately go into a training session. This
-    is intended to be trivially serializable, in that all attributes are built-
-    ins that can be json serialized.
+    r"""Describes the settings which ultimately go into a training session.
+    This is intended to be trivially serializable, in that all attributes are
+    built-ins that can be json serialized. The train function here runs in the
+    same process, but this strategy allows us to use the same interface design
+    throughout and allows repeating / printing training sessions trivially.
 
     :ivar str accuracy_style: one of the following constants:
 
@@ -69,6 +72,9 @@ class TrainSettings:
             # handlers is suitable for this variable now, so long as the
             # __name__ was not __main__
 
+    :ivar tuple[str, str, tuple, dict] initializer: this is called with trainer
+        as the next positional argument. May be used to attach additional
+        events to the trainer.
 
     :ivar float lr_start: the learning rate at the start of each cycle
 
@@ -79,22 +85,25 @@ class TrainSettings:
 
     :ivar int epochs: the number of epochs to train for
     """
-    def __init__(self,
-                 accuracy_style: str,
-                 model_loader: typing.Tuple[str, str, tuple, dict],
-                 loss_loader: typing.Tuple[str, str, tuple, dict],
-                 task_loader: typing.Tuple[str, str, tuple, dict],
-                 handlers: typing.Tuple[
-                     typing.Tuple[str, typing.Tuple[str, str, tuple, dict]]],
-                 lr_start: float,
-                 lr_end: float,
-                 cycle_time_epochs: int,
-                 epochs: int):
+    def __init__(
+            self,
+            accuracy_style: str,
+            model_loader: typing.Tuple[str, str, tuple, dict],
+            loss_loader: typing.Tuple[str, str, tuple, dict],
+            task_loader: typing.Tuple[str, str, tuple, dict],
+            handlers: typing.Tuple[
+                typing.Tuple[str, typing.Tuple[str, str, tuple, dict]]],
+            initializer: typing.Optional[typing.Tuple[str, str, tuple, dict]],
+            lr_start: float,
+            lr_end: float,
+            cycle_time_epochs: int,
+            epochs: int):
         self.accuracy_style = accuracy_style
         self.model_loader = model_loader
         self.loss_loader = loss_loader
         self.task_loader = task_loader
         self.handlers = handlers
+        self.initializer = initializer
         self.lr_start = lr_start
         self.lr_end = lr_end
         self.cycle_time_epochs = cycle_time_epochs
@@ -145,6 +154,19 @@ class TrainSettings:
             func = functools.partial(func, *args, **kwargs)
             res.append((evt, func))
         return tuple(res)
+
+    def get_initializer(self) -> typing.Callable:
+        """This returns the initializer; if it is not specified this is a
+        no-op. Otherwise, this is the callable which accepts the trainer
+        and initializes it, with the other arguments and keyword arguments
+        already bound."""
+        if not self.initializer:
+            return noop
+
+        module = importlib.import_module(self.initializer[0])
+        func = getattr(module, self.initializer[1])
+        return functools.partial(
+            func, *self.initializer[2], **self.initializer[3])
 
 class TrainState:
     """Describes the state which is passed as the second positional argument to
@@ -255,6 +277,9 @@ def train(settings: TrainSettings) -> None:
     trainer = ignite.engine.create_supervised_trainer(model, optimizer, loss)
     evaluator = ignite.engine.create_supervised_evaluator(
         model, metrics=metrics)
+
+    settings.get_initializer()(trainer)
+
     state = TrainState(
         model, train_set, val_set, train_loader, optimizer,
         settings.cycle_time_epochs, scheduler, loss, evaluator

@@ -50,6 +50,7 @@ def main():
         (_module, 'loss', [], dict()),
         (_module, '_task', [64], dict()),
         [(Events.EPOCH_COMPLETED, (_module, '_log_epoch', [], dict()))],
+        [],
         1e-4,
         0.5,
         6,

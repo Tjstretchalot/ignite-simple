@@ -1,5 +1,6 @@
 """This module is used to describe the hyperparameter tuning settings and
 presets used for training."""
+import typing
 
 class HyperparameterSettings:
     """Describes settings for tuning hyperparameters
@@ -109,3 +110,23 @@ def slowest() -> HyperparameterSettings:
         batch_pt_min_inits=10,
         rescan_lr_after_bs=True,
     )
+
+NAME_TO_PRESET = {
+    'fastest': fastest,
+    'fast': fast,
+    'slow': slow,
+    'slowest': slowest
+}
+
+def get_settings(preset: typing.Union[str, HyperparameterSettings]):
+    """Gets the corresponding preset if the argument is a name of one,
+    returns the argument directly if the argument is already a settings
+    object, and raises an exception in all other circumstances.
+
+    :param preset: the name for a preset or the complete settings object
+
+    :returns: the corresponding preset or the settings object passed in
+    """
+    if isinstance(preset, HyperparameterSettings):
+        return preset
+    return NAME_TO_PRESET[preset]()

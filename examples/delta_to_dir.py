@@ -2,14 +2,10 @@
 (dx, dy) to the relative onehot direction (left, up, right, down).
 """
 
-import ignite_simple  # pylint: disable=unused-import
+import ignite_simple
 import torch
-import ignite_simple.tuner
-import ignite_simple.hyperparams
-import ignite_simple.analarams
-import ignite_simple.utils
 from torchluent import FluentModule
-import logging
+import logging.config
 import json
 import psutil
 
@@ -60,28 +56,28 @@ def dataset(max_abs_val: int = 30):
 
 loss = torch.nn.SmoothL1Loss
 
-_module = 'examples.delta_to_dir'
+_module = __name__  # 'examples.delta_to_dir'
 
 def main():
     """Finds the correct learning rate range and batch size"""
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    logging.basicConfig(format='%(asctime)s %(message)s',
-                        datefmt='%m/%d/%Y %I:%M:%S %p')
+    logging.config.fileConfig('logging.conf')
 
-    hparams = ignite_simple.hyperparams.fast()
-    aparams = ignite_simple.analarams.video()
+    hparams = 'fast'
+    aparams = 'video'
 
-    ignite_simple.tuner.tune(
+    ignite_simple.train(
         (_module, 'model', tuple(), dict()),
         (_module, 'dataset', tuple(), dict()),
         (_module, 'loss', tuple(), dict()),
-        'inv-loss',
-        'out/examples/delta_to_dir',
-        psutil.cpu_count(logical=False),
-        hparams,
-        aparams,
-        logger
+        folder='out/examples/delta_to_dir/current',
+        hyperparameters='fast',
+        analysis='video',
+        allow_later_analysis_up_to='video',
+        accuracy_style='inv-loss',
+        trials=1,
+        is_continuation=True,
+        history_folder='out/examples/delta_to_dir/history',
+        cores=1
     )
 
 if __name__ == '__main__':

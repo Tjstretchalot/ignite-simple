@@ -27,6 +27,7 @@ import torchluent
 import ignite_simple
 import torch
 import torchvision
+import logging.config
 
 def model():
     return (
@@ -56,11 +57,15 @@ def dataset():
 loss = torch.nn.CrossEntropyLoss
 
 def main():
+    # a reasonable logging.conf is in this repository to get you started.
+    # you won't see any stdout without a logging config!
+    logging.config.fileConfig('logging.conf')
     ignite_simple.train((__name__, 'model', tuple(), dict()),
                         (__name__, 'dataset', tuple(), dict()),
                         (__name__, 'loss', tuple(), dict()),
                         folder='out', hyperparameters='fast',
                         analysis='images', allow_later_analysis_up_to='video',
+                        accuracy_style='classification',
                         trials=1, is_continuation=False,
                         history_folder='history', cores='all')
 
@@ -68,7 +73,7 @@ if __name__ == '__main__':
     main()
 ```
 
-## Continuations
+## Continuations and trials
 
 In the above example, by changing `is_continuation` to `True`, the file may be
 invoked multiple times. With `is_continuation=True`, the hyperparameters will
@@ -79,24 +84,42 @@ alongside (not overwriting) the existing ones. Furthermore, additional plots
 the history folder with the current timestamp as its name prior to starting
 the run.
 
+Note that trials is treated as the *minimum* number of trials to perform.
+This will attempt to use all available cores (i.e., the number specified in
+cores), which may mean multiple trials can be run in parallel without any
+significant difference in runtime. This can be suppressed with the parameter
+`trials_strict=True`.
+
 ## Validation sets
 
-If your dataset is not already broken up into training and validation data, the
-validation dataset can be replaced with a float in (0, 1) to have a random
-subset of the training set held out and used as validation dataset. The number
-of samples is the specified % of the overall data (i.e. 0.1 for 10% of overall
-data held out for validation).
+For automatic dataset splitting into training and validiation, one can use
+`ignite_simple.utils.split` as follows:
 
-## Labels and accuracy measures
+```py
+import ignite_simple.utils
+import torch.utils.data as data
 
-This package chooses an accuracy measure based on the shape and datatype of
-the labels. If the labels are integers, it is assumed that the output of
-the network is a one-hot encoding of the label. If the labels are a tensor
-of integers, they are assumed to be one-hot multiclass labels. In all
-other cases, accuracy is not measured and inverse loss is used as a proxy.
+full: data.Dataset  # dataset to split
+val_perc: float = 0.1  # perc in the validation set
 
-For multi-class labels, the threshold may be specified with the
-`accuracy_threshold` keyword argument to train
+
+train_set, val_set = ignite_simple.utils.split(
+    full, val_perc, filen='mydataset/train_val_split')
+```
+
+The split is random and stored in the given file (extensionless is recommended,
+in which the appropriate extension will be added). If the file already exists,
+this returns the split stored in the specified file. This makes it easier to
+verify the training and validation accuracy after the fact and simplifies
+comparisons of models on the same dataset.
+
+## Accuracy style
+
+Valid values are `classification`, `multiclass`, and `inv-loss`. Classification
+is for MNIST-style labels (labels are one-hot and the output of the network
+is a one-hot encoding of the label). Multi-class is for when the labels are
+one-hot encoded class labels extended to potentially multiple ones. `inv-loss`
+uses 1/loss as the performance metric instead of accuracy.
 
 ## Automatic hyperparameter tuning
 
@@ -149,16 +172,17 @@ the previous plus a video guide. The `-draft` settings produce lower-quality
 Analysis can be performed after-the-fact assuming that sufficient data was
 collected (which is specified in the `allow_later_analysis_up_to` parameter).
 The following snippet performs video analysis on the first example without
-repeating training:
+repeating training, assuming its in the same file:
 
 ```py
-import ignite_simple
-
-def main():
-    ignite_simple.reanalyze(folder='out', analysis='video')
-
-if __name__ == '__main__':
-    main()
+def reanalyze():
+    ignite_simple.analyze(
+        (__name__, 'dataset', tuple(), dict()),
+        (__name__, 'loss', tuple(), dict()),
+        folder='out',
+        settings='video',
+        accuracy_style='classification',
+        cores='all')
 ```
 
 Example output with the video preset:

@@ -2,6 +2,7 @@
 for the output, and what's required to produce that output is calculated from
 that.
 """
+import typing
 
 class AnalysisSettings:
     """Describes the analysis settings. Note that, where relevant and
@@ -178,3 +179,36 @@ def video() -> AnalysisSettings:
     res.typical_run_pca3dvis = True
     res.typical_run_pca3dvis_draft = False
     return res
+
+NAME_TO_PRESET = {
+    'none': none,
+    'text': text,
+    'images': images,
+    'image': images,
+    'animation-draft': animations_draft,
+    'animation_draft': animations_draft,
+    'animations-draft': animations_draft,
+    'animations_draft': animations_draft,
+    'animation': animations,
+    'animations': animations,
+    'video-draft': video_draft,
+    'video_draft': video_draft,
+    'videos-draft': video_draft,
+    'videos_draft': video_draft,
+    'video': video,
+    'videos': video
+}
+
+def get_settings(preset: typing.Union[
+        str, AnalysisSettings]) -> AnalysisSettings:
+    """Gets the analysis settings from the given preset name or analysis
+    settings.
+
+    :param preset: either a str name of a preset or the settings to return
+
+    :returns: the corresponding preset or just the argument if its already
+        AnalysisSettings
+    """
+    if isinstance(preset, AnalysisSettings):
+        return preset
+    return NAME_TO_PRESET[preset]()

@@ -6,7 +6,7 @@ try:
 except:  # pylint: disable=bare-except # noqa: E722
     pass
 
-__all__ = ['trainer']
+__all__ = ['train', 'analyze']
 
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
@@ -31,4 +31,5 @@ import numpy as np
 np.seterr('raise')
 np.random.seed()
 
-import ignite_simple.trainer as trainer
+from ignite_simple.model_manager import train
+from ignite_simple.analysis import analyze

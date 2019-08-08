@@ -7,6 +7,7 @@ from ignite_simple.hyperparams import HyperparameterSettings
 from ignite_simple.analarams import AnalysisSettings
 from ignite_simple.vary_bs_loader import BatchSizeVaryingDataLoader
 from ignite_simple.range_finder import smooth_window_size, find_with_derivs
+import ignite_simple.utils as utils
 import ignite_simple.trainer
 import torch
 import torch.utils.data as data
@@ -21,27 +22,8 @@ import scipy.signal
 import scipy.special
 import json
 
-def _invoke(loader):
-    modulename, attrname, args, kwargs = loader
-
-    module = importlib.import_module(modulename)
-    return getattr(module, attrname)(*args, **kwargs)
-
-def _valldr(val_set, num_to_val):
-    if num_to_val == len(val_set):
-        return data.DataLoader(val_set, batch_size=64 * 3)
-
-    valinds = np.random.choice(len(val_set), num_to_val, replace=False)
-    valinds = torch.from_numpy(valinds).long()
-    return data.DataLoader(data.Subset(val_set, valinds),
-                           batch_size=min(64 * 3, num_to_val))
-
-def _task_loader(dataset_loader, batch_size, shuffle, drop_last):
-    train_set, val_set = _invoke(dataset_loader)
-
-    train_loader = data.DataLoader(
-        train_set, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
-    return train_set, val_set, train_loader
+_valldr = utils.create_partial_loader
+_task_loader = utils.task_loader
 
 def _store_lr_and_perf(lrs, perfs, cur_iter, num_to_val, tnr,
                        state: ignite_simple.trainer.TrainState):
@@ -58,7 +40,7 @@ def _increment(cur, tnr, state):
 def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                 accuracy_style, lr_start, lr_end, batch_size,
                 cycle_time_epochs):
-    train_set, val_set = _invoke(dataset_loader)
+    train_set, val_set = utils.invoke(dataset_loader)
 
     num_train_iters = (len(train_set) // batch_size) * (cycle_time_epochs // 2)
 
@@ -79,6 +61,7 @@ def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
             (Events.ITERATION_COMPLETED,
              (__name__, '_increment', (cur_iter,), dict()))
         ),
+        None,
         lr_start,
         lr_end,
         cycle_time_epochs,
@@ -88,7 +71,7 @@ def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     np.savez_compressed(outfile, lrs=lrs, perfs=perfs)
 
 def _task_loader_bs(dataset_loader, batch_start, batch_end, epochs):
-    train_set, val_set = _invoke(dataset_loader)
+    train_set, val_set = utils.invoke(dataset_loader)
     train_loader = BatchSizeVaryingDataLoader(
         train_set, batch_start, batch_end, epochs)
     return train_set, val_set, train_loader
@@ -127,7 +110,7 @@ def _store_last_bs(perfs, cur, tnr, state):
 def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                    accuracy_style, batch_start, batch_end, lr_start, lr_end,
                    cycle_time_epochs):
-    train_set, val_set = _invoke(dataset_loader)
+    train_set, val_set = utils.invoke(dataset_loader)
 
     # N = 0.5 * k * (k + 1)
     # => k^2 + k - 2N = 0
@@ -160,6 +143,7 @@ def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
             (Events.COMPLETED,
              (__name__, '_store_last_bs', (perfs, cur), dict()))
         ),
+        None,
         lr_start,
         lr_end,
         2,
@@ -176,7 +160,7 @@ def _store_perf(perfs, cur, num_to_val, tnr, state):
 def _train_with_perf(model_loader, dataset_loader, loss_loader, outfile,
                      accuracy_style, batch_size, lr_start, lr_end,
                      cycle_time_epochs, epochs, with_raw):
-    train_set, val_set = _invoke(dataset_loader)
+    train_set, val_set = utils.invoke(dataset_loader)
 
     final_perf = np.zeros(1)
     final_ind = [0]
@@ -202,7 +186,7 @@ def _train_with_perf(model_loader, dataset_loader, loss_loader, outfile,
         accuracy_style, model_loader, loss_loader,
         (__name__, '_task_loader',
          (dataset_loader, batch_size, True, True), dict()),
-        handlers, lr_start, lr_end, cycle_time_epochs, epochs
+        handlers, None, lr_start, lr_end, cycle_time_epochs, epochs
     )
     ignite_simple.trainer.train(tnr_settings)
 
@@ -434,11 +418,12 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     on the specified dataset trained with the given loss. Stores the following
     information:
 
-    .. code::
+    .. code:: none
 
         folder/
             final.json
-                {'lr_start': float, 'lr_end': float, 'batch_size': float}
+                {'lr_start': float, 'lr_end': float, 'batch_size': float,
+                 'cycle_size_epochs': int, 'epochs': int}
             lr_vs_perf.npz
                 lrs=np.ndarray[number of batches]
                 perfs=np.ndarray[trials, number of batches]
@@ -513,7 +498,7 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     os.makedirs(folder)
 
-    train_set, _ = _invoke(dataset_loader)
+    train_set, _ = ignite_simple.utils.invoke(dataset_loader)
 
     logger.info('Performing initial learning rate sweep...')
     init_batch_size = 64
@@ -594,4 +579,6 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     with open(os.path.join(folder, 'final.json'), 'w') as outfile:
         json.dump({'lr_start': lr_min, 'lr_end': lr_max,
-                   'batch_size': batch_size}, outfile)
+                   'batch_size': batch_size,
+                   'cycle_size_epochs': init_cycle_time,
+                   'epochs': init_cycle_time * 4}, outfile)
