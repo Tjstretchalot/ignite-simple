@@ -244,7 +244,7 @@ def train(settings: TrainSettings) -> None:
         metrics['perf'] = ignite.metrics.MetricsLambda(
             _inv_loss, metrics['loss'])
 
-    optimizer = torch.optim.SGD(model.parameters(), lr=1) # lr irrelevant here
+    optimizer = torch.optim.SGD(model.parameters(), lr=1)  # lr irrelevant here
     scheduler = (
         ignite.contrib.handlers.param_scheduler.LinearCyclicalScheduler(
             optimizer, 'lr', settings.lr_start, settings.lr_end,

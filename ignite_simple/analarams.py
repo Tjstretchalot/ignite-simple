@@ -57,7 +57,7 @@ class AnalysisSettings:
                  lr_selection_explanation: bool,
                  lr_selection_results: bool,
                  batch_selection_explanation: bool,
-                 batch_selection_results: bool  ,
+                 batch_selection_results: bool,
                  hparam_selection_specifics: bool,
                  hparam_selection_specific_imgs: bool,
                  training_explanation: bool,

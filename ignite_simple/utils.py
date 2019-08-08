@@ -6,8 +6,8 @@ import torch
 import numpy as np
 import typing
 
-def split(full: data.Dataset, val_perc: float
-         ) -> typing.Tuple[data.Dataset, data.Dataset]:
+def split(full: data.Dataset,
+          val_perc: float) -> typing.Tuple[data.Dataset, data.Dataset]:
     """Splits the given dataset into two datasets, the first of which has
     (1 - val_perc) fraction of the data and the other has val_perc fraction
     of the data, distributed randomly.

@@ -2,7 +2,7 @@
 (dx, dy) to the relative onehot direction (left, up, right, down).
 """
 
-import ignite_simple # pylint: disable=unused-import
+import ignite_simple  # pylint: disable=unused-import
 import torch
 import ignite_simple.tuner
 import ignite_simple.hyperparams
@@ -11,6 +11,7 @@ import ignite_simple.utils
 from torchluent import FluentModule
 import logging
 import json
+import psutil
 
 def model():
     """Creates the model that should be trained"""
@@ -36,16 +37,17 @@ def dataset(max_abs_val: int = 30):
 
     ind = 0
     for y in range(-max_abs_val, max_abs_val + 1):
-        inps[ind:ind+side_len, 0] = torch.arange(-max_abs_val, max_abs_val+1)
-        inps[ind:ind+side_len, 1] = y
+        inps[ind:ind + side_len, 0] = torch.arange(
+            -max_abs_val, max_abs_val + 1)
+        inps[ind:ind + side_len, 1] = y
 
         if y < 0:
-            outs[ind:ind+side_len, 0] = 1
+            outs[ind:ind + side_len, 0] = 1
         elif y > 0:
-            outs[ind:ind+side_len, 2] = 1
+            outs[ind:ind + side_len, 2] = 1
 
-        outs[ind:ind+max_abs_val, 1] = 1
-        outs[ind+max_abs_val+1:ind+side_len, 3] = 1
+        outs[ind:ind + max_abs_val, 1] = 1
+        outs[ind + max_abs_val + 1:ind + side_len, 3] = 1
         ind += side_len
 
     prm = torch.randperm(num_pts)
@@ -76,7 +78,7 @@ def main():
         (_module, 'loss', tuple(), dict()),
         'inv-loss',
         'out/examples/delta_to_dir',
-        3,
+        psutil.cpu_count(logical=False),
         hparams,
         aparams,
         logger

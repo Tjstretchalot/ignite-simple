@@ -35,7 +35,7 @@ def nonzero_intervals(vec: np.ndarray) -> np.ndarray:
         return []
 
     edges, = np.nonzero(np.diff((vec == 0).astype('int32')))
-    edge_vec = [edges+1]
+    edge_vec = [edges + 1]
     if vec[0] != 0:
         edge_vec.insert(0, [0])
     if vec[-1] != 0:
@@ -43,8 +43,8 @@ def nonzero_intervals(vec: np.ndarray) -> np.ndarray:
 
     return np.concatenate(edge_vec)
 
-def find_with_derivs(xs: np.ndarray, derivs: np.ndarray
-                    ) -> typing.Tuple[int, int]:
+def find_with_derivs(xs: np.ndarray,
+                     derivs: np.ndarray) -> typing.Tuple[int, int]:
     """Finds the range in derivs wherein the derivative is always
     positive. From these intervals, this returns specifically the one with
     the greatest integral.

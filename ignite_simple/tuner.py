@@ -1,6 +1,6 @@
 """This module is responsible for tuning the learning rate and batch size for
 training a module."""
-import ignite_simple # pylint: disable=unused-import
+import ignite_simple  # pylint: disable=unused-import
 import typing
 import importlib
 from ignite_simple.hyperparams import HyperparameterSettings
@@ -29,12 +29,12 @@ def _invoke(loader):
 
 def _valldr(val_set, num_to_val):
     if num_to_val == len(val_set):
-        return data.DataLoader(val_set, batch_size=64*3)
+        return data.DataLoader(val_set, batch_size=64 * 3)
 
     valinds = np.random.choice(len(val_set), num_to_val, replace=False)
     valinds = torch.from_numpy(valinds).long()
     return data.DataLoader(data.Subset(val_set, valinds),
-                           batch_size=min(64*3, num_to_val))
+                           batch_size=min(64 * 3, num_to_val))
 
 def _task_loader(dataset_loader, batch_size, shuffle, drop_last):
     train_set, val_set = _invoke(dataset_loader)
@@ -63,7 +63,7 @@ def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     num_train_iters = (len(train_set) // batch_size) * (cycle_time_epochs // 2)
 
     cur_iter = [0]
-    num_to_val = min(64*3, len(val_set))
+    num_to_val = min(64 * 3, len(val_set))
 
     lrs = np.zeros(num_train_iters)
     perfs = np.zeros(num_train_iters)
@@ -147,7 +147,7 @@ def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     perfs = np.zeros(bss.shape, dtype='float32')
 
     cur = [(bss[0], 0, 0), 0]
-    num_to_val = min(64*3, len(val_set))
+    num_to_val = min(64 * 3, len(val_set))
 
     tnr_settings = ignite_simple.trainer.TrainSettings(
         accuracy_style, model_loader, loss_loader,
@@ -187,7 +187,7 @@ def _train_with_perf(model_loader, dataset_loader, loss_loader, outfile,
     ]
     if with_raw:
         num_iters = (len(train_set) // batch_size) * epochs
-        num_to_val = min(64*3, len(val_set))
+        num_to_val = min(64 * 3, len(val_set))
         perf = np.zeros(num_iters)
         ind = [0]
         handlers.extend([
@@ -211,8 +211,8 @@ def _train_with_perf(model_loader, dataset_loader, loss_loader, outfile,
         to_save['perf'] = perf
     np.savez_compressed(outfile, **to_save)
 
-def _run_and_collate(fn, kwargs, cores, min_iters,
-                    ) -> typing.Dict[str, np.ndarray]:
+def _run_and_collate(fn, kwargs, cores,
+                     min_iters) -> typing.Dict[str, np.ndarray]:
     folder = str(uuid.uuid4())
     os.makedirs(folder)
 
@@ -338,8 +338,8 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
     folder = str(uuid.uuid4())
     os.makedirs(folder)
 
-    loops = 0 # number spawned // test_pts.shape[0]
-    cur_ind = 0 # in test_pts
+    loops = 0  # number spawned // test_pts.shape[0]
+    cur_ind = 0  # in test_pts
     current_processes = []
     while loops < settings.batch_pt_min_inits:
         while len(current_processes) == cores:
