@@ -84,6 +84,7 @@
 <li><a class="reference internal" href="#module-ignite_simple.analarams">ignite_simple.analarams</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.hyperparams">ignite_simple.hyperparams</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.trainer">ignite_simple.trainer</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.analysis">ignite_simple.analysis</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.range_finder">ignite_simple.range_finder</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.tuner">ignite_simple.tuner</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.utils">ignite_simple.utils</a></li>
@@ -586,6 +587,47 @@ model somewhere.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>settings</strong> (<a class="reference internal" href="#ignite_simple.trainer.TrainSettings" title="ignite_simple.trainer.TrainSettings"><em>TrainSettings</em></a>) – The settings to use for training</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ignite_simple.analysis">
+<span id="ignite-simple-analysis"></span><h1>ignite_simple.analysis<a class="headerlink" href="#module-ignite_simple.analysis" title="Permalink to this headline">¶</a></h1>
+<p>This module is tasked with generating analysis text, images, animations,
+and videos using only the output from the model manager, the dataset, the
+loss metric, and the accuracy style.</p>
+<dl class="function">
+<dt id="ignite_simple.analysis.analyze">
+<code class="sig-prename descclassname">ignite_simple.analysis.</code><code class="sig-name descname">analyze</code><span class="sig-paren">(</span><em class="sig-param">dataset_loader: Tuple[str, str, tuple, dict], loss_loader: Tuple[str, str, tuple, dict], folder: str, settings: Union[str, ignite_simple.analarams.AnalysisSettings], accuracy_style: str, cores: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/analysis.html#analyze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analysis.analyze" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the requested analysis of the given folder, which is assumed to
+have been generated from model_manager.train. The output folder structure
+is as follows:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>folder/
+    analysis/
+        TODO
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset_loader</strong> – the module and corresponding attribute that gives a
+training and validation dataset when invoked with the specified
+arguments and keyword arguments.</p></li>
+<li><p><strong>loss_loader</strong> – the module and corresponding attribute that gives a
+loss nn.Module when invoked with the specified arguments and keyword
+arguments</p></li>
+<li><p><strong>folder</strong> – where the model manager saved the trials to analyze</p></li>
+<li><p><strong>settings</strong> – the settings for analysis, or the name of the preset to
+use. Common preset names are <cite>none</cite>, <cite>text</cite>, <cite>images</cite>, <cite>animations</cite>,
+and <cite>videos</cite>. For the full list, see the ignite_simple.analarams
+module.</p></li>
+<li><p><strong>accuracy_style</strong> – how performance was calculated. one of
+‘classification’, ‘multiclass’, and ‘inv-loss’. See train for
+details.</p></li>
+<li><p><strong>cores</strong> – the number of physical cores this can assume are available
+to speed up analysis.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
