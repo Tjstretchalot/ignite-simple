@@ -245,6 +245,22 @@ text, image, and draft-quality animations in the output.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="ignite_simple.analarams.get_settings">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">get_settings</code><span class="sig-paren">(</span><em class="sig-param">preset: Union[str, ignite_simple.analarams.AnalysisSettings]</em><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#get_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.get_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the analysis settings from the given preset name or analysis
+settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>preset</strong> – either a str name of a preset or the settings to return</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the corresponding preset or just the argument if its already
+AnalysisSettings</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="ignite_simple.analarams.images">
 <code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">images</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#images"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.images" title="Permalink to this definition">¶</a></dt>
 <dd><p>Analysis output that uses text and images only</p>
@@ -378,6 +394,22 @@ of learning rate to batch size as we found in the first sweep.</p></li>
 </dd></dl>
 
 <dl class="function">
+<dt id="ignite_simple.hyperparams.get_settings">
+<code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">get_settings</code><span class="sig-paren">(</span><em class="sig-param">preset: Union[str, ignite_simple.hyperparams.HyperparameterSettings]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/hyperparams.html#get_settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.get_settings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the corresponding preset if the argument is a name of one,
+returns the argument directly if the argument is already a settings
+object, and raises an exception in all other circumstances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>preset</strong> – the name for a preset or the complete settings object</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the corresponding preset or the settings object passed in</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="ignite_simple.hyperparams.slow">
 <code class="sig-prename descclassname">ignite_simple.hyperparams.</code><code class="sig-name descname">slow</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.hyperparams.HyperparameterSettings<a class="reference internal" href="_modules/ignite_simple/hyperparams.html#slow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.hyperparams.slow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a somewhat slow (in time spent tuning parameters) preset</p>
@@ -396,10 +428,12 @@ of learning rate to batch size as we found in the first sweep.</p></li>
 settings.</p>
 <dl class="class">
 <dt id="ignite_simple.trainer.TrainSettings">
-<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.trainer.</code><code class="sig-name descname">TrainSettings</code><span class="sig-paren">(</span><em class="sig-param">accuracy_style: str, model_loader: Tuple[str, str, tuple, dict], loss_loader: Tuple[str, str, tuple, dict], task_loader: Tuple[str, str, tuple, dict], handlers: Tuple[Tuple[str, Tuple[str, str, tuple, dict]]], lr_start: float, lr_end: float, cycle_time_epochs: int, epochs: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainSettings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Describes the settings which ultimately go into a training session. This
-is intended to be trivially serializable, in that all attributes are built-
-ins that can be json serialized.</p>
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.trainer.</code><code class="sig-name descname">TrainSettings</code><span class="sig-paren">(</span><em class="sig-param">accuracy_style: str, model_loader: Tuple[str, str, tuple, dict], loss_loader: Tuple[str, str, tuple, dict], task_loader: Tuple[str, str, tuple, dict], handlers: Tuple[Tuple[str, Tuple[str, str, tuple, dict]]], initializer: Optional[Tuple[str, str, tuple, dict]], lr_start: float, lr_end: float, cycle_time_epochs: int, epochs: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainSettings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes the settings which ultimately go into a training session.
+This is intended to be trivially serializable, in that all attributes are
+built-ins that can be json serialized. The train function here runs in the
+same process, but this strategy allows us to use the same interface design
+throughout and allows repeating / printing training sessions trivially.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
@@ -436,7 +470,7 @@ args to the callable respectively.</p></li>
 <li><p><strong>str</strong><strong>, </strong><strong>tuple</strong><strong>, </strong><strong>dict</strong><strong>] </strong><strong>loss_loader</strong> (<em>tuple</em><em>[</em><em>str</em><em>,</em>) – the tuple contains the
 model and corresponding attribute name for a function which returns
 the loss function to minimize.</p></li>
-<li><p><strong>str</strong><strong>, </strong><strong>tuple</strong><strong>, </strong><strong>dict</strong><strong>] </strong><strong>task_loader</strong> (<em>tuple</em><em>[</em><em>str</em><em>,</em>) – the tuple contains the
+<li><p><strong>str</strong><strong>, </strong><strong>tuple</strong><strong>, </strong><strong>dict</strong><strong>] </strong><a class="reference internal" href="#ignite_simple.utils.task_loader" title="ignite_simple.utils.task_loader"><strong>task_loader</strong></a> (<em>tuple</em><em>[</em><em>str</em><em>,</em>) – the tuple contains the
 module and corresponding attribute name for a function which returns
 <code class="code docutils literal notranslate"><span class="pre">(train_set,</span> <span class="pre">val_set,</span> <span class="pre">train_loader)</span></code>, each as described in
 TrainState. The next two arguments are the args and keyword args
@@ -448,6 +482,9 @@ that is training the model and the TrainState that is in use. The str
 associated with each callable is the event that each callable listens
 to.</p>
 </p></li>
+<li><p><strong>str</strong><strong>, </strong><strong>tuple</strong><strong>, </strong><strong>dict</strong><strong>] </strong><strong>initializer</strong> (<em>tuple</em><em>[</em><em>str</em><em>,</em>) – this is called with trainer
+as the next positional argument. May be used to attach additional
+events to the trainer.</p></li>
 <li><p><strong>lr_start</strong> (<em>float</em>) – the learning rate at the start of each cycle</p></li>
 <li><p><strong>lr_end</strong> (<em>float</em>) – the learning rate at the end of each cycle</p></li>
 <li><p><strong>cycle_time_epochs</strong> (<em>int</em>) – the number of epochs for the learning rate
@@ -462,6 +499,15 @@ scheduler</p></li>
 <dd><p>This returns handlers except instead of the function descriptions
 (module, attribute, args, kwargs), actual callables are provided with
 the necessary arguments and keyword arguments already bound.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.trainer.TrainSettings.get_initializer">
+<code class="sig-name descname">get_initializer</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Callable<a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainSettings.get_initializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainSettings.get_initializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>This returns the initializer; if it is not specified this is a
+no-op. Otherwise, this is the callable which accepts the trainer
+and initializes it, with the other arguments and keyword arguments
+already bound.</p>
 </dd></dl>
 
 <dl class="method">
@@ -640,54 +686,55 @@ training a module.</p>
 <dd><p>Finds the optimal learning rate and batch size for the specified model
 on the specified dataset trained with the given loss. Stores the following
 information:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">folder</span><span class="o">/</span>
-    <span class="n">final</span><span class="o">.</span><span class="n">json</span>
-        <span class="p">{</span><span class="s1">&#39;lr_start&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;lr_end&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">}</span>
-    <span class="n">lr_vs_perf</span><span class="o">.</span><span class="n">npz</span>
-        <span class="n">lrs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">perfs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">perf_derivs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number_of_batches</span><span class="p">]</span>
-        <span class="n">smoothed_perf_derivs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">mean_smoothed_perf_derivs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">lr_range</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-            <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span> <span class="k">for</span> <span class="n">the</span> <span class="n">good</span> <span class="nb">range</span> <span class="n">of</span> <span class="n">learning</span> <span class="n">rates</span>
-    <span class="n">bs_vs_perf</span><span class="o">.</span><span class="n">npz</span>  <span class="p">(</span><span class="n">bs</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
-        <span class="n">Where</span> <span class="n">a</span> <span class="n">single</span> <span class="n">batch</span> <span class="ow">is</span> <span class="n">tried</span> <span class="n">multiple</span> <span class="n">times</span><span class="p">,</span> <span class="n">we</span> <span class="n">take</span> <span class="n">the</span>
-        <span class="n">mean</span> <span class="n">over</span> <span class="n">those</span> <span class="n">times</span> <span class="n">to</span> <span class="n">ensure</span> <span class="n">bss</span> <span class="n">contains</span> <span class="n">only</span> <span class="n">unique</span>
-        <span class="n">values</span> <span class="ow">and</span> <span class="n">hence</span> <span class="n">can</span> <span class="n">be</span> <span class="n">treated</span> <span class="n">like</span> <span class="n">lrs</span>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>folder/
+    final.json
+        {&#39;lr_start&#39;: float, &#39;lr_end&#39;: float, &#39;batch_size&#39;: float,
+         &#39;cycle_size_epochs&#39;: int, &#39;epochs&#39;: int}
+    lr_vs_perf.npz
+        lrs=np.ndarray[number of batches]
+        perfs=np.ndarray[trials, number of batches]
+        perf_derivs=np.ndarray[trials, number_of_batches]
+        smoothed_perf_derivs=np.ndarray[trials, number of batches]
+        mean_smoothed_perf_derivs=np.ndarray[number of batches]
+        lr_range=np.ndarray[2]
+            min, max for the good range of learning rates
+    bs_vs_perf.npz  (bs=batch_size)
+        Where a single batch is tried multiple times, we take the
+        mean over those times to ensure bss contains only unique
+        values and hence can be treated like lrs
 
-        <span class="n">bss</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">perfs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">perf_derivs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number_of_batches</span><span class="p">]</span>
-        <span class="n">smoothed_perf_derivs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">mean_smoothed_perf_derivs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">bs_range</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-            <span class="nb">min</span><span class="p">,</span> <span class="nb">max</span> <span class="k">for</span> <span class="n">the</span> <span class="n">good</span> <span class="nb">range</span> <span class="n">of</span> <span class="n">batch</span> <span class="n">sizes</span>
-    <span class="n">lr_vs_perf2</span><span class="o">.</span><span class="n">npz</span>
-        <span class="n">only</span> <span class="n">stored</span> <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">rescan_lr_after_bs</span><span class="o">.</span> <span class="n">looks</span> <span class="n">exactly</span>
-        <span class="n">like</span> <span class="n">lr_vs_perf</span><span class="o">.</span><span class="n">npz</span><span class="p">,</span> <span class="k">except</span> <span class="n">these</span> <span class="n">runs</span> <span class="n">are</span> <span class="n">performed</span> <span class="k">with</span>
-        <span class="n">the</span> <span class="n">newly</span> <span class="n">selected</span> <span class="n">batch</span> <span class="n">size</span>
-    <span class="n">bs_sampled</span><span class="o">.</span><span class="n">npz</span>
-        <span class="n">only</span> <span class="n">stored</span> <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        bss=np.ndarray[number of batches]
+        perfs=np.ndarray[trials, number of batches]
+        perf_derivs=np.ndarray[trials, number_of_batches]
+        smoothed_perf_derivs=np.ndarray[trials, number of batches]
+        mean_smoothed_perf_derivs=np.ndarray[number of batches]
+        bs_range=np.ndarray[2]
+            min, max for the good range of batch sizes
+    lr_vs_perf2.npz
+        only stored if settings.rescan_lr_after_bs. looks exactly
+        like lr_vs_perf.npz, except these runs are performed with
+        the newly selected batch size
+    bs_sampled.npz
+        only stored if settings.batch_pts &gt; 0
 
-        <span class="n">bss</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">num</span> <span class="n">bs</span> <span class="n">attempted</span><span class="p">]</span>
-        <span class="n">final</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">num</span> <span class="n">bs</span> <span class="n">attempted</span><span class="p">,</span> <span class="n">trials</span><span class="p">]</span>
-            <span class="n">final</span> <span class="n">performance</span> <span class="k">for</span> <span class="n">batch</span> <span class="n">size</span> <span class="n">i</span> <span class="k">for</span> <span class="n">each</span> <span class="n">trial</span>
-        <span class="n">lse_final</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">num</span> <span class="n">bs</span> <span class="n">attempted</span><span class="p">]</span>
-            <span class="n">final</span> <span class="n">logsumexp</span> <span class="n">performance</span> <span class="k">for</span> <span class="n">each</span> <span class="n">batch</span> <span class="n">size</span><span class="p">,</span> <span class="n">argmax</span>
-            <span class="ow">is</span> <span class="n">the</span> <span class="n">selected</span> <span class="n">batch</span> <span class="n">size</span><span class="o">.</span> <span class="n">If</span> <span class="n">you</span> <span class="n">want</span> <span class="n">this</span> <span class="n">to</span> <span class="n">nicely</span>
-            <span class="n">be</span> <span class="n">below</span> <span class="n">the</span> <span class="n">maximum</span><span class="p">,</span> <span class="n">subtract</span> <span class="n">log</span><span class="p">(</span><span class="n">trials</span><span class="p">)</span> <span class="ow">and</span> <span class="n">note</span>
-            <span class="n">this</span> <span class="n">does</span> <span class="ow">not</span> <span class="n">effect</span> <span class="n">the</span> <span class="n">argmax</span>
+        bss=np.ndarray[num bs attempted]
+        final=np.ndarray[num bs attempted, trials]
+            final performance for batch size i for each trial
+        lse_final=np.ndarray[num bs attempted]
+            final logsumexp performance for each batch size, argmax
+            is the selected batch size. If you want this to nicely
+            be below the maximum, subtract log(trials) and note
+            this does not effect the argmax
 
-        <span class="n">raw_i</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-            <span class="n">only</span> <span class="k">if</span> <span class="n">store_up_to</span><span class="o">.</span><span class="n">hparam_selection_specific_imgs</span><span class="p">,</span>
-            <span class="n">same</span> <span class="k">for</span> <span class="n">the</span> <span class="o">*</span><span class="n">_raw_i</span>
+        raw_i=np.ndarray[trials, number of batches]
+            only if store_up_to.hparam_selection_specific_imgs,
+            same for the *_raw_i
 
-            <span class="n">i</span> <span class="ow">is</span> <span class="n">a</span> <span class="n">sampled</span> <span class="n">batch</span> <span class="n">size</span> <span class="ow">and</span> <span class="n">raw_i</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="ow">is</span> <span class="n">the</span>
-            <span class="n">performance</span> <span class="n">of</span> <span class="n">the</span> <span class="n">model</span> <span class="n">after</span> <span class="n">iteration</span> <span class="n">j</span> <span class="k">for</span>
-            <span class="n">batch</span> <span class="n">size</span> <span class="n">i</span> <span class="n">on</span> <span class="n">trial</span> <span class="n">t</span><span class="o">.</span>
-        <span class="n">smoothed_raw_i</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">trials</span><span class="p">,</span> <span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
-        <span class="n">lse_smoothed_raw_i</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="n">number</span> <span class="n">of</span> <span class="n">batches</span><span class="p">]</span>
+            i is a sampled batch size and raw_i[t, j] is the
+            performance of the model after iteration j for
+            batch size i on trial t.
+        smoothed_raw_i=np.ndarray[trials, number of batches]
+        lse_smoothed_raw_i=np.ndarray[number of batches]
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -717,10 +764,66 @@ required to produce this analysis</p></li>
 </div>
 <div class="section" id="module-ignite_simple.utils">
 <span id="ignite-simple-utils"></span><h1>ignite_simple.utils<a class="headerlink" href="#module-ignite_simple.utils" title="Permalink to this headline">¶</a></h1>
-<p>Utility functions for creating subsets of dataloaders</p>
+<p>Utility functions which are used through ignite-simple but are short
+enough not to warrant their own module.</p>
+<dl class="function">
+<dt id="ignite_simple.utils.create_partial_loader">
+<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">create_partial_loader</code><span class="sig-paren">(</span><em class="sig-param">dset: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">amt: int</em>, <em class="sig-param">batch_size: int = 256</em><span class="sig-paren">)</span> &#x2192; torch.utils.data.dataloader.DataLoader<a class="reference internal" href="_modules/ignite_simple/utils.html#create_partial_loader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.create_partial_loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dataloader which loads only a random subset of the
+specified length from the dataset, using the specified batch size.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dset</strong> – the dataset to create a loader for a partial subset of</p></li>
+<li><p><strong>amt</strong> – the number of items in the partial subset</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the described dataloader with a reasonable batch size</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.utils.fix_imports">
+<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">fix_imports</code><span class="sig-paren">(</span><em class="sig-param">loader: Tuple[str, str, tuple, dict]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/utils.html#fix_imports"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.fix_imports" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the loader which represents the same callable as the given one,
+except potentially with the __main__ name replaced with the correct module
+name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>loader</strong> – the loader whose imports might need to be cleaned</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the cleaned loader</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.utils.invoke">
+<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">invoke</code><span class="sig-paren">(</span><em class="sig-param">loader: Tuple[str, str, tuple, dict]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/utils.html#invoke"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.invoke" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invokes the callable which has the given name in the given module,
+using the given arguments and keyword arguments</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>loader</strong> – (module, attrname, args, kwargs) - the callable to invoke</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the result of the callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.utils.noop">
+<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">noop</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/utils.html#noop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.noop" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function does nothing.</p>
+</dd></dl>
+
 <dl class="function">
 <dt id="ignite_simple.utils.split">
-<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">split</code><span class="sig-paren">(</span><em class="sig-param">full: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">val_perc: float</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.utils.data.dataset.Dataset, torch.utils.data.dataset.Dataset]<a class="reference internal" href="_modules/ignite_simple/utils.html#split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.split" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">split</code><span class="sig-paren">(</span><em class="sig-param">full: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">val_perc: float</em>, <em class="sig-param">filen: str = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.utils.data.dataset.Dataset, torch.utils.data.dataset.Dataset]<a class="reference internal" href="_modules/ignite_simple/utils.html#split"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.split" title="Permalink to this definition">¶</a></dt>
 <dd><p>Splits the given dataset into two datasets, the first of which has
 (1 - val_perc) fraction of the data and the other has val_perc fraction
 of the data, distributed randomly.</p>
@@ -733,6 +836,23 @@ of the data, distributed randomly.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>(train_set, val_set)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.utils.task_loader">
+<code class="sig-prename descclassname">ignite_simple.utils.</code><code class="sig-name descname">task_loader</code><span class="sig-paren">(</span><em class="sig-param">dataset_loader</em>, <em class="sig-param">batch_size</em>, <em class="sig-param">shuffle</em>, <em class="sig-param">drop_last</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/utils.html#task_loader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.utils.task_loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a task loader from a dataset loader.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset_loader</strong> – the dataset loader (str, str, tuple, dict)</p></li>
+<li><p><strong>batch_size</strong> – the batch size for the data loader</p></li>
+<li><p><strong>shuffle</strong> – if the training dataset should be shuffled between epochs</p></li>
+<li><p><strong>drop_last</strong> – if the last batch should be dropped if its not the
+same size as the rest. should only be used if shuffle is True</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>

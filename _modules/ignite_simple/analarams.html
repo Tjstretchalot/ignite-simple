@@ -145,6 +145,7 @@
 <span class="sd">for the output, and what&#39;s required to produce that output is calculated from</span>
 <span class="sd">that.</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">typing</span>
 
 <div class="viewcode-block" id="AnalysisSettings"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.AnalysisSettings">[docs]</a><span class="k">class</span> <span class="nc">AnalysisSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Describes the analysis settings. Note that, where relevant and</span>
@@ -200,7 +201,7 @@
                  <span class="n">lr_selection_explanation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">lr_selection_results</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">batch_selection_explanation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">batch_selection_results</span><span class="p">:</span> <span class="nb">bool</span>  <span class="p">,</span>
+                 <span class="n">batch_selection_results</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">hparam_selection_specifics</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">hparam_selection_specific_imgs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">training_explanation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -321,6 +322,39 @@
     <span class="n">res</span><span class="o">.</span><span class="n">typical_run_pca3dvis</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">res</span><span class="o">.</span><span class="n">typical_run_pca3dvis_draft</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">return</span> <span class="n">res</span></div>
+
+<span class="n">NAME_TO_PRESET</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;none&#39;</span><span class="p">:</span> <span class="n">none</span><span class="p">,</span>
+    <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
+    <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
+    <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
+    <span class="s1">&#39;animation-draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>
+    <span class="s1">&#39;animation_draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>
+    <span class="s1">&#39;animations-draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>
+    <span class="s1">&#39;animations_draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>
+    <span class="s1">&#39;animation&#39;</span><span class="p">:</span> <span class="n">animations</span><span class="p">,</span>
+    <span class="s1">&#39;animations&#39;</span><span class="p">:</span> <span class="n">animations</span><span class="p">,</span>
+    <span class="s1">&#39;video-draft&#39;</span><span class="p">:</span> <span class="n">video_draft</span><span class="p">,</span>
+    <span class="s1">&#39;video_draft&#39;</span><span class="p">:</span> <span class="n">video_draft</span><span class="p">,</span>
+    <span class="s1">&#39;videos-draft&#39;</span><span class="p">:</span> <span class="n">video_draft</span><span class="p">,</span>
+    <span class="s1">&#39;videos_draft&#39;</span><span class="p">:</span> <span class="n">video_draft</span><span class="p">,</span>
+    <span class="s1">&#39;video&#39;</span><span class="p">:</span> <span class="n">video</span><span class="p">,</span>
+    <span class="s1">&#39;videos&#39;</span><span class="p">:</span> <span class="n">video</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="get_settings"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.get_settings">[docs]</a><span class="k">def</span> <span class="nf">get_settings</span><span class="p">(</span><span class="n">preset</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span>
+        <span class="nb">str</span><span class="p">,</span> <span class="n">AnalysisSettings</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">AnalysisSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Gets the analysis settings from the given preset name or analysis</span>
+<span class="sd">    settings.</span>
+
+<span class="sd">    :param preset: either a str name of a preset or the settings to return</span>
+
+<span class="sd">    :returns: the corresponding preset or just the argument if its already</span>
+<span class="sd">        AnalysisSettings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preset</span><span class="p">,</span> <span class="n">AnalysisSettings</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">preset</span>
+    <span class="k">return</span> <span class="n">NAME_TO_PRESET</span><span class="p">[</span><span class="n">preset</span><span class="p">]()</span></div>
 </pre></div>
 
            </div>

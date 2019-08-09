@@ -143,6 +143,7 @@
   <h1>Source code for ignite_simple.hyperparams</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;This module is used to describe the hyperparameter tuning settings and</span>
 <span class="sd">presets used for training.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">typing</span>
 
 <div class="viewcode-block" id="HyperparameterSettings"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.HyperparameterSettings">[docs]</a><span class="k">class</span> <span class="nc">HyperparameterSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Describes settings for tuning hyperparameters</span>
@@ -252,6 +253,26 @@
         <span class="n">batch_pt_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
         <span class="n">rescan_lr_after_bs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+<span class="n">NAME_TO_PRESET</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;fastest&#39;</span><span class="p">:</span> <span class="n">fastest</span><span class="p">,</span>
+    <span class="s1">&#39;fast&#39;</span><span class="p">:</span> <span class="n">fast</span><span class="p">,</span>
+    <span class="s1">&#39;slow&#39;</span><span class="p">:</span> <span class="n">slow</span><span class="p">,</span>
+    <span class="s1">&#39;slowest&#39;</span><span class="p">:</span> <span class="n">slowest</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="get_settings"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.get_settings">[docs]</a><span class="k">def</span> <span class="nf">get_settings</span><span class="p">(</span><span class="n">preset</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">HyperparameterSettings</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the corresponding preset if the argument is a name of one,</span>
+<span class="sd">    returns the argument directly if the argument is already a settings</span>
+<span class="sd">    object, and raises an exception in all other circumstances.</span>
+
+<span class="sd">    :param preset: the name for a preset or the complete settings object</span>
+
+<span class="sd">    :returns: the corresponding preset or the settings object passed in</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">preset</span><span class="p">,</span> <span class="n">HyperparameterSettings</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">preset</span>
+    <span class="k">return</span> <span class="n">NAME_TO_PRESET</span><span class="p">[</span><span class="n">preset</span><span class="p">]()</span></div>
 </pre></div>
 
            </div>

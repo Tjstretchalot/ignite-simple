@@ -141,16 +141,118 @@
            <div itemprop="articleBody">
             
   <h1>Source code for ignite_simple.utils</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Utility functions for creating subsets of dataloaders</span>
+<span></span><span class="sd">&quot;&quot;&quot;Utility functions which are used through ignite-simple but are short</span>
+<span class="sd">enough not to warrant their own module.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">torch.utils.data</span> <span class="k">as</span> <span class="nn">data</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
 
-<div class="viewcode-block" id="split"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.split">[docs]</a><span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="n">full</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">val_perc</span><span class="p">:</span> <span class="nb">float</span>
-         <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">]:</span>
+<div class="viewcode-block" id="noop"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.noop">[docs]</a><span class="k">def</span> <span class="nf">noop</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This function does nothing.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="fix_imports"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.fix_imports">[docs]</a><span class="k">def</span> <span class="nf">fix_imports</span><span class="p">(</span><span class="n">loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the loader which represents the same callable as the given one,</span>
+<span class="sd">    except potentially with the __main__ name replaced with the correct module</span>
+<span class="sd">    name.</span>
+
+<span class="sd">    :param loader: the loader whose imports might need to be cleaned</span>
+
+<span class="sd">    :returns: the cleaned loader</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">loader</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">loader</span>
+
+    <span class="n">called_file</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">called_file</span> <span class="o">==</span> <span class="s1">&#39;-c&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot fix __main__ when python invoked with -c&#39;</span><span class="p">)</span>
+
+    <span class="n">called_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">called_file</span><span class="p">)</span>
+    <span class="n">cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">called_file</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">cwd</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cannot fix __main__ when not called from a parent &#39;</span>
+                         <span class="o">+</span> <span class="s1">&#39;directory. you should be called with something &#39;</span>
+                         <span class="o">+</span> <span class="s1">&#39;like python -m examples.mnist_direct or &#39;</span>
+                         <span class="o">+</span> <span class="s1">&#39;python examples/mnist_direct.py but never &#39;</span>
+                         <span class="o">+</span> <span class="s1">&#39;python ../examples/mnist_direct.py&#39;</span><span class="p">)</span>
+
+    <span class="n">called_file</span> <span class="o">=</span> <span class="n">called_file</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">cwd</span><span class="p">):]</span>
+
+    <span class="n">called_file</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">called_file</span><span class="p">)</span>
+    <span class="n">new_path</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cur_path</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">called_file</span><span class="p">)</span>
+    <span class="n">new_path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tail</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">cur_path</span><span class="p">:</span>
+        <span class="n">new_cur_path</span><span class="p">,</span> <span class="n">tail</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cur_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tail</span><span class="p">:</span>
+            <span class="n">new_path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tail</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_cur_path</span> <span class="o">==</span> <span class="n">cur_path</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">cur_path</span> <span class="o">=</span> <span class="n">new_cur_path</span>
+    <span class="n">new_path</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+
+    <span class="n">correct_module</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">correct_module</span><span class="p">]</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">loader</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="invoke"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.invoke">[docs]</a><span class="k">def</span> <span class="nf">invoke</span><span class="p">(</span><span class="n">loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;Invokes the callable which has the given name in the given module,</span>
+<span class="sd">    using the given arguments and keyword arguments</span>
+
+<span class="sd">    :param loader: (module, attrname, args, kwargs) - the callable to invoke</span>
+
+<span class="sd">    :returns: the result of the callable</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">modulename</span><span class="p">,</span> <span class="n">attrname</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span> <span class="o">=</span> <span class="n">loader</span>
+
+    <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">modulename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">attrname</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="create_partial_loader"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.create_partial_loader">[docs]</a><span class="k">def</span> <span class="nf">create_partial_loader</span><span class="p">(</span><span class="n">dset</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">amt</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                          <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Creates a dataloader which loads only a random subset of the</span>
+<span class="sd">    specified length from the dataset, using the specified batch size.</span>
+
+<span class="sd">    :param dset: the dataset to create a loader for a partial subset of</span>
+
+<span class="sd">    :param amt: the number of items in the partial subset</span>
+
+<span class="sd">    :returns: the described dataloader with a reasonable batch size</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">amt</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="n">dset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="n">inds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dset</span><span class="p">),</span> <span class="n">amt</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">inds</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">Subset</span><span class="p">(</span><span class="n">dset</span><span class="p">,</span> <span class="n">inds</span><span class="p">),</span>
+                           <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="task_loader"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.task_loader">[docs]</a><span class="k">def</span> <span class="nf">task_loader</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">,</span> <span class="n">drop_last</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a task loader from a dataset loader.</span>
+
+<span class="sd">    :param dataset_loader: the dataset loader (str, str, tuple, dict)</span>
+<span class="sd">    :param batch_size: the batch size for the data loader</span>
+<span class="sd">    :param shuffle: if the training dataset should be shuffled between epochs</span>
+<span class="sd">    :param drop_last: if the last batch should be dropped if its not the</span>
+<span class="sd">        same size as the rest. should only be used if shuffle is True</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span> <span class="o">=</span> <span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
+
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">DataLoader</span><span class="p">(</span>
+        <span class="n">train_set</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="n">shuffle</span><span class="p">,</span> <span class="n">drop_last</span><span class="o">=</span><span class="n">drop_last</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span><span class="p">,</span> <span class="n">train_loader</span></div>
+
+<div class="viewcode-block" id="split"><a class="viewcode-back" href="../../index.html#ignite_simple.utils.split">[docs]</a><span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="n">full</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+          <span class="n">val_perc</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+          <span class="n">filen</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Splits the given dataset into two datasets, the first of which has</span>
 <span class="sd">    (1 - val_perc) fraction of the data and the other has val_perc fraction</span>
 <span class="sd">    of the data, distributed randomly.</span>
@@ -160,10 +262,25 @@
 
 <span class="sd">    :returns: (train_set, val_set)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">n_held_out</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">full</span><span class="p">)</span> <span class="o">*</span> <span class="n">val_perc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">filen</span> <span class="o">+=</span> <span class="s1">&#39;.npz&#39;</span>
+        <span class="k">elif</span> <span class="n">ext</span> <span class="o">!=</span> <span class="s1">&#39;.npz&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;bad file extension: </span><span class="si">{filen}</span><span class="s1"> (should be .npz)&#39;</span><span class="p">)</span>
 
-    <span class="n">held_out_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
-        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">full</span><span class="p">),</span> <span class="n">n_held_out</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">filen</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filen</span><span class="p">):</span>
+        <span class="n">n_held_out</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">full</span><span class="p">)</span> <span class="o">*</span> <span class="n">val_perc</span><span class="p">)</span>
+        <span class="n">held_out_inds_np</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">full</span><span class="p">),</span> <span class="n">n_held_out</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">filen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="n">held_out_inds</span><span class="o">=</span><span class="n">held_out_inds_np</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="n">held_out_inds_np</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;held_out_inds&#39;</span><span class="p">]</span>
+
+    <span class="n">held_out_inds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">held_out_inds_np</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
     <span class="n">not_held_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">full</span><span class="p">))</span>
     <span class="n">not_held_out</span><span class="p">[</span><span class="n">held_out_inds</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="n">not_held_out</span> <span class="o">=</span> <span class="n">not_held_out</span><span class="p">[</span><span class="n">not_held_out</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
