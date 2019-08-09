@@ -73,7 +73,7 @@ def main():
         hyperparameters='fast',
         analysis='video',
         allow_later_analysis_up_to='video',
-        accuracy_style='inv-loss',
+        accuracy_style='multiclass',
         trials=1,
         is_continuation=True,
         history_folder='out/examples/delta_to_dir/history',
