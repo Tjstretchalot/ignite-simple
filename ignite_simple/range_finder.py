@@ -43,8 +43,73 @@ def nonzero_intervals(vec: np.ndarray) -> np.ndarray:
 
     return np.concatenate(edge_vec)
 
+def trim_range_derivs(xs: np.ndarray,
+                      derivs: np.ndarray,
+                      x_st_ind: int,
+                      x_en_ind: int) -> typing.Tuple[int, int]:
+    """Given that we have found a good interval in the xs for which the derivs
+    is positive, it may be possible that the bulk of the integral can be
+    maintained while reducing the width of the integral. This function returns
+    a new interval which is a subset of the given interval for which the
+    bulk of the integral is maintained.
+
+    :param np.ndarray xs: with shape `(points,)`, the x-values corresponding
+        to the derivatives
+
+    :param np.ndarray derivs: with shape `(points,)`, the relevant derivatives
+
+    :param int x_st_ind: the index in xs the good interval starts at
+
+    :param int x_en_ind: the index in xs the good interval ends at
+
+    :returns: `(x_st_ind, x_end_ind)` which is a subset of the passed interval
+    """
+
+    xs_in_range = xs[x_st_ind:x_en_ind]
+    in_range = derivs[x_st_ind:x_en_ind]
+    max_in_range = in_range.max()
+
+    intvl_width = xs_in_range[-1] - xs_in_range[0]
+    intvl_intgrl = np.trapz(in_range, xs_in_range)
+
+    for new_floor_perc in np.linspace(0.1, 0, num=10, endpoint=False):
+        new_floor = max_in_range * new_floor_perc
+        new_valid = in_range > new_floor
+        new_valid_rev = new_valid[::-1]
+
+        first_true = np.argmax(new_valid)
+        last_true = new_valid.shape[0] - np.argmax(new_valid_rev) - 1
+
+        new_intvl_width = xs_in_range[last_true] - xs_in_range[first_true]
+        new_intvl_perc = new_intvl_width / intvl_width
+
+        if new_intvl_perc > (1 - new_floor_perc):
+            # e.g. we shaved off 10% of max and only lost 5% of width,
+            # not meaningfully helpful for reducing interval size
+            continue
+
+        new_intvl_intgrl = np.trapz(in_range[first_true:last_true + 1],
+                                    xs_in_range[first_true:last_true + 1])
+        new_intvl_intgrl_perc = new_intvl_intgrl / intvl_intgrl
+
+        if new_intvl_intgrl_perc < (1 - new_floor_perc):
+            # e.g. we shaved off 10% of max and lost 20% of integral,
+            # not meaningfully helpful for reducing interval size
+            continue
+
+        if new_intvl_intgrl_perc < (1 - new_intvl_perc):
+            # e.g. we shaved off 15% of width and lost 20% of integral,
+            # not meaningfully helpful for reducing interval size
+            continue
+
+        # now e.g. shaved off 10% of max, lost 15% width but only
+        # 5% of the integral
+        return (x_st_ind + first_true, x_st_ind + last_true + 1)
+
+    return (x_st_ind, x_en_ind)
+
 def find_with_derivs(xs: np.ndarray,
-                     derivs: np.ndarray) -> typing.Tuple[int, int]:
+                     derivs: np.ndarray) -> typing.Tuple[float, float]:
     """Finds the range in derivs wherein the derivative is always
     positive. From these intervals, this returns specifically the one with
     the greatest integral.
@@ -75,41 +140,9 @@ def find_with_derivs(xs: np.ndarray,
             best_candidate = i
             best_change = change
 
-    return (xs[candidates[best_candidate]],
-            xs[candidates[best_candidate + 1]])
+    x_st_ind = candidates[best_candidate]
+    x_en_ind = candidates[best_candidate + 1]
 
-def find(xs: np.ndarray, ys: np.ndarray) -> typing.Tuple[float, float]:
-    """Finds the range (min, max) of xs over which the derivative of y is
-    positive and during which we saw the greatest change in x. This requires
-    that ys is fairly smooth to produce reasonable results.
+    x_st_ind, x_en_ind = trim_range_derivs(xs, derivs, x_st_ind, x_en_ind)
 
-    .. note::
-
-        If ys was smoothed, then this will be biased to producing intervals
-        right of the true best interval. If the derivative is smoothed instead,
-        then find_with_derivs will produce an unbiased interval.
-
-    :param np.ndarray xs: The x-values, with shape (num_pts,)
-    :param np.ndarray ys: The y-values, with the same shape as the xs
-
-    :returns: (min, max) of xs where the ys increase the quickest
-    """
-    deriv = np.gradient(ys, xs)
-    deriv[deriv < 0] = 0
-    candidates = nonzero_intervals(deriv)
-
-    if not candidates.shape:
-        return xs[0], xs[-1]
-
-    best_change = 0
-    best_candidate = -1
-    for i in range(candidates.shape[0] - 1):
-        st = candidates[i]
-        en = candidates[i + 1] - 1
-        change = ys[en] - ys[st]
-        if change > best_change:
-            best_candidate = i
-            best_change = change
-
-    return (xs[candidates[best_candidate]],
-            xs[candidates[best_candidate + 1]])
+    return (xs[x_st_ind], xs[x_en_ind])

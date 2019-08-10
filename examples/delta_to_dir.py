@@ -1,19 +1,32 @@
 """This example trains a linear network to go from a delta
-(dx, dy) to the relative onehot direction (left, up, right, down).
+(dx, dy) to the relative onehot direction (left, up, right, down). This is a
+very simple task with a small dataset, which means it's an example that
+can be run trivially on a laptop.
 """
 
 import ignite_simple
 import torch
 from torchluent import FluentModule
 import logging.config
-import json
-import psutil
+
+
+class MyNonlin(torch.nn.Module):
+    """The nonlinearity used by the model"""
+    def forward(self, x):  # pylint: disable=arguments-differ
+        r"""
+        .. math::
+
+            \frac{tanh(x)}{2} + 0.5
+
+        """
+        return (torch.tanh(x) / 2) + 0.5
 
 def model():
     """Creates the model that should be trained"""
     return (
         FluentModule((2,))
         .dense(4)
+        .then(MyNonlin())
         .build()
     )
 
@@ -62,9 +75,6 @@ def main():
     """Finds the correct learning rate range and batch size"""
     logging.config.fileConfig('logging.conf')
 
-    hparams = 'fast'
-    aparams = 'video'
-
     ignite_simple.train(
         (_module, 'model', tuple(), dict()),
         (_module, 'dataset', tuple(), dict()),
@@ -77,8 +87,19 @@ def main():
         trials=1,
         is_continuation=True,
         history_folder='out/examples/delta_to_dir/history',
-        cores=1
+        cores='all'
     )
+
+def reanalyze():
+    """Reanalyzes the existing trials, possibly under different analysis
+    settings"""
+    ignite_simple.analyze(
+        (__name__, 'dataset', tuple(), dict()),
+        (__name__, 'loss', tuple(), dict()),
+        folder='out/examples/delta_to_dir/current',
+        settings='video',
+        accuracy_style='classification',
+        cores='all')
 
 if __name__ == '__main__':
     main()
