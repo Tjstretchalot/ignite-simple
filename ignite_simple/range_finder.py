@@ -4,6 +4,7 @@ already been smoothed."""
 
 import typing
 import numpy as np
+import scipy.signal
 
 def smooth_window_size(npts: int) -> int:
     """Returns the a heuristic for the window size for smoothing an array with
@@ -20,6 +21,16 @@ def smooth_window_size(npts: int) -> int:
     if result % 2 == 0:
         result += 1
     return result
+
+def autosmooth(arr: np.ndarray, axis: int = -1):
+    """Causes scipy.signal.savgol_filter on the given data for the given
+    dimension with the default settings.
+
+    :param arr: the array to smooth
+    :param dim: the smooth dimension
+    """
+    window_size = smooth_window_size(arr.shape[axis])
+    return scipy.signal.savgol_filter(arr, window_size, 1, axis=axis)
 
 def nonzero_intervals(vec: np.ndarray) -> np.ndarray:
     """Find which intervals in the given vector are non-zero.
@@ -78,9 +89,13 @@ def trim_range_derivs(xs: np.ndarray,
         new_valid_rev = new_valid[::-1]
 
         first_true = np.argmax(new_valid)
-        last_true = new_valid.shape[0] - np.argmax(new_valid_rev) - 1
+        last_true = new_valid.shape[0] - np.argmax(new_valid_rev)
+        # now first_true:last_true is the correct range
 
-        new_intvl_width = xs_in_range[last_true] - xs_in_range[first_true]
+        new_intvl_xs = xs_in_range[first_true:last_true]
+        new_intvl_derivs = in_range[first_true:last_true]
+
+        new_intvl_width = new_intvl_xs[-1] - new_intvl_xs[0]
         new_intvl_perc = new_intvl_width / intvl_width
 
         if new_intvl_perc > (1 - new_floor_perc):
@@ -88,8 +103,7 @@ def trim_range_derivs(xs: np.ndarray,
             # not meaningfully helpful for reducing interval size
             continue
 
-        new_intvl_intgrl = np.trapz(in_range[first_true:last_true + 1],
-                                    xs_in_range[first_true:last_true + 1])
+        new_intvl_intgrl = np.trapz(new_intvl_derivs, new_intvl_xs)
         new_intvl_intgrl_perc = new_intvl_intgrl / intvl_intgrl
 
         if new_intvl_intgrl_perc < (1 - new_floor_perc):
@@ -104,7 +118,7 @@ def trim_range_derivs(xs: np.ndarray,
 
         # now e.g. shaved off 10% of max, lost 15% width but only
         # 5% of the integral
-        return (x_st_ind + first_true, x_st_ind + last_true + 1)
+        return (x_st_ind + first_true, x_st_ind + last_true)
 
     return (x_st_ind, x_en_ind)
 
@@ -145,4 +159,4 @@ def find_with_derivs(xs: np.ndarray,
 
     x_st_ind, x_en_ind = trim_range_derivs(xs, derivs, x_st_ind, x_en_ind)
 
-    return (xs[x_st_ind], xs[x_en_ind])
+    return (xs[x_st_ind], xs[x_en_ind - 1])

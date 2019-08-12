@@ -85,7 +85,7 @@ def main():
         allow_later_analysis_up_to='video',
         accuracy_style='multiclass',
         trials=1,
-        is_continuation=True,
+        is_continuation=False,
         history_folder='out/examples/delta_to_dir/history',
         cores='all'
     )
@@ -93,6 +93,8 @@ def main():
 def reanalyze():
     """Reanalyzes the existing trials, possibly under different analysis
     settings"""
+    logging.config.fileConfig('logging.conf')
+
     ignite_simple.analyze(
         (__name__, 'dataset', tuple(), dict()),
         (__name__, 'loss', tuple(), dict()),
@@ -102,4 +104,4 @@ def reanalyze():
         cores='all')
 
 if __name__ == '__main__':
-    main()
+    reanalyze()

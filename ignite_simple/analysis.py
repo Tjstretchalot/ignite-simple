@@ -15,6 +15,11 @@ from functools import reduce
 import operator
 import os
 import psutil
+import scipy.special
+import warnings
+
+REDUCTIONS = ('each', 'mean', 'mean_with_errorbars', 'mean_with_fillbtwn',
+              'lse')
 
 def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
              outfile_wo_ext, reduction='none'):
@@ -59,6 +64,9 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
             take the mean over the first dimension and plot with shaded error
             region
 
+        * `lse`
+
+            take the logsumexp over the first dimension
 
     """
     with np.load(infile) as nin:
@@ -71,18 +79,22 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
     new_shape_x = list(i for i in xs.shape if i != 1)
     xs = xs.reshape(new_shape_x)
     if len(new_shape_x) != 1:
-        xs = xs[0] # take first
+        xs = xs[0]  # take first
 
     if len(new_shape) > 1:
         if reduction == 'mean':
             ys = ys.mean(0)
+        elif reduction == 'lse':
+            old_settings = np.seterr(under='ignore')
+            ys = scipy.special.logsumexp(ys, axis=0)
+            np.seterr(**old_settings)
         elif reduction in ('mean_with_errorbars', 'mean_with_fillbtwn'):
             stds = ys.std(0)
             means = ys.mean(0)
 
-            errs = 1.96*stds
-            errs_low = ys - errs
-            errs_high = ys + errs
+            errs = 1.96 * stds
+            errs_low = means - errs
+            errs_high = means + errs
             ys = means
         elif reduction == 'each':
             pass
@@ -92,6 +104,7 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
     else:
         reduction = 'none'
 
+    warnings.simplefilter('ignore', UserWarning)
     fig, ax = plt.subplots(constrained_layout=True)
     fig.set_figwidth(19.2)
     fig.set_figheight(10.8)
@@ -100,11 +113,11 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
 
-    if reduction in ('none', 'mean', 'mean_with_fillbtwn'):
+    if reduction in ('none', 'mean', 'mean_with_fillbtwn', 'lse'):
         ax.plot(xs, ys)
 
         if reduction == 'mean_with_fillbtwn':
-            ax.fill_between(xs, errs_low, errs_high)
+            ax.fill_between(xs, errs_low, errs_high, color='grey', alpha=0.4)
     elif reduction == 'mean_with_errorbars':
         ax.errorbar(xs, ys, errs)
     elif reduction == 'each':
@@ -185,58 +198,53 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     lr/
                         i/  (where i=0,1,...)
                             lr_vs_perf.(img)
+                            lr_vs_smoothed_perf.(img)
                             lr_vs_perf_deriv.(img)
                             lr_vs_smoothed_perf_deriv.(img)
 
-                        lr_vs_perf_each.(img)
-                        lr_vs_perf_mean.(img)
-                        lr_vs_perf_errorbars.(img)
-                        lr_vs_perf_fillbtwn.(img)
-                            errorbars like https://stackoverflow.com/a/13157955
-                        lr_vs_perf_deriv_each.(img)
-                        lr_vs_perf_deriv_mean.(img)
-                        lr_vs_perf_deriv_errorbars.(img)
-                        lr_vs_perf_deriv_fillbtwn.(img)
-                        lr_vs_smoothed_perf_deriv_each.(img)
-                        lr_vs_smoothed_perf_deriv_mean.(img)
-                        lr_vs_smoothed_perf_deriv_errorbars.(img)
-                        lr_vs_smoothed_perf_deriv_fillbtwn.(img)
-                        lr_vs_smoothed_perf_deriv_range.(img)
+                        lr_vs_perf_*.(img)
+                        lr_vs_smoothed_perf_*.(img)
+                        lr_vs_perf_deriv_*.(img)
+                        lr_vs_smoothed_perf_deriv_*.(img)
+                        lr_vs_lse_smoothed_perf_then_deriv_*.(img)
                     batch/
                         i/ (where i=0,1,...)
                             batch_vs_perf.(img)
+                            batch_vs_smoothed_perf.(img)
                             batch_vs_perf_deriv.(img)
                             batch_vs_smoothed_perf_deriv.(img)
 
-                        batch_vs_perf_each.(img)
-                        batch_vs_perf_mean.(img)
-                        batch_vs_perf_errorbars.(img)
-                        batch_vs_perf_fillbtwn.(img)
-                        batch_vs_perf_deriv_each.(img)
-                        batch_vs_perf_deriv_mean.(img)
-                        batch_vs_perf_deriv_errorbars.(img)
-                        batch_vs_perf_deriv_fillbtwn.(img)
-                        batch_vs_smoothed_perf_deriv_each.(img)
-                        batch_vs_smoothed_perf_deriv_mean.(img)
-                        batch_vs_smoothed_perf_deriv_errorbars.(img)
-                        batch_vs_smoothed_perf_deriv_fillbtwn.(img)
-                        batch_vs_smoothed_perf_deriv_range.(img)
+                        batch_vs_perf_*.(img)
+                        batch_vs_smoothed_perf_*.(img)
+                        batch_vs_perf_derivs_*.(img)
+                        batch_vs_smoothed_perf_derivs_*.(img)
+                        batch_vs_lse_smoothed_perf_then_derivs_*.(img)
 
                     TODO videos & animations
                 trials/
                     i/  (where i=0,1,...)
-                        epoch_vs_loss.(img)
-                            Only produced if throughtime.npz is available for
-                            the trial and settings.training_metric_images is
-                            set
-                        epoch_vs_perf.(img)
-                            Only produced if throughtime.npz is available for
-                            the trial and settings.training_metric_images is
-                            set. The axis title and figure title depend on the
-                            accuracy style
+                        epoch_vs_loss_train.(img) (*)
+                        epoch_vs_loss_val.(img) (*)
+                        epoch_vs_perf_train.(img) (*)
+                        epoch_vs_perf_val.(img) (*)
+
+                    epoch_vs_loss_train_*.(img) (*)
+                    epoch_vs_loss_val_*.(img) (*)
+                    epoch_vs_smoothed_loss_train_*.(img) (*)
+                    epoch_vs_smoothed_loss_val_*.(img) (*)
+                    epoch_vs_perf_train_*.(img) (*)
+                    epoch_vs_smoothed_perf_train_*.(img) (*)
+                    epoch_vs_perf_val_*.(img) (*)
+                    epoch_vs_smoothed_perf_val_*.(img) (*)
+
+
+                    (*)
+                        Only produced if throughtime.npz is available for
+                        the trial and settings.training_metric_images is
+                        set
 
                     TODO more summary of trials
-                    TODO videos & animations
+                    TODO text & videos & animations
 
     :param dataset_loader: the module and corresponding attribute that gives a
         training and validation dataset when invoked with the specified
@@ -272,10 +280,14 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
 
     logger.info('Analyzing %s...', folder)
 
-    perf_name = (  # TODO
+    perf_name = (
         'Accuracy' if accuracy_style in ('classification, multiclass')
-        else 'Inverse-Loss'
+        else 'Inverse Loss'
     )
+    perf_name_short = {
+        'classification': 'Accuracy (%)',
+        'multiclass': 'Subset Accuracy Score',
+    }.get(accuracy_style, '1/(loss+1)')
 
     tasks = []
     if settings.hparam_selection_specific_imgs:
@@ -305,13 +317,13 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         '_rawplot',
                         (
                             source,
-                            'Learning Rate vs Inverse Loss',
+                            futils.make_vs_title('Learning Rate', 'Inverse Loss'),
                             'Learning Rate',
-                            '1/loss',
+                            '1/(loss+1)',
                             'lrs',
                             slice(None),
                             'perfs',
-                            slice(trial, trial+1),
+                            slice(trial, trial + 1),
                             os.path.join(real_out, 'lr_vs_perf')
                         ),
                         dict(),
@@ -322,13 +334,31 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         '_rawplot',
                         (
                             source,
-                            'Learning Rate vs Inverse Loss Deriv.',
+                            futils.make_vs_title('Learning Rate', 'Inverse Loss'),
                             'Learning Rate',
-                            '1/loss Deriv wrt. LR',
+                            '1/(loss+1)',
+                            'lrs',
+                            slice(None),
+                            'smoothed_perfs',
+                            slice(trial, trial + 1),
+                            os.path.join(real_out, 'lr_vs_smoothed_perf')
+                        ),
+                        dict(),
+                        1
+                    ),
+                    dispatcher.Task(
+                        __name__,
+                        '_rawplot',
+                        (
+                            source,
+                            futils.make_vs_title(
+                                'Learning Rate', 'Inverse Loss Deriv.'),
+                            'Learning Rate',
+                            '1/(loss+1) Deriv wrt. LR',
                             'lrs',
                             slice(None),
                             'perf_derivs',
-                            slice(trial, trial+1),
+                            slice(trial, trial + 1),
                             os.path.join(real_out, 'lr_vs_perf_deriv')
                         ),
                         dict(),
@@ -339,13 +369,15 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         '_rawplot',
                         (
                             source,
-                            'Learning Rate vs Inverse Loss Deriv. (Smoothed)',
+                            futils.make_vs_title(
+                                'Learning Rate',
+                                'Inverse Loss Deriv. (Smoothed)'),
                             'Learning Rate',
-                            '1/loss Deriv wrt. LR',
+                            '1/(loss+1) Deriv wrt. LR',
                             'lrs',
                             slice(None),
                             'smoothed_perf_derivs',
-                            slice(trial, trial+1),
+                            slice(trial, trial + 1),
                             os.path.join(real_out, 'lr_vs_smoothed_perf_deriv')
                         ),
                         dict(),
@@ -353,34 +385,23 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     ),
                 ])
 
-            source = os.path.join(folder, 'hparams', 'bs_vs_perf.npz')
-            out_folder = batch_folder
-            with np.load(source) as infile:
-                num_trials = infile['perfs'].shape[0]
-
-            for trial in range(num_trials):
-                real_out = os.path.join(out_folder, str(trial))
-                os.makedirs(real_out, exist_ok=True)
-
-                have_imgs = os.path.exists(
-                    os.path.join(real_out, 'batch_vs_perf_1920x1080.png'))
-                if have_imgs:
-                    continue
-
+            for reduction in REDUCTIONS:
                 tasks.extend([
                     dispatcher.Task(
                         __name__,
                         '_rawplot',
                         (
                             source,
-                            'Batch Size vs Inverse Loss',
-                            'Batch Size',
-                            '1/loss',
-                            'bss',
+                            futils.make_vs_title(
+                                'Learning Rate', 'Inverse Loss'),
+                            'Learning Rate',
+                            '1/(loss+1)',
+                            'lrs',
                             slice(None),
                             'perfs',
-                            slice(trial, trial+1),
-                            os.path.join(real_out, 'batch_vs_perf')
+                            slice(None),
+                            os.path.join(out_folder, 'lr_vs_perf_' + reduction),
+                            reduction
                         ),
                         dict(),
                         1
@@ -390,14 +411,35 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         '_rawplot',
                         (
                             source,
-                            'Batch Size vs Inverse Loss Deriv.',
-                            'Batch Size',
-                            '1/loss Deriv wrt. BS',
-                            'bss',
+                            futils.make_vs_title(
+                                'Learning Rate', 'Inverse Loss (Smoothed)'),
+                            'Learning Rate',
+                            '1/(loss+1)',
+                            'lrs',
+                            slice(None),
+                            'smoothed_perfs',
+                            slice(None),
+                            os.path.join(out_folder, 'lr_vs_smoothed_perf_' + reduction),
+                            reduction
+                        ),
+                        dict(),
+                        1
+                    ),
+                    dispatcher.Task(
+                        __name__,
+                        '_rawplot',
+                        (
+                            source,
+                            futils.make_vs_title(
+                                'Learning Rate', 'Inverse Loss Deriv.'),
+                            'Learning Rate',
+                            '1/(loss+1) Deriv wrt. LR',
+                            'lrs',
                             slice(None),
                             'perf_derivs',
-                            slice(trial, trial+1),
-                            os.path.join(real_out, 'batch_vs_perf_deriv')
+                            slice(None),
+                            os.path.join(out_folder, 'lr_vs_perf_deriv_' + reduction),
+                            reduction
                         ),
                         dict(),
                         1
@@ -407,19 +449,463 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         '_rawplot',
                         (
                             source,
-                            'Batch Size vs Inverse Loss Deriv. (Smoothed)',
-                            'Batch Size',
-                            '1/loss Deriv wrt. LR',
-                            'bss',
+                            futils.make_vs_title(
+                                'Learning Rate',
+                                'Inverse Loss Deriv. (Smoothed)'),
+                            'Learning Rate',
+                            '1/(loss+1) Deriv wrt. LR',
+                            'lrs',
                             slice(None),
                             'smoothed_perf_derivs',
-                            slice(trial, trial+1),
-                            os.path.join(real_out, 'batch_vs_smoothed_perf_deriv')
+                            slice(None),
+                            os.path.join(
+                                out_folder,
+                                'lr_vs_smoothed_perf_deriv_' + reduction),
+                            reduction
                         ),
                         dict(),
                         1
                     ),
                 ])
+
+            tasks.append(dispatcher.Task(
+                __name__,
+                '_rawplot',
+                (
+                    source,
+                    futils.make_vs_title(
+                        'LR', 'Deriv of LSE of Smoothed 1/(loss+1)'),
+                    'Learning Rate',
+                    '1/(loss+1) Deriv wrt. LR',
+                    'lrs',
+                    slice(None),
+                    'lse_smoothed_perf_then_derivs',
+                    slice(None),
+                    os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')
+                ),
+                dict(),
+                1
+            ))
+        source = os.path.join(folder, 'hparams', 'bs_vs_perf.npz')
+        out_folder = batch_folder
+        with np.load(source) as infile:
+            num_trials = infile['perfs'].shape[0]
+
+        for trial in range(num_trials):
+            real_out = os.path.join(out_folder, str(trial))
+            os.makedirs(real_out, exist_ok=True)
+
+            have_imgs = os.path.exists(
+                os.path.join(real_out, 'batch_vs_perf_1920x1080.png'))
+            if have_imgs:
+                continue
+
+            tasks.extend([
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title('Batch Size', 'Inverse Loss'),
+                        'Batch Size',
+                        '1/(loss+1)',
+                        'bss',
+                        slice(None),
+                        'perfs',
+                        slice(trial, trial + 1),
+                        os.path.join(real_out, 'batch_vs_perf')
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'Batch Size', 'Inverse Loss (Smoothed)'),
+                        'Batch Size',
+                        '1/(loss+1)',
+                        'bss',
+                        slice(None),
+                        'smoothed_perfs',
+                        slice(trial, trial + 1),
+                        os.path.join(real_out, 'batch_vs_smoothed_perf')
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'Batch Size', 'Inverse Loss Deriv.'),
+                        'Batch Size',
+                        '1/(loss+1) Deriv wrt. BS',
+                        'bss',
+                        slice(None),
+                        'perf_derivs',
+                        slice(trial, trial + 1),
+                        os.path.join(real_out, 'batch_vs_perf_deriv')
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'Batch Size', 'Inverse Loss Deriv. (Smoothed)'),
+                        'Batch Size',
+                        '1/(loss+1) Deriv wrt. LR',
+                        'bss',
+                        slice(None),
+                        'smoothed_perf_derivs',
+                        slice(trial, trial + 1),
+                        os.path.join(real_out, 'batch_vs_smoothed_perf_deriv')
+                    ),
+                    dict(),
+                    1
+                ),
+            ])
+
+        for reduction in REDUCTIONS:
+            tasks.extend([
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title('Batch Size', 'Inverse Loss'),
+                        'Batch Size',
+                        '1/(loss+1)',
+                        'bss',
+                        slice(None),
+                        'perfs',
+                        slice(None),
+                        os.path.join(out_folder, 'batch_vs_perf_' + reduction),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'Batch Size', 'Inverse Loss (Smoothed)'),
+                        'Batch Size',
+                        '1/(loss+1)',
+                        'bss',
+                        slice(None),
+                        'smoothed_perfs',
+                        slice(None),
+                        os.path.join(out_folder, 'batch_vs_smoothed_perf_' + reduction),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'Batch Size', 'Inverse Loss Deriv.'),
+                        'Batch Size',
+                        '1/(loss+1) Deriv wrt. BS',
+                        'bss',
+                        slice(None),
+                        'perf_derivs',
+                        slice(None),
+                        os.path.join(out_folder, 'batch_vs_perf_deriv_' + reduction),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'Batch Size', 'Inverse Loss Deriv. (Smoothed)'),
+                        'Batch Size',
+                        '1/(loss+1) Deriv wrt. BS',
+                        'bss',
+                        slice(None),
+                        'smoothed_perf_derivs',
+                        slice(None),
+                        os.path.join(out_folder, 'batch_vs_smoothed_perf_deriv_' + reduction),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+            ])
+
+        tasks.append(dispatcher.Task(
+            __name__,
+            '_rawplot',
+            (
+                source,
+                futils.make_vs_title(
+                    'BS', 'Deriv of LSE of Smoothed 1/(loss+1)'),
+                'Batch Size',
+                '1/(loss+1) Deriv wrt. BS',
+                'bss',
+                slice(None),
+                'lse_smoothed_perf_then_derivs',
+                slice(None),
+                os.path.join(out_folder, 'batch_vs_lse_smoothed_perf_then_deriv')
+            ),
+            dict(),
+            1
+        ))
+
+    if settings.training_metric_imgs:
+        trials = -1
+        trials_source_folder = os.path.join(folder, 'trials')
+        while os.path.exists(os.path.join(trials_source_folder, str(trials + 1))):
+            trials += 1
+        trial_out_folder = os.path.join(folder, 'analysis', 'trials')
+
+        for trial in range(trials):
+            trial_src = os.path.join(trials_source_folder, str(trial), 'throughtime.npz')
+            if not os.path.exists(trial_src):
+                continue
+
+            trial_out = os.path.join(trial_out_folder, str(trial))
+            os.makedirs(trial_out, exist_ok=True)
+            tasks.extend([
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', 'Loss (Train)'),
+                        'Epoch',
+                        'Loss',
+                        'epochs',
+                        slice(None),
+                        'losses_train',
+                        slice(None),
+                        os.path.join(trial_out, 'epoch_vs_loss_train')
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', 'Loss (Validation)'),
+                        'Epoch',
+                        'Loss',
+                        'epochs',
+                        slice(None),
+                        'losses_val',
+                        slice(None),
+                        os.path.join(trial_out, 'epoch_vs_loss_val')
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', f'{perf_name} (Train)'),
+                        'Epoch',
+                        perf_name_short,
+                        'epochs',
+                        slice(None),
+                        'perfs_train',
+                        slice(None),
+                        os.path.join(trial_out, 'epoch_vs_perf_train')
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', f'{perf_name} (Validation)'),
+                        'Epoch',
+                        perf_name_short,
+                        'epochs',
+                        slice(None),
+                        'perfs_val',
+                        slice(None),
+                        os.path.join(trial_out, 'epoch_vs_perf_val')
+                    ),
+                    dict(),
+                    1
+                ),
+            ])
+
+        trial_out = trial_out_folder
+        trial_src = os.path.join(folder, 'throughtimes.npz')
+        for reduction in REDUCTIONS:
+            tasks.extend([
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', 'Loss (Train)'),
+                        'Epoch',
+                        'Loss',
+                        'epochs',
+                        slice(None),
+                        'losses_train',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', 'Loss (Train, Smoothed)'),
+                        'Epoch',
+                        'Loss',
+                        'epochs',
+                        slice(None),
+                        'losses_train_smoothed',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_smoothed_loss_train_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', 'Loss (Validation)'),
+                        'Epoch',
+                        'Loss',
+                        'epochs',
+                        slice(None),
+                        'losses_val',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_loss_val_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', 'Loss (Val, Smoothed)'),
+                        'Epoch',
+                        'Loss',
+                        'epochs',
+                        slice(None),
+                        'losses_val_smoothed',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_smoothed_loss_val_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', f'{perf_name} (Train)'),
+                        'Epoch',
+                        perf_name_short,
+                        'epochs',
+                        slice(None),
+                        'perfs_train',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_perf_train_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', f'{perf_name} (Smoothed, Train)'),
+                        'Epoch',
+                        perf_name_short,
+                        'epochs',
+                        slice(None),
+                        'perfs_train_smoothed',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_smoothed_perf_train_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', f'{perf_name} (Validation)'),
+                        'Epoch',
+                        perf_name_short,
+                        'epochs',
+                        slice(None),
+                        'perfs_val',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_perf_val_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+                dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        trial_src,
+                        futils.make_vs_title('Epoch', f'{perf_name} (Val, Smoothed)'),
+                        'Epoch',
+                        perf_name_short,
+                        'epochs',
+                        slice(None),
+                        'perfs_val_smoothed',
+                        slice(None),
+                        os.path.join(trial_out, f'epoch_vs_smoothed_perf_val_{reduction}'),
+                        reduction
+                    ),
+                    dict(),
+                    1
+                ),
+            ])
 
     # TODO other stuff
 

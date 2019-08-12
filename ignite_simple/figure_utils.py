@@ -22,7 +22,7 @@ def set_title(fig: Figure, ax: Axes, title: str, digital: bool):
 
     pad = max(int(0.3125 * figh), 1)
 
-    font_size = int((8/1.92) * figw) if digital else int((4/1.92) * figw)
+    font_size = int((8 / 1.92) * figw) if digital else int((4 / 1.92) * figw)
 
     axtitle = ax.set_title(title, pad=pad)
     axtitle.set_fontsize(font_size)
@@ -33,3 +33,6 @@ def set_title(fig: Figure, ax: Axes, title: str, digital: bool):
         axtitle.set_fontsize(font_size)
         bb = axtitle.get_window_extent(renderer=renderer)
     return axtitle
+
+def make_vs_title(x: str, y: str):
+    return f'{y} vs {x}'

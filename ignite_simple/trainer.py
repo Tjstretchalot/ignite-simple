@@ -26,11 +26,10 @@ class TrainSettings:
             labels are one-hot encoded multi-class labels, outputs are the same
         * inv-loss
             accuracy is not measured and inverse loss is used as the
-            performance metric instead. For stability, instead of exactly
-            inverse loss,
+            performance metric instead. For stability, and legibility of plots,
 
             .. math::
-                \frac{1}{\text{loss} + 10^{-6}}
+                \frac{1}{\text{loss} + 1}
 
             is used.
 
@@ -230,7 +229,7 @@ def _multiclass_threshold(output):
     return y_pred, y
 
 def _inv_loss(loss):
-    return 1 / (loss + 1e-6)
+    return 1 / (loss + 1)
 
 def _iden(x):
     return x

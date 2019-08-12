@@ -103,8 +103,8 @@ def slowest() -> HyperparameterSettings:
         lr_start=1e-8,
         lr_end=10,
         lr_min_inits=10,
-        batch_start=1,
-        batch_end=512,
+        batch_start=8,  # <8 might sometimes be better, but is painfully
+        batch_end=512,  # slow computationally
         batch_rn_min_inits=10,
         batch_pts=24,
         batch_pt_min_inits=10,

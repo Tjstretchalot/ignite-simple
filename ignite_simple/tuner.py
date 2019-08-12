@@ -260,28 +260,42 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
     lr_perfs = result['perfs']
     window_size = smooth_window_size(lrs.shape[0])
 
+    lr_smoothed_perfs = scipy.signal.savgol_filter(
+        lr_perfs, window_size, 1)
+    old_settings = np.seterr(under='ignore')
+    lse_smoothed_lr_perfs = scipy.special.logsumexp(
+        lr_smoothed_perfs, axis=0
+    )
+    np.seterr(**old_settings)
+    lse_smoothed_lr_perf_then_derivs = np.gradient(lse_smoothed_lr_perfs)
+
     lr_perf_derivs = np.gradient(lr_perfs, axis=-1)
     smoothed_lr_perf_derivs = scipy.signal.savgol_filter(
         lr_perfs, window_size, 1, deriv=1)
     mean_smoothed_lr_perf_derivs = smoothed_lr_perf_derivs.mean(0)
 
-    lr_min, lr_max = find_with_derivs(lrs, mean_smoothed_lr_perf_derivs)
+    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs)
 
     np.savez_compressed(
-        outfile, lrs=lrs, perfs=lr_perfs,
+        outfile,
+        lrs=lrs, perfs=lr_perfs,
+        smoothed_perfs=lr_smoothed_perfs,
+        lse_smoothed_perfs=lse_smoothed_lr_perfs,
         perf_derivs=lr_perf_derivs,
         smoothed_perf_derivs=smoothed_lr_perf_derivs,
         mean_smoothed_perf_derivs=mean_smoothed_lr_perf_derivs,
+        lse_smoothed_perf_then_derivs=lse_smoothed_lr_perf_then_derivs,
         lr_range=np.array([lr_min, lr_max]))
 
-    logger.info('Learning rate range: [%s, %s)', lr_min, lr_max)
+    logger.info('Learning rate range: [%s, %s) (found from %s trials)',
+                lr_min, lr_max, lr_perfs.shape[0])
     return lr_min, lr_max
 
 
 def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
                             accuracy_style, mainfolder, cores, settings,
                             store_up_to, logger, cycle_time_epochs, bss,
-                            mean_smoothed_bs_perf_derivs,
+                            collated_smoothed_bs_perf_derivs,
                             bs_min, bs_max, lr_min_over_batch,
                             lr_max_over_batch) -> int:
     settings: HyperparameterSettings
@@ -292,23 +306,36 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
 
     incl_raw = store_up_to.hparam_selection_specific_imgs
 
-    if bs_min == bs_max:
+    if bs_min_ind == bs_max_ind:
         logger.info('Only found a single good batch size, using that without '
                     + 'further investigation')
         return bs_min
 
-    if bs_max - bs_min <= settings.batch_pts:
+    if bs_max_ind - bs_min_ind <= settings.batch_pts:
         logger.debug('Found %s good batch sizes and willing to try up to %s, '
-                     + 'so testing all of them.', bs_max - bs_min,
+                     + 'so testing all of them.', bs_max_ind - bs_min_ind,
                      settings.batch_pts)
-        test_pts = np.arange(bs_min, bs_max)
+        test_pts = bss[bs_min_ind:bs_max_ind]
     else:
-        probs = mean_smoothed_bs_perf_derivs[bs_min_ind:bs_max_ind]
+        probs = collated_smoothed_bs_perf_derivs[bs_min_ind:bs_max_ind]
+        old_settings = np.seterr(under='ignore')
         probs = scipy.special.softmax(probs)
 
+        iters = 0
+        while (probs < 1e-6).sum() != 0:
+            if iters > 10:
+                probs[:] = 1 / probs.shape[0]
+                break
+            probs[probs < 1e-6] = 1e-6
+            probs = scipy.special.softmax(probs)
+            iters += 1
+
+        np.seterr(**old_settings)
+
         test_pts = np.random.choice(
-            np.arange(bs_min, bs_max), settings.batch_pts,
+            np.arange(bs_min_ind, bs_max_ind), settings.batch_pts,
             replace=False, p=probs)
+        test_pts = bss[test_pts]
 
         logger.debug('Comparing batch sizes: %s', test_pts)
 
@@ -323,10 +350,19 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
     os.makedirs(folder)
 
     loops = 0  # number spawned // test_pts.shape[0]
+    last_loop_printed = 0
     cur_ind = 0  # in test_pts
     current_processes = []
-    while loops < settings.batch_pt_min_inits:
+    target_num_loops = max(
+        settings.batch_pt_min_inits,
+        cores // test_pts.shape[0]
+    )
+    while loops < target_num_loops:
         while len(current_processes) == cores:
+            if last_loop_printed < loops:
+                logger.debug('On loop %s/%s',
+                             loops + 1, settings.batch_pt_min_inits)
+                last_loop_printed = loops
             time.sleep(0.1)
 
             for i in range(len(current_processes) - 1, -1, -1):
@@ -335,7 +371,6 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
 
         fname = os.path.join(folder, f'{cur_ind}_{loops}.npz')
         bs = int(test_pts[cur_ind])
-        logger.debug('Starting run with batch size %s', bs)
         proc = mp.Process(
             target=_train_with_perf,
             args=(
@@ -352,6 +387,9 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
         if cur_ind >= test_pts.shape[0]:
             cur_ind = 0
             loops += 1
+
+    logger.debug('Waiting for %s currently running trials to end...',
+                 len(current_processes))
 
     for proc in current_processes:
         proc.join()
@@ -374,7 +412,10 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
                     trials_raw.append(infile['perf'])
             os.remove(fname)
         trials = np.concatenate(trials)
+
+        old_settings = np.seterr(under='ignore')
         lse_trials = scipy.special.logsumexp(trials)
+        np.seterr(**old_settings)
 
         all_final_perfs[i] = trials
         all_final_lse_perfs[i] = lse_trials
@@ -384,8 +425,10 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
             smoothed_trials_raw = scipy.signal.savgol_filter(
                 trials_raw, smooth_window_size(trials_raw.shape[1]), 1
             )
+            old_settings = np.seterr(under='ignore')
             lse_smoothed_trials_raw = scipy.special.logsumexp(
                 smoothed_trials_raw, axis=0)
+            np.seterr(**old_settings)
 
             raws_dict[f'raw_{bs}'] = trials_raw
             raws_dict[f'smoothed_raw_{bs}'] = smoothed_trials_raw
@@ -427,9 +470,18 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             lr_vs_perf.npz
                 lrs=np.ndarray[number of batches]
                 perfs=np.ndarray[trials, number of batches]
+                smoothed_perfs=np.ndarray[trials, number of batches]
+                lse_smoothed_perfs=np.ndarray[trials, number of batches]
                 perf_derivs=np.ndarray[trials, number_of_batches]
                 smoothed_perf_derivs=np.ndarray[trials, number of batches]
                 mean_smoothed_perf_derivs=np.ndarray[number of batches]
+                lse_smoothed_perf_then_derivs=np.ndarray[number of batches]
+                    lse = log sum exp. when there are many trials, the mean
+                    gets overly pessimistic from bad initializations,
+                    so LSE is more stable. however, we can't do lse on the
+                    smoothed derivatives because then derivatives will tend
+                    to be positive everywhere, so we have to smooth first,
+                    then take lse, then take derivative
                 lr_range=np.ndarray[2]
                     min, max for the good range of learning rates
             bs_vs_perf.npz  (bs=batch_size)
@@ -439,9 +491,12 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
                 bss=np.ndarray[number of batches]
                 perfs=np.ndarray[trials, number of batches]
+                smoothed_perfs=np.ndarray[number of batches]
+                lse_smoothed_perfs=np.ndarray[number of batches]
                 perf_derivs=np.ndarray[trials, number_of_batches]
                 smoothed_perf_derivs=np.ndarray[trials, number of batches]
                 mean_smoothed_perf_derivs=np.ndarray[number of batches]
+                lse_smoothed_perf_then_derivs=np.ndarray[number of batches]
                 bs_range=np.ndarray[2]
                     min, max for the good range of batch sizes
             lr_vs_perf2.npz
@@ -540,30 +595,47 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     bss = result['bss'][0]
     bs_perfs = result['perfs']
+
     window_size = smooth_window_size(bss.shape[0])
+
+    smoothed_bs_perf = scipy.signal.savgol_filter(
+        bs_perfs, window_size, 1
+    )
+    old_settings = np.seterr(under='ignore')
+    lse_smoothed_bs_perf = scipy.special.logsumexp(
+        smoothed_bs_perf, axis=0
+    )
+    np.seterr(**old_settings)
+    lse_smoothed_bs_perf_then_derivs = np.gradient(
+        lse_smoothed_bs_perf, axis=0)
 
     bs_perf_derivs = np.gradient(bs_perfs, axis=-1)
     smoothed_bs_perf_derivs = scipy.signal.savgol_filter(
         bs_perfs, window_size, 1, deriv=1)
+
     mean_smoothed_bs_perf_derivs = smoothed_bs_perf_derivs.mean(0)
 
-    bs_min, bs_max = find_with_derivs(bss, mean_smoothed_bs_perf_derivs)
+    bs_min, bs_max = find_with_derivs(bss, lse_smoothed_bs_perf_then_derivs)
     bs_min, bs_max = int(bs_min), int(bs_max)
 
-    logger.info('Batch size range: [%s, %s)', bs_min, bs_max)
+    logger.info('Batch size range: [%s, %s) (found from %s trials)',
+                bs_min, bs_max, bs_perfs.shape[0])
 
     np.savez_compressed(
-        os.path.join(folder, 'bs_vs_perf.npz'), bss=bss, perfs=bs_perfs,
+        os.path.join(folder, 'bs_vs_perf.npz'),
+        bss=bss, perfs=bs_perfs,
         perf_derivs=bs_perf_derivs,
+        smoothed_perfs=smoothed_bs_perf,
         smoothed_perf_derivs=smoothed_bs_perf_derivs,
         mean_smoothed_perf_derivs=mean_smoothed_bs_perf_derivs,
+        lse_smoothed_perf_then_derivs=lse_smoothed_bs_perf_then_derivs,
         bs_range=np.array([bs_min, bs_max]))
 
     if settings.batch_pts > 1:
         batch_size = _select_batch_size_from(
             model_loader, dataset_loader, loss_loader, accuracy_style, folder,
             cores, settings, store_up_to, logger, init_cycle_time, bss,
-            mean_smoothed_bs_perf_derivs, bs_min, bs_max,
+            lse_smoothed_bs_perf_then_derivs, bs_min, bs_max,
             lr_min / init_batch_size, lr_max / init_batch_size)
     else:
         batch_size = (bs_min + bs_max) // 2

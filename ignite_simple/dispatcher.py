@@ -10,8 +10,10 @@ import typing
 import importlib
 import time
 import multiprocessing as mp
+import logging
 from queue import Empty
 from pympanim.zeromqqueue import ZeroMQQueue
+import traceback
 
 class Task:
     """A description of a task.
@@ -114,9 +116,12 @@ def _dispatcher(imps, jobq, ackq, sleep_delay):
             continue
 
         task = job[1]
-        mod = importlib.import_module(task.module)
-        tocall = getattr(mod, task.attrname)
-        tocall(*task.args, **task.kwargs)
+        try:
+            mod = importlib.import_module(task.module)
+            tocall = getattr(mod, task.attrname)
+            tocall(*task.args, **task.kwargs)
+        except:  # noqa: E722
+            traceback.print_exc()
         ackq.put('ack')
 
     jobq.close()
@@ -134,6 +139,18 @@ def dispatch(tasks: typing.Tuple[Task], total_cores: int,
         during the spawning phase, which causes jobs to be processed more
         smoothly.
     """
+    logger = logging.getLogger(__name__)
+
+    if total_cores <= 1:
+        last_print = time.time()
+        for i, task in enumerate(tasks):
+            mod = importlib.import_module(task.module)
+            tocall = getattr(mod, task.attrname)
+            tocall(*task.args, **task.kwargs)
+            if time.time() - last_print > 5:
+                print(f'Finished task {i+1}/{len(tasks)}...')
+        return
+
     tasks_by_cores = dict()
     smallest_num_cores = total_cores
     for task in tasks:
@@ -164,7 +181,9 @@ def dispatch(tasks: typing.Tuple[Task], total_cores: int,
         proc.start()
         processes.append(MainToWorkerConnection(proc, jobq, ackq, 0.01))
 
-
+    tasks_dispatched = 0
+    last_printed_at = time.time()
+    last_printed_tasks = 0
     while tasks_by_cores:
         cores_in_use = 0
         for proc in processes:
@@ -177,6 +196,12 @@ def dispatch(tasks: typing.Tuple[Task], total_cores: int,
                 if (not proc.cores) and (proc.sleep_delay > 0.02):
                     proc.update_sleep_delay(0.1)
 
+            if (tasks_dispatched > last_printed_tasks
+                    and time.time() - last_printed_at > 5):
+                logger.debug('Dispatched %s/%s tasks...',
+                             tasks_dispatched, len(tasks))
+                last_printed_tasks = tasks_dispatched
+                last_printed_at = time.time()
             time.sleep(0.1)
             continue
 
@@ -206,11 +231,20 @@ def dispatch(tasks: typing.Tuple[Task], total_cores: int,
 
         proc.send(task)
 
+        tasks_dispatched += 1
         cores_in_use += cores_to_use
 
     for proc in processes:
         proc: MainToWorkerConnection
         proc.update_sleep_delay(0.1)
+
+    cnt_rem = 0
+    for proc in processes:
+        if not proc.is_ready():
+            cnt_rem += 1
+
+    if cnt_rem > 0:
+        logger.debug('Waiting on %s remaining tasks...', cnt_rem)
 
     for proc in processes:
         proc.is_ready()

@@ -17,6 +17,7 @@ import ignite_simple.trainer as trainer
 from ignite_simple.analysis import analyze
 from ignite.engine import Events
 from ignite.contrib.handlers import CustomPeriodicEvent
+from ignite_simple.range_finder import autosmooth
 import json
 import numpy as np
 import multiprocessing as mp
@@ -361,13 +362,25 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
                 losses_train:
                     shape (trials, samples)
 
+                losses_train_smoothed:
+                    shape (trials, samples)
+
                 losses_val:
+                    shape (trials, samples)
+
+                losses_val_smoothed:
                     shape (trials, samples)
 
                 perfs_train:
                     shape (trials, samples)
 
+                perfs_train_smoothed:
+                    shape (trials, samples)
+
                 perfs_val:
+                    shape (trials, samples)
+
+                perfs_val_smoothed:
                     shape (trials, samples)
 
     :param model_loader: (module, attrname, args, kwargs) defines where the
@@ -431,7 +444,7 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
     logger = logging.getLogger(__name__)
 
     if not is_continuation and os.path.exists(folder):
-        tstr = str(datetime.datetime.now()).replace(' ', '_')
+        tstr = str(datetime.datetime.now()).replace(' ', '_').replace(':', '-')
         fname = tstr
         os.makedirs(history_folder, exist_ok=True)
 
@@ -581,9 +594,13 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
             settings=skipped_sample['settings'],
             epochs=skipped_sample['epochs'],
             losses_train=to_collate['losses_train'],
+            losses_train_smoothed=autosmooth(to_collate['losses_train']),
             losses_val=to_collate['losses_val'],
+            losses_val_smoothed=autosmooth(to_collate['losses_val']),
             perfs_train=to_collate['perfs_train'],
-            perfs_val=to_collate['perfs_val']
+            perfs_train_smoothed=autosmooth(to_collate['perfs_train']),
+            perfs_val=to_collate['perfs_val'],
+            perfs_val_smoothed=autosmooth(to_collate['perfs_val']),
         )
 
     analyze(dataset_loader, loss_loader, folder, analysis, accuracy_style, cores)
