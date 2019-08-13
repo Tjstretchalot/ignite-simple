@@ -71,14 +71,14 @@ def dataset(max_abs_val: int = 30):
 
 loss = torch.nn.SmoothL1Loss
 
-def main(is_continuation):
+def main(is_continuation, hparams):
     """Finds the correct learning rate range and batch size"""
     ignite_simple.train(
         (__name__, 'model', tuple(), dict()),
         (__name__, 'dataset', tuple(), dict()),
         (__name__, 'loss', tuple(), dict()),
         folder='out/examples/delta_to_dir/current',
-        hyperparameters='fast',
+        hyperparameters=hparams,
         analysis='images',
         allow_later_analysis_up_to='video',
         accuracy_style='multiclass',
@@ -108,9 +108,11 @@ if __name__ == '__main__':
                         help='Set is_continuation to False')
     parser.add_argument('--reanalyze', action='store_true',
                         help='Reanalyze instead of performing additional trials')
+    parser.add_argument('--hparams', type=str, default='fast',
+                        help='Which hyperparameter preset to use')
     args = parser.parse_args()
 
     if args.reanalyze:
         reanalyze()
     else:
-        main(not args.no_continue)
+        main(not args.no_continue, args.hparams)
