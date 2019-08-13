@@ -217,10 +217,11 @@ def _pca3dvis_model(dataset_loader, model_file, outfolder, use_train,
                 {'s': 20 if draft else 30, 'c': 'tab:red'}
             )
         ]
+    with torch.set_grad_enabled(False):
+        _, hidacts = model(pts)
 
-    _, hidacts = model(pts)
 
-    hidacts = [ha.numpy() for ha in hidacts]
+    hidacts = [ha.detach().numpy() for ha in hidacts]
     titles = [f'Hidden Layer {i}' for i in range(hidacts)]
     titles[0] = 'Input'
     if len(titles) == 3:
@@ -449,6 +450,11 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 ])
 
             for reduction in REDUCTIONS:
+                have_imgs = os.path.exists(
+                    os.path.join(real_out, f'lr_vs_perf_{reduction}_1920x1080.png'))
+                if have_imgs:
+                    continue
+
                 tasks.extend([
                     dispatcher.Task(
                         __name__,
@@ -638,6 +644,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             ])
 
         for reduction in REDUCTIONS:
+            have_imgs = os.path.exists(
+                os.path.join(out_folder, f'batch_vs_perf_{reduction}_1920x1080.png'))
+            if have_imgs:
+                continue
             tasks.extend([
                 dispatcher.Task(
                     __name__,
@@ -748,6 +758,11 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 continue
 
             trial_out = os.path.join(trial_out_folder, str(trial))
+            have_imgs = os.path.exists(
+                os.path.join(trial_out, f'epoch_vs_loss_train_1920x1080.png'))
+            if have_imgs:
+                continue
+
             os.makedirs(trial_out, exist_ok=True)
             tasks.extend([
                 dispatcher.Task(
@@ -823,6 +838,11 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
         trial_out = trial_out_folder
         trial_src = os.path.join(folder, 'throughtimes.npz')
         for reduction in REDUCTIONS:
+            have_imgs = os.path.exists(
+                os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}_1920x1080.png'))
+            if have_imgs:
+                continue
+
             tasks.extend([
                 dispatcher.Task(
                     __name__,
