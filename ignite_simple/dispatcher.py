@@ -215,6 +215,9 @@ def dispatch(tasks: typing.Tuple[Task], total_cores: int,
             del tasks_by_cores[cores_to_use]
 
             if tasks_by_cores and cores_to_use == smallest_num_cores:
+                logger.debug('Completed all tasks that require %s core%s...',
+                             smallest_num_cores,
+                             's' if smallest_num_cores > 1 else '')
                 while smallest_num_cores not in tasks_by_cores:
                     smallest_num_cores += 1
 
