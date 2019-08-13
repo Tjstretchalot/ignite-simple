@@ -976,7 +976,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
         model = torch.load(model_file)
         train_set, _ = utils.invoke(dataset_loader)
 
-        example_item = train_set[0]
+        example_item = train_set[0][0]
         example_item = torch.unsqueeze(example_item, 0)
 
         example_out = model(example_item)
