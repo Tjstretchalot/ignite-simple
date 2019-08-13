@@ -293,11 +293,11 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         pca3dvis_train_draft/
                             Only produced if settings.typical_run_pca3dvis and
                             settings.typical_run_pca3dvis_draft are set, and
-                            only done on trial 1
+                            only done on trial 0
                         pca3dvis_train/
                             Only produced if settings.typical_run_pca3dvis and
                             not settings.typical_run_pca3dvis_draft, and only
-                            done on trial 1
+                            done on trial 0
 
                     epoch_vs_loss_train_*.(img) (*)
                     epoch_vs_loss_val_*.(img) (*)
@@ -998,8 +998,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             ])
 
     if (settings.typical_run_pca3dvis
-            and os.path.exists(os.path.join(folder, 'trials', '1'))):
-        model_file = os.path.join(folder, 'trials', '1', 'model.pt')
+            and os.path.exists(os.path.join(folder, 'trials', '0'))):
+        model_file = os.path.join(folder, 'trials', '0', 'model.pt')
         model = torch.load(model_file)
         train_set, _ = utils.invoke(dataset_loader)
 
@@ -1011,10 +1011,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             # we have an unstripped model!
             outfolder = (
                 os.path.join(
-                    folder, 'analysis', 'trials', '1', 'pca3dvis_train_draft')
+                    folder, 'analysis', 'trials', '0', 'pca3dvis_train_draft')
                 if settings.typical_run_pca3dvis_draft else
                 os.path.join(
-                    folder, 'analysis', 'trials', '1', 'pca3dvis_train')
+                    folder, 'analysis', 'trials', '0', 'pca3dvis_train')
             )
 
             if not os.path.exists(outfolder):

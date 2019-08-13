@@ -96,7 +96,7 @@ def reanalyze():
         (__name__, 'loss', tuple(), dict()),
         folder='out/examples/delta_to_dir/current',
         settings='video',
-        accuracy_style='classification',
+        accuracy_style='multiclass',
         cores='all')
 
 if __name__ == '__main__':

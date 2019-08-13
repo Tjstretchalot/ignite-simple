@@ -161,6 +161,7 @@ def dispatch(tasks: typing.Tuple[Task], total_cores: int,
             cores = total_cores
         elif cores < 1:
             cores = 1
+        task.cores = cores
 
         if cores not in tasks_by_cores:
             tasks_by_cores[cores] = [task]
