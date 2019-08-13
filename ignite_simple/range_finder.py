@@ -85,7 +85,7 @@ def trim_range_derivs(xs: np.ndarray,
     intvl_width = xs_in_range[-1] - xs_in_range[0]
     intvl_intgrl = np.trapz(in_range, xs_in_range)
 
-    for new_floor_perc in np.linspace(0.1, 0, num=10, endpoint=False):
+    for new_floor_perc in np.linspace(0.5, 0, num=50, endpoint=False):
         new_floor = max_in_range * new_floor_perc
         new_valid = in_range > new_floor
         new_valid_rev = new_valid[::-1]
