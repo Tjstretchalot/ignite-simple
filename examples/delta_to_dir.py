@@ -71,16 +71,12 @@ def dataset(max_abs_val: int = 30):
 
 loss = torch.nn.SmoothL1Loss
 
-_module = __name__  # 'examples.delta_to_dir'
-
 def main():
     """Finds the correct learning rate range and batch size"""
-    logging.config.fileConfig('logging.conf')
-
     ignite_simple.train(
-        (_module, 'model', tuple(), dict()),
-        (_module, 'dataset', tuple(), dict()),
-        (_module, 'loss', tuple(), dict()),
+        (__name__, 'model', tuple(), dict()),
+        (__name__, 'dataset', tuple(), dict()),
+        (__name__, 'loss', tuple(), dict()),
         folder='out/examples/delta_to_dir/current',
         hyperparameters='fast',
         analysis='video',
@@ -95,8 +91,6 @@ def main():
 def reanalyze():
     """Reanalyzes the existing trials, possibly under different analysis
     settings"""
-    logging.config.fileConfig('logging.conf')
-
     ignite_simple.analyze(
         (__name__, 'dataset', tuple(), dict()),
         (__name__, 'loss', tuple(), dict()),
@@ -106,4 +100,5 @@ def reanalyze():
         cores='all')
 
 if __name__ == '__main__':
-    reanalyze()
+    logging.config.fileConfig('logging.conf')
+    main()
