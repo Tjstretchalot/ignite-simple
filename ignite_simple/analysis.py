@@ -223,7 +223,7 @@ def _pca3dvis_model(dataset_loader, model_file, outfolder, use_train,
 
     hidacts = [ha.detach().numpy() for ha in hidacts]
     for i in range(len(hidacts)):
-        hidacts[i] = hidacts[i].reshape(reduce(operator.mul, hidacts[i].shape[1:]))
+        hidacts[i] = hidacts[i].reshape((num_pts, reduce(operator.mul, hidacts[i].shape[1:])))
         if hidacts[i].shape[1] < 3:
             new_ha = np.zeros((num_pts, 3), dtype=hidacts[i].dtype)
             new_ha[:, :hidacts[i].shape[1]] = hidacts[i]
