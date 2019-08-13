@@ -18,6 +18,8 @@ def smooth_window_size(npts: int) -> int:
     result = int(npts) // 10
     if result >= 100:
         return 101
+    if result < 3:
+        return 3
     if result % 2 == 0:
         result += 1
     return result

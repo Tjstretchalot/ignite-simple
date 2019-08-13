@@ -34,5 +34,25 @@ def set_title(fig: Figure, ax: Axes, title: str, digital: bool):
         bb = axtitle.get_window_extent(renderer=renderer)
     return axtitle
 
+def set_ticklabel_sizes(fig: Figure, ax: Axes, digital: bool):
+    """Updates the sizes of the tick labels for the given figure based on its
+    canvas size and canvas dpi.
+
+    :param Figure fig: The figure to update
+    :param Axes ax: The specific axes within the figure to update
+    :param bool digital: True if this is for digital display,
+        False for physical display
+    """
+    figw = fig.get_figwidth()
+
+    font_size = int((30 / 19.2) * figw) if digital else int((20 / 19.2) * figw)
+    font_size = max(font_size, 5)
+
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(font_size)
+
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(font_size)
+
 def make_vs_title(x: str, y: str):
     return f'{y} vs {x}'

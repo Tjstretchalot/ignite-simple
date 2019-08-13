@@ -125,6 +125,8 @@ dmypy.json
 
 # Output
 out/
+hparams/
+trials/
 
 # Downloadable
 datasets/

@@ -95,7 +95,7 @@ def reanalyze():
         (__name__, 'dataset', tuple(), dict()),
         (__name__, 'loss', tuple(), dict()),
         folder='out/examples/delta_to_dir/current',
-        settings='video',
+        settings='images',
         accuracy_style='multiclass',
         cores='all')
 

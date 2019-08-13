@@ -25,9 +25,11 @@ import json
 _valldr = utils.create_partial_loader
 _task_loader = utils.task_loader
 
+NUM_TO_VAL_MAX = 64 * 3
+
 def _store_lr_and_perf(lrs, perfs, cur_iter, num_to_val, tnr,
                        state: ignite_simple.trainer.TrainState):
-    valldr = _valldr(state.val_set, num_to_val)
+    valldr = _valldr(state.train_set, num_to_val)
     state.evaluator.run(valldr)
 
     lrs[cur_iter[0]] = state.lr_scheduler.get_param()
@@ -40,12 +42,12 @@ def _increment(cur, tnr, state):
 def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                 accuracy_style, lr_start, lr_end, batch_size,
                 cycle_time_epochs):
-    train_set, val_set = utils.invoke(dataset_loader)
+    train_set, _ = utils.invoke(dataset_loader)
 
     num_train_iters = (len(train_set) // batch_size) * (cycle_time_epochs // 2)
 
     cur_iter = [0]
-    num_to_val = min(64 * 3, len(val_set))
+    num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
 
     lrs = np.zeros(num_train_iters)
     perfs = np.zeros(num_train_iters)
@@ -79,7 +81,7 @@ def _task_loader_bs(dataset_loader, batch_start, batch_end, epochs):
 
 def _store_bs_and_perf(bss, perfs, cur, num_to_val, tnr,
                        state: ignite_simple.trainer.TrainState):
-    valldr = _valldr(state.val_set, num_to_val)
+    valldr = _valldr(state.train_set, num_to_val)
     state.evaluator.run(valldr)
     perf = state.evaluator.state.metrics['perf']
 
@@ -110,7 +112,7 @@ def _store_last_bs(perfs, cur, tnr, state):
 def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                    accuracy_style, batch_start, batch_end, lr_start, lr_end,
                    cycle_time_epochs):
-    train_set, val_set = utils.invoke(dataset_loader)
+    train_set, _ = utils.invoke(dataset_loader)
 
     # N = 0.5 * k * (k + 1)
     # => k^2 + k - 2N = 0
@@ -130,7 +132,7 @@ def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     perfs = np.zeros(bss.shape, dtype='float32')
 
     cur = [(bss[0], 0, 0), 0]
-    num_to_val = min(64 * 3, len(val_set))
+    num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
 
     tnr_settings = ignite_simple.trainer.TrainSettings(
         accuracy_style, model_loader, loss_loader,
@@ -153,25 +155,25 @@ def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     np.savez_compressed(outfile, bss=bss, perfs=perfs)
 
 def _store_perf(perfs, cur, num_to_val, tnr, state):
-    valldr = _valldr(state.val_set, num_to_val)
+    valldr = _valldr(state.train_set, num_to_val)
     state.evaluator.run(valldr)
     perfs[cur[0]] = state.evaluator.state.metrics['perf']
 
 def _train_with_perf(model_loader, dataset_loader, loss_loader, outfile,
                      accuracy_style, batch_size, lr_start, lr_end,
                      cycle_time_epochs, epochs, with_raw):
-    train_set, val_set = utils.invoke(dataset_loader)
+    train_set, _ = utils.invoke(dataset_loader)
 
     final_perf = np.zeros(1)
     final_ind = [0]
     handlers = [
         (Events.COMPLETED,
          (__name__, '_store_perf',
-          (final_perf, final_ind, len(val_set)), dict()))
+          (final_perf, final_ind, len(train_set)), dict()))
     ]
     if with_raw:
         num_iters = (len(train_set) // batch_size) * epochs
-        num_to_val = min(64 * 3, len(val_set))
+        num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
         perf = np.zeros(num_iters)
         ind = [0]
         handlers.extend([
@@ -257,7 +259,9 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
     logger.debug('Organizing and interpreting learning rate sweep...')
 
     lrs = result['lrs'][0]
+
     lr_perfs = result['perfs']
+    num_trials = lr_perfs.shape[0]
     window_size = smooth_window_size(lrs.shape[0])
 
     lr_smoothed_perfs = scipy.signal.savgol_filter(
@@ -288,8 +292,8 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         lr_range=np.array([lr_min, lr_max]))
 
     logger.info('Learning rate range: [%s, %s) (found from %s trials)',
-                lr_min, lr_max, lr_perfs.shape[0])
-    return lr_min, lr_max
+                lr_min, lr_max, num_trials)
+    return lr_min, lr_max, window_size, num_trials
 
 
 def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
@@ -447,7 +451,7 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
 
     logger.info('Found best batch size of those tested: %s', best_bs)
 
-    return best_bs
+    return best_bs, test_pts, loops
 
 def tune(model_loader: typing.Tuple[str, str, tuple, dict],
          dataset_loader: typing.Tuple[str, str, tuple, dict],
@@ -467,6 +471,24 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             final.json
                 {'lr_start': float, 'lr_end': float, 'batch_size': float,
                  'cycle_size_epochs': int, 'epochs': int}
+            misc.json
+                Variables that went into the final output. Typically selected
+                via heuristics, constants, or come from the hyperparameter
+                settings. Some may be deduced from the numpy array files
+                directly
+
+                {
+                    'initial_batch_size': int,
+                    'initial_cycle_time': int,
+                    'initial_min_lr': float,
+                    'initial_max_lr': float,
+                    'initial_lr_num_to_val': int,
+                    'initial_lr_num_trials': int,
+                    'initial_lr_window_size': int,
+                    'initial_lr_sweep_result_min': float,
+                    'initial_lr_sweep_result_max': float
+                }
+
             lr_vs_perf.npz
                 lrs=np.ndarray[number of batches]
                 perfs=np.ndarray[trials, number of batches]
@@ -559,11 +581,15 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     init_batch_size = 64
     init_cycle_time = int(np.clip(150000 // len(train_set), 2, 5) * 2)
 
-    lr_min, lr_max = _select_lr_from(
-        model_loader, dataset_loader, loss_loader, accuracy_style,
-        os.path.join(folder, 'lr_vs_perf.npz'), cores, settings,
-        store_up_to, logger, init_cycle_time, init_batch_size
+    lr_min, lr_max, lr_initial_window_size, lr_initial_trials = (
+        _select_lr_from(
+            model_loader, dataset_loader, loss_loader, accuracy_style,
+            os.path.join(folder, 'lr_vs_perf.npz'), cores, settings,
+            store_up_to, logger, init_cycle_time, init_batch_size
+        )
     )
+    initial_lr_sweep_result_min, initial_lr_sweep_result_max = lr_min, lr_max
+    initial_lr_num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
 
     logger.info('Performing initial batch size sweep...')
 
@@ -595,8 +621,9 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     bss = result['bss'][0]
     bs_perfs = result['perfs']
+    bs_sweep_trials = int(bs_perfs.shape[0])
 
-    window_size = smooth_window_size(bss.shape[0])
+    window_size = smooth_window_size(bs_perfs.shape[1])
 
     smoothed_bs_perf = scipy.signal.savgol_filter(
         bs_perfs, window_size, 1
@@ -632,25 +659,61 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
         bs_range=np.array([bs_min, bs_max]))
 
     if settings.batch_pts > 1:
-        batch_size = _select_batch_size_from(
+        batch_size, batch_pts_checked, num_batch_loops = _select_batch_size_from(
             model_loader, dataset_loader, loss_loader, accuracy_style, folder,
             cores, settings, store_up_to, logger, init_cycle_time, bss,
             lse_smoothed_bs_perf_then_derivs, bs_min, bs_max,
             lr_min / init_batch_size, lr_max / init_batch_size)
     else:
         batch_size = (bs_min + bs_max) // 2
+        batch_pts_checked = []
+        num_batch_loops = -1
         logger.info('Choosing mean batch size: %s', batch_size)
 
     if settings.rescan_lr_after_bs and batch_size != init_batch_size:
         logger.info('Finding learning rate range on new batch size...')
-        lr_min, lr_max = _select_lr_from(
+        lr_min, lr_max, second_lr_window_size, second_lr_num_trials = _select_lr_from(
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf2.npz'), cores, settings,
             store_up_to, logger, init_cycle_time, init_batch_size
         )
+    else:
+        second_lr_window_size = float('nan')
+        second_lr_num_trials = float('nan')
 
     with open(os.path.join(folder, 'final.json'), 'w') as outfile:
         json.dump({'lr_start': lr_min, 'lr_end': lr_max,
                    'batch_size': batch_size,
                    'cycle_size_epochs': init_cycle_time,
                    'epochs': init_cycle_time * 4}, outfile)
+
+    with open(os.path.join(folder, 'misc.json'), 'w') as outfile:
+        json.dump(
+            {
+                'initial_batch_size': init_batch_size,
+                'initial_cycle_time': init_cycle_time,
+                'initial_min_lr': settings.lr_start,
+                'initial_max_lr': settings.lr_end,
+                'initial_lr_num_to_val': initial_lr_num_to_val,
+                'initial_lr_num_trials': lr_initial_trials,
+                'initial_lr_window_size': lr_initial_window_size,
+                'initial_lr_sweep_result_min': initial_lr_sweep_result_min,
+                'initial_lr_sweep_result_max': initial_lr_sweep_result_max,
+                'initial_avg_lr': (initial_lr_sweep_result_min + initial_lr_sweep_result_max) / 2,
+                'initial_min_batch': settings.batch_start,
+                'initial_max_batch': settings.batch_end,
+                'initial_batch_num_to_val': initial_lr_num_to_val,
+                'initial_batch_num_trials': bs_sweep_trials,
+                'batch_sweep_result_min': bs_min,
+                'batch_sweep_result_max': bs_max,
+                'batch_sweep_result': batch_size,
+                'batch_sweep_num_pts': len(batch_pts_checked),
+                'batch_sweep_pts_list': list(int(i) for i in batch_pts_checked),
+                'batch_sweep_trials_each': num_batch_loops,
+                'second_lr_num_trials': second_lr_num_trials,
+                'second_lr_window_size': second_lr_window_size,
+                'lr_sweep_result_min': lr_min,
+                'lr_sweep_result_max': lr_max,
+            },
+            outfile
+        )
