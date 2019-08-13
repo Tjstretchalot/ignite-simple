@@ -23,7 +23,7 @@ def _model():
         .dense(10)
         .save_state()
         .build(with_stripped=True)
-    )[1]
+    )
 
 def _dataset(batch_size):
     transform = torchvision.transforms.ToTensor()

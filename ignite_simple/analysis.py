@@ -11,12 +11,16 @@ import ignite_simple.analarams as aparams
 import ignite_simple.dispatcher as dispatcher
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from functools import reduce
 import operator
 import os
 import psutil
 import scipy.special
 import warnings
+import torch
+import pca3dvis.worker
+import pca3dvis.pcs
 
 REDUCTIONS = ('each', 'mean', 'mean_with_errorbars', 'mean_with_fillbtwn',
               'lse')
@@ -180,6 +184,56 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
 
     plt.close(fig)
 
+def _pca3dvis_model(dataset_loader, model_file, outfolder, use_train,
+                    accuracy_style, draft):
+    train_set, val_set = utils.invoke(dataset_loader)
+    dset = train_set if use_train else val_set
+    model = torch.load(model_file)
+
+    num_pts = min(len(dset), 1024)
+    pts, raw_lbls = next(iter(utils.create_partial_loader(
+        dset, num_pts, num_pts)))
+
+    if accuracy_style == 'classification':
+        lbls = raw_lbls.numpy()
+        markers = [
+            (
+                np.ones(num_pts, dtype='bool'),
+                {
+                    'c': lbls,
+                    'cmap': plt.get_cmap('Set1'),
+                    's': 20 if draft else 30,
+                    'marker': 'o',
+                    'norm': mcolors.Normalize(lbls.min(), lbls.max())
+                }
+            )
+        ]
+    else:
+        # possibilities: color by loss, color by correctness, color by norms
+        lbls = np.ones(num_pts, 'int32')
+        markers = [
+            (
+                np.ones(num_pts, 'bool'),
+                {'s': 20 if draft else 30, 'c': 'tab:red'}
+            )
+        ]
+
+    _, hidacts = model(pts)
+
+    hidacts = [ha.numpy() for ha in hidacts]
+    titles = [f'Hidden Layer {i}' for i in range(hidacts)]
+    titles[0] = 'Input'
+    if len(titles) == 3:
+        titles[1] = 'Hidden Layer'
+    titles[-1] = 'Output'
+
+    traj = pca3dvis.pcs.get_pc_trajectory(hidacts, lbls)
+
+    logger = logging.getLogger(__name__)
+    logger.info('Generating pca3dvis for hidden activations (draft=%s, train=%s, out=%s)...',
+                draft, use_train, outfolder)
+    pca3dvis.worker.generate(traj, markers, titles, outfolder, draft)
+    logger.info('Finished generating video at %s', outfolder)
 
 def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             loss_loader: typing.Tuple[str, str, tuple, dict],
@@ -227,6 +281,15 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         epoch_vs_loss_val.(img) (*)
                         epoch_vs_perf_train.(img) (*)
                         epoch_vs_perf_val.(img) (*)
+
+                        pca3dvis_train_draft/
+                            Only produced if settings.typical_run_pca3dvis and
+                            settings.typical_run_pca3dvis_draft are set, and
+                            only done on trial 1
+                        pca3dvis_train/
+                            Only produced if settings.typical_run_pca3dvis and
+                            not settings.typical_run_pca3dvis_draft, and only
+                            done on trial 1
 
                     epoch_vs_loss_train_*.(img) (*)
                     epoch_vs_loss_val_*.(img) (*)
@@ -906,6 +969,46 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     1
                 ),
             ])
+
+    if (settings.typical_run_pca3dvis
+            and os.path.exists(os.path.join(folder, 'trials', '1'))):
+        model_file = os.path.join(folder, 'trials', '1', 'model.pt')
+        model = torch.load(model_file)
+        train_set, _ = utils.invoke(dataset_loader)
+
+        example_item = train_set[0]
+        example_item = torch.unsqueeze(example_item, 0)
+
+        example_out = model(example_item)
+        if isinstance(example_out, tuple):
+            # we have an unstripped model!
+            saved_states = example_out[1]
+
+            outfolder = (
+                os.path.exists(os.path.join(
+                    folder, 'analysis', 'trials', '1', 'pca3dvis_train_draft'))
+                if settings.typical_run_pca3dvis_draft else
+                os.path.exists(os.path.join(
+                    folder, 'analysis', 'trials', '1', 'pca3dvis_train'))
+            )
+
+            if not os.path.exists(outfolder):
+                tasks.append(
+                    dispatcher.Task(
+                        __name__,
+                        '_pca3dvis_model',
+                        (
+                            dataset_loader,
+                            model_file,
+                            outfolder,
+                            True,
+                            accuracy_style,
+                            settings.typical_run_pca3dvis_draft
+                        ),
+                        dict(),
+                        None
+                    )
+                )
 
     # TODO other stuff
 

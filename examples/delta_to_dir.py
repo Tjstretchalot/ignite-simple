@@ -25,8 +25,10 @@ def model():
     """Creates the model that should be trained"""
     return (
         FluentModule((2,))
+        .wrap(True)
         .dense(4)
         .then(MyNonlin())
+        .save_state()
         .build()
     )
 

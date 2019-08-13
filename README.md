@@ -5,15 +5,18 @@ machine learning models on conventional datasets.
 
 ## Usage
 
-You must explicitly specify the training set, validation set, and the loss.
-Then a preset is applied for how to tune hyperparameters and the amount of
-information to gather and export.
+You must explicitly specify the model, training set, validation set, and the
+loss. Then a preset is applied for how to tune hyperparameters and the amount
+of information to gather and export.
 
 Although not required, it is recommended use
 [torchluent](http://github.com/tjstretchalot/torchluent) to simplify the model
-creation process. This package accepts models with tensor outputs or tuples of
-the form (tensor, list of tensors), where the list of tensors contains
-relevants snapshots of the data as it was transformed by the network.
+creation process. This package accepts a single model with tensor outputs or
+a tuple of two models where the first is the stripped model (returns only
+a single tensor) and the second model has the same underlying parameters but
+return values are of the form (tensor, list of tensors), where the list of
+tensors contains relevants snapshots of the data as it was transformed by the
+network.
 
 This package supports repeating trials with the final selected hyperparameters,
 either by specifying the number of repeats with `trials` or by simply

@@ -75,7 +75,7 @@ def _savez_compressed(filen, tnr, state, **kwargs):
     np.savez_compressed(filen, **kwargs)
 
 def _save_model(filen, tnr, state):
-    torch.save(state.model, filen)
+    torch.save(state.unstripped_model, filen)
 
 def _init_cpe(cpe, tnr):
     cpe.attach(tnr)
@@ -163,7 +163,7 @@ def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
             samples_per = iters_per
 
         cpe = CustomPeriodicEvent(n_iterations=iters_per_sample)
-        snap_event = getattr(cpe.Events, f'ITERATIONS_{iters_per_sample}_COMPLETED')
+        snap_event = getattr(cpe.Events, f'ITERATIONS_{iters_per_sample}_COMPLETED')  # pylint: disable=no-member
         initializer = (
             __name__, '_init_cpe', (cpe,), dict()
         )

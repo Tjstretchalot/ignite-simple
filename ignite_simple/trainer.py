@@ -174,6 +174,9 @@ class TrainState:
 
     :ivar torch.nn.Module model: the model which is being trained
 
+    :ivar optional[torch.nn.Module] unstripped_model: the unstripped model, if
+        there is one, otherwise just the same reference as model
+
     :ivar torch.utils.data.Dataset train_set: the dataset which is used to
         train the model
 
@@ -203,6 +206,7 @@ class TrainState:
     """
     def __init__(self,
                  model: torch.nn.Module,
+                 unstripped_model: typing.Optional[torch.nn.Module],
                  train_set: torch.utils.data.Dataset,
                  val_set: torch.utils.data.Dataset,
                  train_loader: torch.utils.data.DataLoader,
@@ -249,6 +253,12 @@ def train(settings: TrainSettings) -> None:
     loss = settings.get_loss_loader()()
     train_set, val_set, train_loader = settings.get_task_loader()()
 
+    if isinstance(model, tuple):
+        unstripped_model = model[0]
+        model = model[1]
+    else:
+        unstripped_model = model
+
     handlers = settings.get_handlers()
 
     metrics = {'loss': ignite.metrics.Loss(loss)}
@@ -280,7 +290,7 @@ def train(settings: TrainSettings) -> None:
     settings.get_initializer()(trainer)
 
     state = TrainState(
-        model, train_set, val_set, train_loader, optimizer,
+        model, unstripped_model, train_set, val_set, train_loader, optimizer,
         settings.cycle_time_epochs, scheduler, loss, evaluator
     )
 
