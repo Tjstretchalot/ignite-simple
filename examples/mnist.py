@@ -35,7 +35,7 @@ def _dataset(batch_size):
 
 loss = torch.nn.CrossEntropyLoss
 
-def main():
+def main(is_continuation):
     """Trains a model on mnist"""
     ignite_simple.train(
         (__name__, '_model', [], dict()),
@@ -47,11 +47,34 @@ def main():
         allow_later_analysis_up_to='video',
         accuracy_style='classification',
         trials=1,
-        is_continuation=False,
+        is_continuation=is_continuation,
         history_folder='out/examples/mnist/history',
         cores='all'
     )
 
+def reanalyze():
+    """Reanalyzes the existing trials, possibly under different analysis
+    settings"""
+    ignite_simple.analyze(
+        (__name__, '_dataset', tuple(), dict()),
+        (__name__, 'loss', tuple(), dict()),
+        folder='out/examples/mnist/current',
+        settings='video',
+        accuracy_style='classification',
+        cores='all')
+
 if __name__ == '__main__':
     logging.config.fileConfig('logging.conf')
-    main()
+
+    import argparse
+    parser = argparse.ArgumentParser(description='Simple model/dataset example')
+    parser.add_argument('--no_continue', action='store_true',
+                        help='Set is_continuation to False')
+    parser.add_argument('--reanalyze', action='store_true',
+                        help='Reanalyze instead of performing additional trials')
+    args = parser.parse_args()
+
+    if args.reanalyze:
+        reanalyze()
+    else:
+        main(not args.no_continue)
