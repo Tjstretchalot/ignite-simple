@@ -29,7 +29,7 @@ def model():
         .dense(4)
         .then(MyNonlin())
         .save_state()
-        .build()
+        .build(with_stripped=True)
     )
 
 def dataset(max_abs_val: int = 30):
