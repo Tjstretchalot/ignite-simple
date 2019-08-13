@@ -43,7 +43,7 @@ def main(is_continuation):
         (__name__, 'loss', [], dict()),
         folder='out/examples/mnist/current',
         hyperparameters='fast',
-        analysis='video',
+        analysis='images',
         allow_later_analysis_up_to='video',
         accuracy_style='classification',
         trials=1,

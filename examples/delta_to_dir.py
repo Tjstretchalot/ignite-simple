@@ -79,7 +79,7 @@ def main(is_continuation):
         (__name__, 'loss', tuple(), dict()),
         folder='out/examples/delta_to_dir/current',
         hyperparameters='fast',
-        analysis='video',
+        analysis='images',
         allow_later_analysis_up_to='video',
         accuracy_style='multiclass',
         trials=1,
