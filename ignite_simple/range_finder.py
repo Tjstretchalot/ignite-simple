@@ -100,7 +100,7 @@ def trim_range_derivs(xs: np.ndarray,
         new_intvl_width = new_intvl_xs[-1] - new_intvl_xs[0]
         new_intvl_perc = new_intvl_width / intvl_width
 
-        if new_intvl_perc > (1 - new_floor_perc*1.2):
+        if new_intvl_perc > (1 - new_floor_perc * 1.2):
             # e.g. we shaved off 10% of max and only lost 5% of width,
             # not meaningfully helpful for reducing interval size
             continue
@@ -108,12 +108,12 @@ def trim_range_derivs(xs: np.ndarray,
         new_intvl_intgrl = np.trapz(new_intvl_derivs, new_intvl_xs)
         new_intvl_intgrl_perc = new_intvl_intgrl / intvl_intgrl
 
-        if new_intvl_intgrl_perc < (1 - new_floor_perc*1.2):
+        if new_intvl_intgrl_perc < (1 - new_floor_perc * 1.2):
             # e.g. we shaved off 10% of max and lost 20% of integral,
             # not meaningfully helpful for reducing interval size
             continue
 
-        if new_intvl_intgrl_perc < (1 - new_intvl_perc*1.2):
+        if new_intvl_intgrl_perc < (1 - new_intvl_perc * 1.2):
             # e.g. we shaved off 15% of width and lost 20% of integral,
             # not meaningfully helpful for reducing interval size
             continue
