@@ -216,6 +216,7 @@ class TrainState:
                  loss: torch.nn.Module,
                  evaluator: ignite.engine.Engine):
         self.model = model
+        self.unstripped_model = unstripped_model
         self.train_set = train_set
         self.val_set = val_set
         self.train_loader = train_loader
