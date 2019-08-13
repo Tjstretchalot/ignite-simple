@@ -982,14 +982,12 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
         example_out = model(example_item)
         if isinstance(example_out, tuple):
             # we have an unstripped model!
-            saved_states = example_out[1]
-
             outfolder = (
-                os.path.exists(os.path.join(
-                    folder, 'analysis', 'trials', '1', 'pca3dvis_train_draft'))
+                os.path.join(
+                    folder, 'analysis', 'trials', '1', 'pca3dvis_train_draft')
                 if settings.typical_run_pca3dvis_draft else
-                os.path.exists(os.path.join(
-                    folder, 'analysis', 'trials', '1', 'pca3dvis_train'))
+                os.path.join(
+                    folder, 'analysis', 'trials', '1', 'pca3dvis_train')
             )
 
             if not os.path.exists(outfolder):
