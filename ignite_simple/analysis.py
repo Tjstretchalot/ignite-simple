@@ -222,7 +222,7 @@ def _pca3dvis_model(dataset_loader, model_file, outfolder, use_train,
 
 
     hidacts = [ha.detach().numpy() for ha in hidacts]
-    titles = [f'Hidden Layer {i}' for i in range(hidacts)]
+    titles = [f'Hidden Layer {i}' for i, _ in enumerate(hidacts)]
     titles[0] = 'Input'
     if len(titles) == 3:
         titles[1] = 'Hidden Layer'
