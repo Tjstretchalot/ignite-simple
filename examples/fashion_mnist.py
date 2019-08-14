@@ -12,7 +12,6 @@ def _model():
         .verbose()
         .wrap(True)
         .conv2d(32, 5, 3)
-        #.maxpool2d(3)
         .operator('LeakyReLU')
         .save_state()
         .flatten()
