@@ -66,13 +66,12 @@
                     from the LogSumExp of the trials hence there are no error bars. </div>
             </div>
             <div class="figure">
-                <img class="figure-image"
-                    src="../hparams/lr/lr_range_perf_derivs_1920x1080.png"
+                <img class="figure-image" src="../hparams/lr/lr_range_perf_derivs_1920x1080.png"
                     alt="Inverse Loss vs Learning Rate, x is learning rate, y is 1/(loss+1)" />
                 <div class="caption"> The x-axis is the learning rate and the y-axis is the
-                    derivative the 1/(loss+1), the grey region corresponds to the standard
-                    deviation of the derivative over the trials, and the undarkened region
-                    is the selected learning rate range.</div>
+                    derivative the 1/(loss+1), the grey region corresponds to the standard deviation
+                    of the derivative over the trials, and the undarkened region is the selected
+                    learning rate range.</div>
             </div>
         </div>
     </section>
@@ -150,10 +149,10 @@
                 <img class="figure-image"
                     src="../hparams/batch/batch_range_perf_derivs_1920x1080.png"
                     alt="Inverse Loss vs Batch Size, x is batch size, y is 1/(loss+1)" />
-                <div class="caption"> The x-axis is the batch size and the y-axis is the
-                    derivative the 1/(loss+1), the grey region corresponds to the standard
-                    deviation of the derivative over the trials, and the undarkened region
-                    is the selected batch size range.</div>
+                <div class="caption"> The x-axis is the batch size and the y-axis is the derivative
+                    the 1/(loss+1), the grey region corresponds to the standard deviation of the
+                    derivative over the trials, and the undarkened region is the selected batch size
+                    range.</div>
             </div>
         </div>
     </section>
@@ -161,19 +160,22 @@
         <h2>Final Learning Rate</h2>
         <p>The final learning rate was simply the learning rate found in the initial sweep modified
             to account for the new batch size linearly. Hence, the final learning rate range was
-            from <span id="lr-sweep-result-min">TODO</span> to <span id="lr-sweep-result-max">TODO</span></p>
+            from <span id="lr-sweep-result-min">TODO</span> to <span
+                id="lr-sweep-result-max">TODO</span></p>
     </section>
     <section id="second-lr-sweep">
         <h2>Second Learning Rate Sweep</h2>
         <p>For this section the batch size was fixed to <span id="batch-sweep-result">TODO</span>,
             the value from the batch size sweep. The model was then trained for <span
                 id="initial-half-cycle">TODO</span> epochs with learning rate linearly increasing
-            from <span id="initial-min-lr">TODO</span> to <span id="initial-max-lr">TODO</span> over
-            the entire length of this training. At each iteration (i.e, each batch), <span
-                id="initial-lr-num-to-val">TODO</span> points were selected randomly from the
-            training set and the loss was calculated and stored (without propagating any gradients
-            for these points). This was repeated for <span id="second-lr-num-trials">TODO</span>
-            different random initializations of the model. </p>
+            from <span id="second-min-lr">TODO</span> to <span id="second-max-lr">TODO</span> over
+            the entire length of this training. The range was adjusted based on the new batch size,
+            such that we maintain the same ratio of learning rate to batch size. At each iteration
+            (i.e, each batch), <span id="initial-lr-num-to-val">TODO</span> points were selected
+            randomly from the training set and the loss was calculated and stored (without
+            propagating any gradients for these points). This was repeated for <span
+                id="second-lr-num-trials">TODO</span> different random initializations of the model.
+        </p>
         <p>After this process, there was a trial dimension, x dimension (learning rates), and y
             dimension which was transformed to 1/(loss+1). The trial dimension was coalesced using
             <a href="https://en.wikipedia.org/wiki/LogSumExp">LogSumExp</a>. The result was then
@@ -190,7 +192,7 @@
             interval, this was done (see <a
                 href="https://github.com/Tjstretchalot/ignite-simple/blob/master/ignite_simple/range_finder.py">range_finder.py</a>
             for details). </p>
-        <p>After this process, it was concluded that learning rates between <span
+        <p>After this process, it was concluded that learning rat es between <span
                 id="lr-sweep-result-min">TODO</span> and <span id="lr-sweep-result-max">TODO</span>
             were reasonable for the given batch size.</p>
         <div class="figures hparam-figures">
@@ -218,13 +220,12 @@
                     from the LogSumExp of the trials hence there are no error bars. </div>
             </div>
             <div class="figure">
-                <img class="figure-image"
-                    src="../hparams/lr2/lr_range_perf_derivs_1920x1080.png"
+                <img class="figure-image" src="../hparams/lr2/lr_range_perf_derivs_1920x1080.png"
                     alt="Inverse Loss vs Learning Rate, x is learning rate, y is 1/(loss+1)" />
                 <div class="caption"> The x-axis is the learning rate and the y-axis is the
-                    derivative the 1/(loss+1), the grey region corresponds to the standard
-                    deviation of the derivative over the trials, and the undarkened region
-                    is the selected learning rate range.</div>
+                    derivative the 1/(loss+1), the grey region corresponds to the standard deviation
+                    of the derivative over the trials, and the undarkened region is the selected
+                    learning rate range.</div>
             </div>
         </div>
     </section>
@@ -262,22 +263,57 @@
                     of the training set of at most 1024 points. </div>
             </div>
             <div class="figure">
+                <img class="figure-image"
+                    src="../trials/epoch_vs_perf_val_mean_with_fillbtwn_1920x1080.png"
+                    alt="Epoch vs performance, validation, (mean with fill between)" />
+                <div class="caption">The x-axis is the epoch and the y-axis is the performance. The
+                    blue line is the mean and the grey shaded region is 1.96 * standard deviation.
+                    For all points except the final one, snapshots are performed on a random sample
+                    of the validation set of at most 1024 points. </div>
+            </div>
+            <div class="figure">
                 <img class="figure-image" src="../trials/epoch_vs_perf_train_each_1920x1080.png"
                     alt="Epoch vs performance, validation, (each trial as a separate line)" />
                 <div class="caption">The x-axis is the epoch and the y-axis is the performance. Each
                     line corresponds to a different trial. Snapshots are performed on a random
                     sample of the training set of at most 1024 points.</div>
             </div>
-            <img class="figure-image"
-                src="../trials/epoch_vs_loss_val_mean_with_fillbtwn_1920x1080.png"
-                alt="Epoch vs loss, training, (mean with fill between)" />
-            <div class="caption">The x-axis is the epoch and the y-axis is the loss. The blue line
-                is the mean and the grey shaded region is 1.96 * standard deviation. Snapshots are
-                performed on a random sample of the validation set of at most 1024 points.</div>
+            <div class="figure">
+                <img class="figure-image" src="../trials/epoch_vs_perf_val_each_1920x1080.png"
+                    alt="Epoch vs performance, validation, (each trial as a separate line)" />
+                <div class="caption">The x-axis is the epoch and the y-axis is the performance. Each
+                    line corresponds to a different trial. Snapshots are performed on a random
+                    sample of the validation set of at most 1024 points.</div>
+            </div>
+            <div class="figure">
+                <img class="figure-image"
+                    src="../trials/epoch_vs_loss_train_mean_with_fillbtwn_1920x1080.png"
+                    alt="Epoch vs loss, training, (mean with fill between)" />
+                <div class="caption">The x-axis is the epoch and the y-axis is the loss. The blue
+                    line is the mean and the grey shaded region is 1.96 * standard deviation.
+                    Snapshots are performed on a random sample of the training set of at most 1024
+                    points.</div>
+            </div>
+            <div class="figure">
+                <img class="figure-image"
+                    src="../trials/epoch_vs_loss_val_mean_with_fillbtwn_1920x1080.png"
+                    alt="Epoch vs loss, validation, (mean with fill between)" />
+                <div class="caption">The x-axis is the epoch and the y-axis is the loss. The blue
+                    line is the mean and the grey shaded region is 1.96 * standard deviation.
+                    Snapshots are performed on a random sample of the validation set of at most 1024
+                    points.</div>
+            </div>
+            <div class="figure">
+                <img class="figure-image" src="../trials/epoch_vs_loss_train_each_1920x1080.png"
+                    alt="Epoch vs performance (each trial as a separate line)" />
+                <div class="caption">The x-axis is the epoch and the y-axis is the loss. Each
+                    line corresponds to a different trial. Snapshots are performed on a random
+                    sample of the training set of at most 1024 points.</div>
+            </div>
             <div class="figure">
                 <img class="figure-image" src="../trials/epoch_vs_loss_val_each_1920x1080.png"
                     alt="Epoch vs performance (each trial as a separate line)" />
-                <div class="caption">The x-axis is the epoch and the y-axis is the performance. Each
+                <div class="caption">The x-axis is the epoch and the y-axis is the loss. Each
                     line corresponds to a different trial. Snapshots are performed on a random
                     sample of the validation set of at most 1024 points.</div>
             </div>

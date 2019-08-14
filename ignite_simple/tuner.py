@@ -242,15 +242,15 @@ def _run_and_collate(fn, kwargs, cores,
 def _select_lr_from(model_loader, dataset_loader, loss_loader,
                     accuracy_style, outfile, cores, settings,
                     store_up_to, logger, cycle_time_epochs,
-                    batch_size) -> typing.Tuple[int, int]:
+                    batch_size, lr_start, lr_end) -> typing.Tuple[int, int]:
     result = _run_and_collate(
         _lr_vs_perf, {
             'model_loader': model_loader,
             'dataset_loader': dataset_loader,
             'loss_loader': loss_loader,
             'accuracy_style': accuracy_style,
-            'lr_start': settings.lr_start,
-            'lr_end': settings.lr_end,
+            'lr_start': lr_start,
+            'lr_end': lr_end,
             'batch_size': batch_size,
             'cycle_time_epochs': cycle_time_epochs
         }, cores, settings.lr_min_inits
@@ -486,7 +486,9 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
                     'initial_lr_num_trials': int,
                     'initial_lr_window_size': int,
                     'initial_lr_sweep_result_min': float,
-                    'initial_lr_sweep_result_max': float
+                    'initial_lr_sweep_result_max': float,
+                    'second_min_lr': float,
+                    'second_max_lr': float
                 }
 
             lr_vs_perf.npz
@@ -585,7 +587,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
         _select_lr_from(
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf.npz'), cores, settings,
-            store_up_to, logger, init_cycle_time, init_batch_size
+            store_up_to, logger, init_cycle_time, init_batch_size,
+            settings.lr_start, settings.lr_end
         )
     )
     initial_lr_sweep_result_min, initial_lr_sweep_result_max = lr_min, lr_max
@@ -672,12 +675,17 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     if settings.rescan_lr_after_bs and batch_size != init_batch_size:
         logger.info('Finding learning rate range on new batch size...')
+        second_min_lr = (settings.lr_start / init_batch_size) * batch_size
+        second_max_lr = (settings.lr_end / init_batch_size) * batch_size
         lr_min, lr_max, second_lr_window_size, second_lr_num_trials = _select_lr_from(
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf2.npz'), cores, settings,
-            store_up_to, logger, init_cycle_time, init_batch_size
+            store_up_to, logger, init_cycle_time, init_batch_size,
+            second_min_lr, second_max_lr
         )
     else:
+        second_min_lr = float('nan')
+        second_max_lr = float('nan')
         second_lr_window_size = float('nan')
         second_lr_num_trials = float('nan')
         lr_min = (lr_min / init_batch_size) * batch_size
@@ -712,6 +720,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
                 'batch_sweep_num_pts': len(batch_pts_checked),
                 'batch_sweep_pts_list': list(int(i) for i in batch_pts_checked),
                 'batch_sweep_trials_each': num_batch_loops,
+                'second_min_lr': second_min_lr,
+                'second_max_lr': second_max_lr,
                 'second_lr_num_trials': second_lr_num_trials,
                 'second_lr_window_size': second_lr_window_size,
                 'lr_sweep_result_min': lr_min,

@@ -87,7 +87,7 @@ def slow() -> HyperparameterSettings:
     """Returns a somewhat slow (in time spent tuning parameters) preset"""
     return HyperparameterSettings(
         lr_start=1e-8,
-        lr_end=2,
+        lr_end=1,
         lr_min_inits=3,
         batch_start=16,
         batch_end=128,
@@ -101,7 +101,7 @@ def slowest() -> HyperparameterSettings:
     """Returns the slowest (in time spent tuning parameters) preset"""
     return HyperparameterSettings(
         lr_start=1e-8,
-        lr_end=10,
+        lr_end=1,
         lr_min_inits=10,
         batch_start=8,  # <8 might sometimes be better, but is painfully
         batch_end=512,  # slow computationally
