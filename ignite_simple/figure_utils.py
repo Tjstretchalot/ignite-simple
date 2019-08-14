@@ -23,13 +23,14 @@ def set_title(fig: Figure, ax: Axes, title: str, digital: bool):
     pad = max(int(0.3125 * figh), 1)
 
     font_size = int((8 / 1.92) * figw) if digital else int((4 / 1.92) * figw)
+    font_size = max(5, font_size)
 
     axtitle = ax.set_title(title, pad=pad)
     axtitle.set_fontsize(font_size)
     renderer = fig.canvas.get_renderer()
     bb = axtitle.get_window_extent(renderer=renderer)
     while bb.width >= (figw_px - 26) * 0.9 and font_size > 9:
-        font_size = max(9, font_size - 5)
+        font_size = max(5, font_size - 5)
         axtitle.set_fontsize(font_size)
         bb = axtitle.get_window_extent(renderer=renderer)
     return axtitle
@@ -77,6 +78,7 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
 
     fig.set_figwidth(7.25)  # paper width
     fig.set_figheight(4.08)  # 56.25% width
+    fig.subplots_adjust(left=0.15, right=0.925)
 
     set_title(fig, ax, title, True)
     ax.xaxis.label.set_size(24)
@@ -91,6 +93,7 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
 
     fig.set_figwidth(3.54)  # column width
     fig.set_figheight(1.99)  # 56.25% width
+    fig.subplots_adjust(left=0.2, right=0.975)
 
     set_title(fig, ax, title, True)
     ax.xaxis.label.set_size(12)
@@ -104,20 +107,8 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     fig.savefig(outfile_wo_ext + '_3.54x1.99.pdf', dpi=300, transparent=True)
 
     fig.set_figwidth(1.73)  # half column width
-    fig.set_figheight(0.972)  # 56.25% width
-
-    ax.xaxis.label.set_size(5)
-    ax.yaxis.label.set_size(5)
-
-    set_title(fig, ax, title, True)
-    set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_173x97.png', dpi=100)
-    set_title(fig, ax, title, False)
-    set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_1.73x.97.pdf', dpi=300, transparent=True)
-
-    fig.set_figwidth(1.73)  # half column width
     fig.set_figheight(1.73)  # square
+    fig.subplots_adjust(left=0.35, right=0.925, bottom=0.25, top=0.825)
 
     set_title(fig, ax, title, True)
     set_ticklabel_sizes(fig, ax, True)
@@ -125,6 +116,22 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     set_title(fig, ax, title, False)
     set_ticklabel_sizes(fig, ax, False)
     fig.savefig(outfile_wo_ext + '_1.73x1.73.pdf', dpi=300, transparent=True)
+
+    fig.set_figwidth(1.73)  # half column width
+    fig.set_figheight(0.972)  # 56.25% width
+
+    fig.subplots_adjust(left=0.35, right=0.925, bottom=0.25, top=0.825)
+
+    ax.xaxis.label.set_size(5)
+    ax.xaxis.labelpad = -5
+    ax.yaxis.label.set_size(5)
+
+    set_title(fig, ax, title, True)
+    set_ticklabel_sizes(fig, ax, True)
+    fig.savefig(outfile_wo_ext + '_173x97.png', dpi=100)
+    set_title(fig, ax, title, False)
+    set_ticklabel_sizes(fig, ax, False)
+    fig.savefig(outfile_wo_ext + '_1.73x0.97.pdf', dpi=300, transparent=True)
 
 def fig_exists(outfile_wo_ext: str) -> bool:
     """Returns true if the files from save_fig with the given outfile already

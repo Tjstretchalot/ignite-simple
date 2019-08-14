@@ -9,16 +9,14 @@ import logging.config
 def _model():
     return (
         torchluent.FluentModule((1, 28, 28))
+        .verbose()
         .wrap(True)
-        .conv2d(64, 5)
-        .maxpool2d(3)
-        .operator('LeakyReLU')
-        .conv2d(128, 2)
-        .maxpool2d(2)
+        .conv2d(32, 5, 3)
+        #.maxpool2d(3)
         .operator('LeakyReLU')
         .save_state()
         .flatten()
-        .dense(256)
+        .dense(64)
         .operator('Tanh')
         .save_state()
         .dense(10)
@@ -26,7 +24,7 @@ def _model():
         .build(with_stripped=True)
     )
 
-def _dataset(batch_size):
+def _dataset():
     transform = torchvision.transforms.ToTensor()
     train_set = torchvision.datasets.FashionMNIST(
         'datasets/fashion_mnist', download=True, transform=transform)
@@ -40,7 +38,7 @@ def main(is_continuation, hparams):
     """Trains a model on fashion mnist"""
     ignite_simple.train(
         (__name__, '_model', [], dict()),
-        (__name__, '_dataset', [64], dict()),
+        (__name__, '_dataset', [], dict()),
         (__name__, 'loss', [], dict()),
         folder='out/examples/fashion_mnist/current',
         hyperparameters=hparams,
@@ -60,7 +58,7 @@ def reanalyze():
         (__name__, '_dataset', tuple(), dict()),
         (__name__, 'loss', tuple(), dict()),
         folder='out/examples/fashion_mnist/current',
-        settings='video',
+        settings='images',
         accuracy_style='classification',
         cores='all')
 

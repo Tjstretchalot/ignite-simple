@@ -23,7 +23,7 @@ def _model():
         .build(with_stripped=True)
     )
 
-def _dataset(batch_size):
+def _dataset():
     transform = torchvision.transforms.ToTensor()
     train_set = torchvision.datasets.MNIST(
         'datasets/mnist', download=True, transform=transform)
@@ -37,7 +37,7 @@ def main(is_continuation, hparams):
     """Trains a model on mnist"""
     ignite_simple.train(
         (__name__, '_model', [], dict()),
-        (__name__, '_dataset', [64], dict()),
+        (__name__, '_dataset', [], dict()),
         (__name__, 'loss', [], dict()),
         folder='out/examples/mnist/current',
         hyperparameters=hparams,

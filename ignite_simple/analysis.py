@@ -109,7 +109,7 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
         reduction = 'none'
 
     warnings.simplefilter('ignore', UserWarning)
-    fig, ax = plt.subplots(constrained_layout=True)
+    fig, ax = plt.subplots()
     fig.set_figwidth(19.2)
     fig.set_figheight(10.8)
     fig.set_dpi(100)
@@ -133,6 +133,72 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
     futils.save_fig(fig, ax, title, outfile_wo_ext)
 
     plt.close(fig)
+
+SELECTED_RANGE_YS = (
+    ('perfs', '1/(loss+1)', '1/(loss+1)'),
+    ('smoothed_perfs', '1/(loss+1) (Smoothed)', '1/(loss+1)'),
+    ('perf_derivs', '1/(loss + 1) (Derivative)', '1/(loss+1) deriv.'),
+    ('smoothed_perf_derivs', '1/(loss + 1) (Deriv. Sm.)', '1/(loss+1) deriv.')
+)
+def _highlight_selected_range(xs, ys, rge, x_lab_short, x_lab_long,
+                              y_lab_short, y_lab_long, outfile_wo_ext):
+    stds = ys.std(0)
+    means = ys.mean(0)
+
+    errs = 1.96 * stds
+    errs_low = means - errs
+    errs_high = means + errs
+
+    warnings.simplefilter('ignore', UserWarning)
+    fig, ax = plt.subplots()
+    fig.set_figwidth(19.2)
+    fig.set_figheight(10.8)
+    fig.set_dpi(100)
+
+    ax.set_xlabel(x_lab_long)
+    ax.set_ylabel(y_lab_long)
+
+    ax.plot(xs, means)
+    ax.fill_between(xs, errs_low, errs_high, color='grey', alpha=0.4)
+
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+
+    if xlim[0] < rge[0]:
+        ax.fill_between((xlim[0], rge[0]), (ylim[0], ylim[0]),
+                        (ylim[1], ylim[1]), color='black', alpha=0.4)
+
+    if xlim[1] > rge[1]:
+        ax.fill_between((rge[1], xlim[1]), (ylim[0], ylim[0]),
+                        (ylim[1], ylim[1]), color='black', alpha=0.4)
+
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+    futils.save_fig(fig, ax, futils.make_vs_title(x_lab_short, y_lab_short),
+                    outfile_wo_ext)
+
+    plt.close(fig)
+
+def _highlight_selected_lr_range(lr_vs_perf: str, y_lab_long: str,
+                                 y_lab_short: str, y_varname: str,
+                                 outfile_wo_ext: str):
+    with np.load(lr_vs_perf) as infile:
+        xs = infile['lrs']
+        ys = infile[y_varname]
+        rge = infile['lr_range']
+    _highlight_selected_range(xs, ys, rge, 'LR', 'Learning Rate', y_lab_short,
+                              y_lab_long, outfile_wo_ext)
+
+def _highlight_selected_batch_range(batch_vs_perf: str, y_lab_long: str,
+                                    y_lab_short: str, y_varname: str,
+                                    outfile_wo_ext: str):
+    with np.load(batch_vs_perf) as infile:
+        xs = infile['bss']
+        ys = infile[y_varname]
+        rge = infile['bs_range']
+    _highlight_selected_range(xs, ys, rge, 'BS', 'Batch Size', y_lab_short,
+                              y_lab_long, outfile_wo_ext)
 
 def _pca3dvis_model(dataset_loader, model_file, outfolder, use_train,
                     accuracy_style, draft):
@@ -411,7 +477,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
 
             for reduction in REDUCTIONS:
                 have_imgs = futils.fig_exists(
-                    os.path.join(real_out, f'lr_vs_perf_{reduction}'))
+                    os.path.join(out_folder, f'lr_vs_perf_{reduction}'))
                 if have_imgs:
                     continue
 
@@ -517,6 +583,26 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     dict(),
                     1
                 ))
+
+            for y_varname, y_lab_long, y_lab_short in SELECTED_RANGE_YS:
+                outfile_wo_ext = os.path.join(
+                    out_folder, f'lr_range_{y_varname}')
+                if futils.fig_exists(outfile_wo_ext):
+                    continue
+                tasks.append(dispatcher.Task(
+                    __name__,
+                    '_highlight_selected_lr_range',
+                    (
+                        source,
+                        y_lab_long,
+                        y_lab_short,
+                        y_varname,
+                        outfile_wo_ext
+                    ),
+                    dict(),
+                    1
+                ))
+
         source = os.path.join(folder, 'hparams', 'bs_vs_perf.npz')
         out_folder = batch_folder
         with np.load(source) as infile:
@@ -709,6 +795,25 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 1
             ))
 
+
+        for y_varname, y_lab_long, y_lab_short in SELECTED_RANGE_YS:
+            outfile_wo_ext = os.path.join(
+                out_folder, f'batch_range_{y_varname}')
+            if futils.fig_exists(outfile_wo_ext):
+                continue
+            tasks.append(dispatcher.Task(
+                __name__,
+                '_highlight_selected_batch_range',
+                (
+                    source,
+                    y_lab_long,
+                    y_lab_short,
+                    y_varname,
+                    outfile_wo_ext
+                ),
+                dict(),
+                1
+            ))
     if settings.training_metric_imgs:
         trials = -1
         trials_source_folder = os.path.join(folder, 'trials')
