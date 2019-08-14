@@ -26,8 +26,6 @@ import torch
 
 def _snap_perf(partial_epoch, ind, losses_train, losses_val, perfs_train,
                perfs_val, num_for_metric, tnr, state):
-    epoch = (tnr.state.epoch - 1) + partial_epoch[0]
-
     state.evaluator.run(utils.create_partial_loader(
         state.train_set, num_for_metric))
 
@@ -44,12 +42,11 @@ def _snap_perf(partial_epoch, ind, losses_train, losses_val, perfs_train,
 
 
 def _update_partial_epoch(partial_epoch, epochs, ind, tnr, state):
-    num_in_batch = len(tnr.state.batch)
+    num_in_batch = len(tnr.state.batch[0])
     epoch_size = len(state.train_set)
-    partial_epoch[0] += float(num_in_batch) / float(epoch_size)
 
     try:
-        epochs[ind[0]] = int(tnr.state.epoch) + float(partial_epoch[0])
+        epochs[ind[0]] = (float(num_in_batch) * tnr.state.iteration) / float(epoch_size)
     except IndexError:
         print(f'epoch={tnr.state.epoch}, iteration={tnr.state.iteration}')
         raise
@@ -152,7 +149,7 @@ def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
     initializer = None
 
     if with_throughtime:
-        iters_per = int(np.ceil(len_train_set / batch_size))
+        iters_per = int(len_train_set / batch_size)
         iters_total = iters_per * num_epochs
 
         samples_per = min(10, iters_per)
@@ -249,7 +246,7 @@ def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
         accuracy_style, model_loader, loss_loader,
         (
             'ignite_simple.utils', 'task_loader',
-            (dataset_loader, batch_size, True, False),
+            (dataset_loader, batch_size, True, True),
             dict()
         ),
         handlers,
