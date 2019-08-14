@@ -680,6 +680,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     else:
         second_lr_window_size = float('nan')
         second_lr_num_trials = float('nan')
+        lr_min = (lr_min / init_batch_size) * batch_size
+        lr_max = (lr_max / init_batch_size) * batch_size
 
     with open(os.path.join(folder, 'final.json'), 'w') as outfile:
         json.dump({'lr_start': lr_min, 'lr_end': lr_max,
