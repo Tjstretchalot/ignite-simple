@@ -9,7 +9,6 @@ import logging.config
 def _model():
     return (
         torchluent.FluentModule((1, 28, 28))
-        .verbose()
         .wrap(True)
         .conv2d(32, 5, 3)
         .operator('LeakyReLU')
