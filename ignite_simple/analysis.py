@@ -130,67 +130,7 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
     else:
         raise ValueError(f'unknown reduction {reduction}')
 
-    futils.set_title(fig, ax, title, True)
-    ax.xaxis.label.set_size(48)
-    ax.yaxis.label.set_size(48)
-    futils.set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_1920x1080.png', dpi=100)
-    futils.set_title(fig, ax, title, False)
-    ax.xaxis.label.set_size(24)
-    ax.yaxis.label.set_size(24)
-    futils.set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_19.2x10.8.pdf', dpi=300, transparent=True)
-
-    fig.set_figwidth(7.25)  # paper width
-    fig.set_figheight(4.08)  # 56.25% width
-
-    futils.set_title(fig, ax, title, True)
-    ax.xaxis.label.set_size(24)
-    ax.yaxis.label.set_size(24)
-    futils.set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_725x408.png', dpi=100)
-    futils.set_title(fig, ax, title, False)
-    ax.xaxis.label.set_size(9)
-    ax.yaxis.label.set_size(9)
-    futils.set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_7.25x4.08.pdf', dpi=300, transparent=True)
-
-    fig.set_figwidth(3.54)  # column width
-    fig.set_figheight(1.99)  # 56.25% width
-
-    futils.set_title(fig, ax, title, True)
-    ax.xaxis.label.set_size(12)
-    ax.yaxis.label.set_size(12)
-    futils.set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_354x199.png', dpi=100)
-    futils.set_title(fig, ax, title, False)
-    ax.xaxis.label.set_size(8)
-    ax.yaxis.label.set_size(8)
-    futils.set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_3.54x1.99.pdf', dpi=300, transparent=True)
-
-    fig.set_figwidth(1.73)  # half column width
-    fig.set_figheight(0.972)  # 56.25% width
-
-    ax.xaxis.label.set_size(5)
-    ax.yaxis.label.set_size(5)
-
-    futils.set_title(fig, ax, title, True)
-    futils.set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_173x97.png', dpi=100)
-    futils.set_title(fig, ax, title, False)
-    futils.set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_1.73x97.pdf', dpi=300, transparent=True)
-
-    fig.set_figwidth(1.73)  # half column width
-    fig.set_figheight(1.73)  # square
-
-    futils.set_title(fig, ax, title, True)
-    futils.set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_173x173.png', dpi=100)
-    futils.set_title(fig, ax, title, False)
-    futils.set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_1.73x1.73.pdf', dpi=300, transparent=True)
+    futils.save_fig(fig, ax, title, outfile_wo_ext)
 
     plt.close(fig)
 

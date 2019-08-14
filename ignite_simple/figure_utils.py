@@ -54,5 +54,78 @@ def set_ticklabel_sizes(fig: Figure, ax: Axes, digital: bool):
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(font_size)
 
+def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
+    """Saves the given figure with many different commonly used figure sizes,
+    resizing labels and titles as appropriate. This technique works only for
+    a single axis plot, since for other styles different font sizes would be
+    appropriate.
+
+    Args:
+        fig (Figure): The figure to save
+        ax (Axes): The axis on the figure
+        title (str): The title of the plot
+    """
+    set_title(fig, ax, title, True)
+    ax.xaxis.label.set_size(48)
+    ax.yaxis.label.set_size(48)
+    set_ticklabel_sizes(fig, ax, True)
+    fig.savefig(outfile_wo_ext + '_1920x1080.png', dpi=100)
+    set_title(fig, ax, title, False)
+    ax.xaxis.label.set_size(24)
+    ax.yaxis.label.set_size(24)
+    set_ticklabel_sizes(fig, ax, False)
+    fig.savefig(outfile_wo_ext + '_19.2x10.8.pdf', dpi=300, transparent=True)
+
+    fig.set_figwidth(7.25)  # paper width
+    fig.set_figheight(4.08)  # 56.25% width
+
+    set_title(fig, ax, title, True)
+    ax.xaxis.label.set_size(24)
+    ax.yaxis.label.set_size(24)
+    set_ticklabel_sizes(fig, ax, True)
+    fig.savefig(outfile_wo_ext + '_725x408.png', dpi=100)
+    set_title(fig, ax, title, False)
+    ax.xaxis.label.set_size(9)
+    ax.yaxis.label.set_size(9)
+    set_ticklabel_sizes(fig, ax, False)
+    fig.savefig(outfile_wo_ext + '_7.25x4.08.pdf', dpi=300, transparent=True)
+
+    fig.set_figwidth(3.54)  # column width
+    fig.set_figheight(1.99)  # 56.25% width
+
+    set_title(fig, ax, title, True)
+    ax.xaxis.label.set_size(12)
+    ax.yaxis.label.set_size(12)
+    set_ticklabel_sizes(fig, ax, True)
+    fig.savefig(outfile_wo_ext + '_354x199.png', dpi=100)
+    set_title(fig, ax, title, False)
+    ax.xaxis.label.set_size(8)
+    ax.yaxis.label.set_size(8)
+    set_ticklabel_sizes(fig, ax, False)
+    fig.savefig(outfile_wo_ext + '_3.54x1.99.pdf', dpi=300, transparent=True)
+
+    fig.set_figwidth(1.73)  # half column width
+    fig.set_figheight(0.972)  # 56.25% width
+
+    ax.xaxis.label.set_size(5)
+    ax.yaxis.label.set_size(5)
+
+    set_title(fig, ax, title, True)
+    set_ticklabel_sizes(fig, ax, True)
+    fig.savefig(outfile_wo_ext + '_173x97.png', dpi=100)
+    set_title(fig, ax, title, False)
+    set_ticklabel_sizes(fig, ax, False)
+    fig.savefig(outfile_wo_ext + '_1.73x97.pdf', dpi=300, transparent=True)
+
+    fig.set_figwidth(1.73)  # half column width
+    fig.set_figheight(1.73)  # square
+
+    set_title(fig, ax, title, True)
+    set_ticklabel_sizes(fig, ax, True)
+    fig.savefig(outfile_wo_ext + '_173x173.png', dpi=100)
+    set_title(fig, ax, title, False)
+    set_ticklabel_sizes(fig, ax, False)
+    fig.savefig(outfile_wo_ext + '_1.73x1.73.pdf', dpi=300, transparent=True)
+
 def make_vs_title(x: str, y: str):
     return f'{y} vs {x}'
