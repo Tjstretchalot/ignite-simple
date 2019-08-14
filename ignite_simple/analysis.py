@@ -330,8 +330,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 real_out = os.path.join(out_folder, str(trial))
                 os.makedirs(real_out, exist_ok=True)
 
-                have_imgs = os.path.exists(
-                    os.path.join(real_out, 'lr_vs_perf_1920x1080.png'))
+                have_imgs = futils.fig_exists(
+                    os.path.join(real_out, 'lr_vs_perf'))
                 if have_imgs:
                     continue
 
@@ -410,8 +410,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 ])
 
             for reduction in REDUCTIONS:
-                have_imgs = os.path.exists(
-                    os.path.join(real_out, f'lr_vs_perf_{reduction}_1920x1080.png'))
+                have_imgs = futils.fig_exists(
+                    os.path.join(real_out, f'lr_vs_perf_{reduction}'))
                 if have_imgs:
                     continue
 
@@ -497,24 +497,26 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     ),
                 ])
 
-            tasks.append(dispatcher.Task(
-                __name__,
-                '_rawplot',
-                (
-                    source,
-                    futils.make_vs_title(
-                        'LR', 'Deriv of LSE of Smoothed 1/(loss+1)'),
-                    'Learning Rate',
-                    '1/(loss+1) Deriv wrt. LR',
-                    'lrs',
-                    slice(None),
-                    'lse_smoothed_perf_then_derivs',
-                    slice(None),
-                    os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')
-                ),
-                dict(),
-                1
-            ))
+            if not futils.fig_exists(os.path.join(
+                    out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')):
+                tasks.append(dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'LR', 'Deriv of LSE of Smoothed 1/(loss+1)'),
+                        'Learning Rate',
+                        '1/(loss+1) Deriv wrt. LR',
+                        'lrs',
+                        slice(None),
+                        'lse_smoothed_perf_then_derivs',
+                        slice(None),
+                        os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')
+                    ),
+                    dict(),
+                    1
+                ))
         source = os.path.join(folder, 'hparams', 'bs_vs_perf.npz')
         out_folder = batch_folder
         with np.load(source) as infile:
@@ -524,8 +526,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             real_out = os.path.join(out_folder, str(trial))
             os.makedirs(real_out, exist_ok=True)
 
-            have_imgs = os.path.exists(
-                os.path.join(real_out, 'batch_vs_perf_1920x1080.png'))
+            have_imgs = futils.fig_exists(
+                os.path.join(real_out, 'batch_vs_perf'))
             if have_imgs:
                 continue
 
@@ -604,8 +606,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             ])
 
         for reduction in REDUCTIONS:
-            have_imgs = os.path.exists(
-                os.path.join(out_folder, f'batch_vs_perf_{reduction}_1920x1080.png'))
+            have_imgs = futils.fig_exists(
+                os.path.join(out_folder, f'batch_vs_perf_{reduction}'))
             if have_imgs:
                 continue
             tasks.extend([
@@ -686,24 +688,26 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 ),
             ])
 
-        tasks.append(dispatcher.Task(
-            __name__,
-            '_rawplot',
-            (
-                source,
-                futils.make_vs_title(
-                    'BS', 'Deriv of LSE of Smoothed 1/(loss+1)'),
-                'Batch Size',
-                '1/(loss+1) Deriv wrt. BS',
-                'bss',
-                slice(None),
-                'lse_smoothed_perf_then_derivs',
-                slice(None),
-                os.path.join(out_folder, 'batch_vs_lse_smoothed_perf_then_deriv')
-            ),
-            dict(),
-            1
-        ))
+        if not futils.fig_exists(os.path.join(
+                out_folder, 'batch_vs_lse_smoothed_perf_then_deriv')):
+            tasks.append(dispatcher.Task(
+                __name__,
+                '_rawplot',
+                (
+                    source,
+                    futils.make_vs_title(
+                        'BS', 'Deriv of LSE of Smoothed 1/(loss+1)'),
+                    'Batch Size',
+                    '1/(loss+1) Deriv wrt. BS',
+                    'bss',
+                    slice(None),
+                    'lse_smoothed_perf_then_derivs',
+                    slice(None),
+                    os.path.join(out_folder, 'batch_vs_lse_smoothed_perf_then_deriv')
+                ),
+                dict(),
+                1
+            ))
 
     if settings.training_metric_imgs:
         trials = -1
@@ -718,8 +722,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 continue
 
             trial_out = os.path.join(trial_out_folder, str(trial))
-            have_imgs = os.path.exists(
-                os.path.join(trial_out, f'epoch_vs_loss_train_1920x1080.png'))
+            have_imgs = futils.fig_exists(
+                os.path.join(trial_out, f'epoch_vs_loss_train'))
             if have_imgs:
                 continue
 
@@ -798,8 +802,8 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
         trial_out = trial_out_folder
         trial_src = os.path.join(folder, 'throughtimes.npz')
         for reduction in REDUCTIONS:
-            have_imgs = os.path.exists(
-                os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}_1920x1080.png'))
+            have_imgs = futils.fig_exists(
+                os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}'))
             if have_imgs:
                 continue
 

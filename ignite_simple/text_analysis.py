@@ -73,5 +73,19 @@ def text_analyze(settings: AnalysisSettings, folder: str):
     else:
         soup.find(id='no-second-lr-sweep').string = ''
 
+    if not settings.hparam_selection_specifics:
+        soup.find(id='initial-lr-sweep').string = ''
+        soup.find(id='batch-size-sweep').string = ''
+        soup.find(id='no-second-lr-sweep').string = ''
+        soup.find(id='second-lr-sweep').string = ''
+
+    if not settings.hparam_selection_specific_imgs:
+        for div in soup.select('.hparam-figures'):
+            div.string = ''
+
+    if not settings.training_metric_imgs:
+        for div in soup.select('.trial-figures'):
+            div.string = ''
+
     with open(os.path.join(out_html_folder, 'index.html'), 'w') as outfile:
         outfile.write(str(soup))

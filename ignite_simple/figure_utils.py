@@ -1,7 +1,7 @@
 """Some utility functions related to creating good looking figures."""
-import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+import os
 
 def set_title(fig: Figure, ax: Axes, title: str, digital: bool):
     """Sets the title for the given axes to the given value. This is more
@@ -60,10 +60,9 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     a single axis plot, since for other styles different font sizes would be
     appropriate.
 
-    Args:
-        fig (Figure): The figure to save
-        ax (Axes): The axis on the figure
-        title (str): The title of the plot
+    :param Figure fig: The figure to save
+    :param Axes ax: The axis on the figure
+    :param str title: The title of the plot
     """
     set_title(fig, ax, title, True)
     ax.xaxis.label.set_size(48)
@@ -115,7 +114,7 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     fig.savefig(outfile_wo_ext + '_173x97.png', dpi=100)
     set_title(fig, ax, title, False)
     set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_1.73x97.pdf', dpi=300, transparent=True)
+    fig.savefig(outfile_wo_ext + '_1.73x.97.pdf', dpi=300, transparent=True)
 
     fig.set_figwidth(1.73)  # half column width
     fig.set_figheight(1.73)  # square
@@ -127,5 +126,31 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     set_ticklabel_sizes(fig, ax, False)
     fig.savefig(outfile_wo_ext + '_1.73x1.73.pdf', dpi=300, transparent=True)
 
+def fig_exists(outfile_wo_ext: str) -> bool:
+    """Returns true if the files from save_fig with the given outfile already
+    exist.
+
+    :param outfile_wo_ext: where we expect the file to have been saved
+    :type outfile_wo_ext: str
+    :return: True if the file(s) exists, False otherwise
+    :rtype: bool
+    """
+    for size in ((19.2, 10.8), (7.25, 4.08), (3.54, 1.99), (1.73, 0.97), (1.73, 1.73)):
+        if not os.path.exists(outfile_wo_ext + f'_{size[0]}x{size[1]}.pdf'):
+            return False
+        if not os.path.exists(outfile_wo_ext + f'_{int(size[0]*100)}x{int(size[1]*100)}.png'):
+            return False
+    return True
+
 def make_vs_title(x: str, y: str):
+    """Creates the axes title for a plot with the given x-axis variable and
+    y-axis variable
+
+    :param x: the name for the x-variable
+    :type x: str
+    :param y: the name for the y-variable
+    :type y: str
+    :return: The correct axes title
+    :rtype: str
+    """
     return f'{y} vs {x}'
