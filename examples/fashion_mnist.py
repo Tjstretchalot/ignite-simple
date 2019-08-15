@@ -7,22 +7,23 @@ import torch
 import logging.config
 
 def _model():
+    # From https://github.com/zalandoresearch/fashion-mnist/blob/master/benchmark/convnet.py
     return (
         torchluent.FluentModule((1, 28, 28))
         .wrap(True)
-        .conv2d(64, 5, 3)
-        .operator('LeakyReLU')
+        .conv2d(32, 5, 1, 2)
+        .operator('ReLU')
+        .maxpool2d(2, 2)
         .save_state()
-        .conv2d(128, 4, 2)
-        .operator('LeakyReLU')
-        .save_state()
+        .conv2d(64, 5, 1, 2)
+        .operator('ReLU')
+        .maxpool2d(2, 2)
         .flatten()
-        .dense(128)
-        .operator('Tanh')
         .save_state()
-        .dense(64)
-        .operator('Tanh')
+        .dense(1028)
+        .operator('ReLU')
         .save_state()
+        .operator('Dropout', 0.4)
         .dense(10)
         .save_state()
         .build(with_stripped=True)
