@@ -32,6 +32,10 @@ def _store_lr_and_perf(lrs, perfs, cur_iter, num_to_val, tnr,
     valldr = _valldr(state.train_set, num_to_val)
     state.evaluator.run(valldr)
 
+    perf = state.evaluator.state.metrics['perf']
+    if torch.isnan(perf):
+        raise ValueError(f'got nan performance for {len(valldr)} points')
+
     lrs[cur_iter[0]] = state.lr_scheduler.get_param()
     perfs[cur_iter[0]] = state.evaluator.state.metrics['perf']
 
@@ -262,7 +266,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
 
     lr_perfs = result['perfs']
     if np.isnan(lr_perfs).sum() > 0:
-        raise ValueError('have nan persf')
+        raise ValueError('have nan perfs')
     num_trials = lr_perfs.shape[0]
     window_size = smooth_window_size(lrs.shape[0])
 
@@ -594,6 +598,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     """
     if logger is None:
         logger = logging.getLogger(__name__)
+    if accuracy_style != 'inv-loss':
+        raise ValueError(f'weird to tune on anything but inv-loss')
 
     os.makedirs(folder)
 
