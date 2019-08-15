@@ -33,17 +33,13 @@ def _store_lr_and_perf(lrs, perfs, cur_iter, num_to_val, tnr,
     valldr = _valldr(state.train_set, num_to_val)
     state.evaluator.run(valldr)
 
-    perf = state.evaluator.state.metrics['perf']
-    if math.isnan(perf):
-        print('all metrics:')
-        for key, val in state.evaluator.state.metrics.items():
-            print(f'  {key}: {val}')
-        first_batch_pts, first_batch_lbls = next(iter(valldr))
-        np.savez_compressed(
-            'err.npz', lrs=lrs, perfs=perfs,
-            cur_iter=cur_iter, pts=first_batch_pts.numpy(),
-            lbls=first_batch_lbls.numpy())
-        raise ValueError(f'got nan performance for {len(valldr)} batches')
+    loss = state.evaluator.state.metrics['loss']
+    if math.isnan(loss):
+        # our network has died!
+        lrs[cur_iter[0]:] = float('nan')
+        perfs[cur_iter[0]:] = float('nan')
+        tnr.terminate()
+        return
 
     lrs[cur_iter[0]] = state.lr_scheduler.get_param()
     perfs[cur_iter[0]] = state.evaluator.state.metrics['perf']
@@ -249,7 +245,6 @@ def _run_and_collate(fn, kwargs, cores,
         os.remove(fname)
 
     os.rmdir(folder)
-
     return dict((key, np.stack(val)) for key, val in all_lists.items())
 
 def _select_lr_from(model_loader, dataset_loader, loss_loader,
@@ -271,41 +266,26 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
 
     logger.debug('Organizing and interpreting learning rate sweep...')
 
-    lrs = result['lrs'][0]
-
+    lrs = result['lrs']
     lr_perfs = result['perfs']
-    if np.isnan(lr_perfs).sum() > 0:
-        raise ValueError('have nan perfs')
+    if np.isnan(lrs.sum()):
+        clip_at = np.isnan(lrs.sum(0)).argmax()
+        lrs = lrs[:, :clip_at]
+        lr_perfs = lr_perfs[:, :clip_at]
+
+    lrs = lrs[0]
     num_trials = lr_perfs.shape[0]
     window_size = smooth_window_size(lrs.shape[0])
 
     lr_smoothed_perfs = scipy.signal.savgol_filter(
         lr_perfs, window_size, 1)
-    if np.isnan(lr_smoothed_perfs).sum() > 0:
-        raise ValueError('have nan smoothed perfs')
 
     old_settings = np.seterr(under='ignore')
     lse_smoothed_lr_perfs = scipy.special.logsumexp(
         lr_smoothed_perfs, axis=0
     )
     np.seterr(**old_settings)
-
-    if np.isnan(lse_smoothed_lr_perfs).sum() > 0:
-        np.savez_compressed('err.npz', lr_perfs=lr_perfs,
-                            lr_smoothed_perfs=lr_smoothed_perfs,
-                            lse_smoothed_lr_perfs=lse_smoothed_lr_perfs)
-        raise ValueError('have nan lse smoothed perfs')
-
     lse_smoothed_lr_perf_then_derivs = np.gradient(lse_smoothed_lr_perfs)
-
-    if np.isnan(lse_smoothed_lr_perf_then_derivs).sum() > 0:
-        np.savez_compressed(
-            'err.npz', lr_perfs=lr_perfs,
-            lr_smoothed_perfs=lr_smoothed_perfs,
-            lse_smoothed_lr_perfs=lse_smoothed_lr_perfs,
-            lse_smoothed_lr_perf_then_derivs=lse_smoothed_lr_perf_then_derivs)
-        raise ValueError('have nan lse smoothed lr perf then derivs')
-
     lr_perf_derivs = np.gradient(lr_perfs, axis=-1)
     smoothed_lr_perf_derivs = scipy.signal.savgol_filter(
         lr_perfs, window_size, 1, deriv=1)
@@ -607,9 +587,6 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     """
     if logger is None:
         logger = logging.getLogger(__name__)
-    if accuracy_style != 'inv-loss':
-        raise ValueError(f'weird to tune on anything but inv-loss')
-
     os.makedirs(folder)
 
     train_set, _ = ignite_simple.utils.invoke(dataset_loader)

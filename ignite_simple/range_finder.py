@@ -140,28 +140,7 @@ def find_with_derivs(xs: np.ndarray,
         one with the greatest integral
     """
     derivs = derivs.copy()
-    try:
-        derivs[derivs < 0] = 0
-    except FloatingPointError:
-        import datetime
-        import traceback
-        import os
-        print('about to raise FloatingPointError, likely from nan in derivs')
-        print('this can occur when the xs are not strictly monotonic')
-        filen = 'error_' + str(
-            datetime.datetime.now()).replace(' ', '_').replace(':', '-')
-        _filen = filen
-        i = 1
-        while os.path.exists(_filen):
-            i += 1
-            _filen = f'{filen}__({i})'
-        print(f'storing relevant information in the folder {_filen}')
-        os.makedirs(_filen)
-        np.savez_compressed(os.path.join(_filen, 'inps.npz'), xs=xs, derivs=derivs)
-        with open(os.path.join(_filen, 'exc.txt'), 'w') as outfile:
-            traceback.print_exc(file=outfile)
-        raise
-
+    derivs[derivs < 0] = 0
     candidates = nonzero_intervals(derivs)
 
     if not candidates.shape or candidates.shape[0] < 2:
