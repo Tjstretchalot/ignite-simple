@@ -157,7 +157,7 @@ def find_with_derivs(xs: np.ndarray,
             _filen = f'{filen}__({i})'
         print(f'storing relevant information in the folder {_filen}')
         os.makedirs(_filen)
-        np.savez_compressed(_filen, xs=xs, derivs=derivs)
+        np.savez_compressed(os.path.join(_filen, 'inps.npz'), xs=xs, derivs=derivs)
         with open(os.path.join(_filen, 'exc.txt'), 'w') as outfile:
             traceback.print_exc(file=outfile)
         raise

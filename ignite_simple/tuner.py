@@ -261,17 +261,37 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
     lrs = result['lrs'][0]
 
     lr_perfs = result['perfs']
+    if np.isnan(lr_perfs).sum() > 0:
+        raise ValueError('have nan persf')
     num_trials = lr_perfs.shape[0]
     window_size = smooth_window_size(lrs.shape[0])
 
     lr_smoothed_perfs = scipy.signal.savgol_filter(
         lr_perfs, window_size, 1)
+    if np.isnan(lr_smoothed_perfs).sum() > 0:
+        raise ValueError('have nan smoothed perfs')
+
     old_settings = np.seterr(under='ignore')
     lse_smoothed_lr_perfs = scipy.special.logsumexp(
         lr_smoothed_perfs, axis=0
     )
     np.seterr(**old_settings)
+
+    if np.isnan(lse_smoothed_lr_perfs).sum() > 0:
+        np.savez_compressed('err.npz', lr_perfs=lr_perfs,
+                            lr_smoothed_perfs=lr_smoothed_perfs,
+                            lse_smoothed_lr_perfs=lse_smoothed_lr_perfs)
+        raise ValueError('have nan lse smoothed perfs')
+
     lse_smoothed_lr_perf_then_derivs = np.gradient(lse_smoothed_lr_perfs)
+
+    if np.isnan(lse_smoothed_lr_perf_then_derivs).sum() > 0:
+        np.savez_compressed(
+            'err.npz', lr_perfs=lr_perfs,
+            lr_smoothed_perfs=lr_smoothed_perfs,
+            lse_smoothed_lr_perfs=lse_smoothed_lr_perfs,
+            lse_smoothed_lr_perf_then_derivs=lse_smoothed_lr_perf_then_derivs)
+        raise ValueError('have nan lse smoothed lr perf then derivs')
 
     lr_perf_derivs = np.gradient(lr_perfs, axis=-1)
     smoothed_lr_perf_derivs = scipy.signal.savgol_filter(
