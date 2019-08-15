@@ -35,7 +35,15 @@ def _store_lr_and_perf(lrs, perfs, cur_iter, num_to_val, tnr,
 
     perf = state.evaluator.state.metrics['perf']
     if math.isnan(perf):
-        raise ValueError(f'got nan performance for {len(valldr)} points')
+        print('all metrics:')
+        for key, val in state.evaluator.state.metrics.items():
+            print(f'  {key}: {val}')
+        first_batch_pts, first_batch_lbls = next(iter(valldr))
+        np.savez_compressed(
+            'err.npz', lrs=lrs, perfs=perfs,
+            cur_iter=cur_iter, pts=first_batch_pts.numpy(),
+            lbls=first_batch_lbls.numpy())
+        raise ValueError(f'got nan performance for {len(valldr)} batches')
 
     lrs[cur_iter[0]] = state.lr_scheduler.get_param()
     perfs[cur_iter[0]] = state.evaluator.state.metrics['perf']

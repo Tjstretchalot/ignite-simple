@@ -39,7 +39,7 @@ def _dataset():
 
 loss = torch.nn.CrossEntropyLoss
 
-def main(is_continuation, hparams):
+def main(is_continuation, hparams, cores):
     """Trains a model on fashion mnist"""
     ignite_simple.train(
         (__name__, '_model', [], dict()),
@@ -53,10 +53,10 @@ def main(is_continuation, hparams):
         trials=1,
         is_continuation=is_continuation,
         history_folder='out/examples/fashion_mnist/history',
-        cores='all'
+        cores=cores
     )
 
-def reanalyze():
+def reanalyze(cores):
     """Reanalyzes the existing trials, possibly under different analysis
     settings"""
     ignite_simple.analyze(
@@ -65,7 +65,7 @@ def reanalyze():
         folder='out/examples/fashion_mnist/current',
         settings='images',
         accuracy_style='classification',
-        cores='all')
+        cores=cores)
 
 if __name__ == '__main__':
     logging.config.fileConfig('logging.conf')
@@ -78,9 +78,11 @@ if __name__ == '__main__':
                         help='Reanalyze instead of performing additional trials')
     parser.add_argument('--hparams', type=str, default='fast',
                         help='Which hyperparameter preset to use')
+    parser.add_argument('--cores', type=int, default='all',
+                        help='number of cores to use')
     args = parser.parse_args()
 
     if args.reanalyze:
-        reanalyze()
+        reanalyze(args.cores)
     else:
-        main(not args.no_continue, args.hparams)
+        main(not args.no_continue, args.hparams, args.corse)
