@@ -78,11 +78,11 @@ if __name__ == '__main__':
                         help='Reanalyze instead of performing additional trials')
     parser.add_argument('--hparams', type=str, default='fast',
                         help='Which hyperparameter preset to use')
-    parser.add_argument('--cores', type=int, default='all',
+    parser.add_argument('--cores', type=int, default=-1,
                         help='number of cores to use')
     args = parser.parse_args()
 
     if args.reanalyze:
-        reanalyze(args.cores)
+        reanalyze(args.cores if args.cores != -1 else 'all')
     else:
-        main(not args.no_continue, args.hparams, args.corse)
+        main(not args.no_continue, args.hparams, args.cores if args.cores != -1 else 'all')

@@ -128,5 +128,8 @@ out/
 hparams/
 trials/
 
+# Examples not worth the repo
+examples/vecs_to_dir.py
+
 # Downloadable
 datasets/
