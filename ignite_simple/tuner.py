@@ -34,7 +34,7 @@ def _store_lr_and_perf(lrs, perfs, cur_iter, num_to_val, tnr,
     state.evaluator.run(valldr)
 
     perf = state.evaluator.state.metrics['perf']
-    if math.isnan(perf)
+    if math.isnan(perf):
         raise ValueError(f'got nan performance for {len(valldr)} points')
 
     lrs[cur_iter[0]] = state.lr_scheduler.get_param()
