@@ -23,6 +23,7 @@ import numpy as np
 import multiprocessing as mp
 import time
 import torch
+import shutil
 
 def _snap_perf(partial_epoch, ind, losses_train, losses_val, perfs_train,
                perfs_val, num_for_metric, tnr, state):
@@ -599,5 +600,9 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
             perfs_val=to_collate['perfs_val'],
             perfs_val_smoothed=autosmooth(to_collate['perfs_val']),
         )
+
+    if continuing:
+        logger.info('Cleaning old analysis folder...')
+        shutil.rmtree(os.path.join(folder, 'analysis'))
 
     analyze(dataset_loader, loss_loader, folder, analysis, accuracy_style, cores)

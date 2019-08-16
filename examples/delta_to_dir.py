@@ -5,10 +5,10 @@ can be run trivially on a laptop.
 """
 
 import ignite_simple
+import ignite_simple.helper
 import torch
 from torchluent import FluentModule
-import logging.config
-
+import os
 
 class MyNonlin(torch.nn.Module):
     """The nonlinearity used by the model"""
@@ -32,13 +32,15 @@ def model():
         .build(with_stripped=True)
     )
 
-def dataset(max_abs_val: int = 30):
+def dataset(max_abs_val: int = 30, build=False):
     """Creates a dataset that has the given maximum absolute value
     for the deltas
 
     Args:
         max_abs_val (int, optional): maximum values for each component. Defaults to 30.
     """
+    if not build and os.path.exists('datasets/delta_to_dir.pt'):
+        return torch.load('datasets/delta_to_dir.pt')
 
     side_len = max_abs_val * 2 + 1
     num_pts = side_len * side_len
@@ -67,52 +69,12 @@ def dataset(max_abs_val: int = 30):
 
     dset = torch.utils.data.TensorDataset(inps, outs)
 
-    return ignite_simple.utils.split(dset, 0.1)
+    result = ignite_simple.utils.split(dset, 0.1)
+    torch.save(result, 'datasets/delta_to_dir.pt')
+    return result
 
 loss = torch.nn.SmoothL1Loss
-
-def main(is_continuation, hparams):
-    """Finds the correct learning rate range and batch size"""
-    ignite_simple.train(
-        (__name__, 'model', tuple(), dict()),
-        (__name__, 'dataset', tuple(), dict()),
-        (__name__, 'loss', tuple(), dict()),
-        folder='out/examples/delta_to_dir/current',
-        hyperparameters=hparams,
-        analysis='images',
-        allow_later_analysis_up_to='video',
-        accuracy_style='multiclass',
-        trials=1,
-        is_continuation=is_continuation,
-        history_folder='out/examples/delta_to_dir/history',
-        cores='all'
-    )
-
-def reanalyze():
-    """Reanalyzes the existing trials, possibly under different analysis
-    settings"""
-    ignite_simple.analyze(
-        (__name__, 'dataset', tuple(), dict()),
-        (__name__, 'loss', tuple(), dict()),
-        folder='out/examples/delta_to_dir/current',
-        settings='images',
-        accuracy_style='multiclass',
-        cores='all')
+accuracy_style = 'multiclass'
 
 if __name__ == '__main__':
-    logging.config.fileConfig('logging.conf')
-
-    import argparse
-    parser = argparse.ArgumentParser(description='Simple model/dataset example')
-    parser.add_argument('--no_continue', action='store_true',
-                        help='Set is_continuation to False')
-    parser.add_argument('--reanalyze', action='store_true',
-                        help='Reanalyze instead of performing additional trials')
-    parser.add_argument('--hparams', type=str, default='fast',
-                        help='Which hyperparameter preset to use')
-    args = parser.parse_args()
-
-    if args.reanalyze:
-        reanalyze()
-    else:
-        main(not args.no_continue, args.hparams)
+    ignite_simple.helper.handle(__name__)
