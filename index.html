@@ -166,23 +166,13 @@ for the output, and what’s required to produce that output is calculated from
 that.</p>
 <dl class="class">
 <dt id="ignite_simple.analarams.AnalysisSettings">
-<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">AnalysisSettings</code><span class="sig-paren">(</span><em class="sig-param">lr_selection_explanation: bool</em>, <em class="sig-param">lr_selection_results: bool</em>, <em class="sig-param">batch_selection_explanation: bool</em>, <em class="sig-param">batch_selection_results: bool</em>, <em class="sig-param">hparam_selection_specifics: bool</em>, <em class="sig-param">hparam_selection_specific_imgs: bool</em>, <em class="sig-param">training_explanation: bool</em>, <em class="sig-param">training_metrics: bool</em>, <em class="sig-param">training_metric_imgs: bool</em>, <em class="sig-param">final_metrics: bool</em>, <em class="sig-param">typical_run_pca3dvis: bool</em>, <em class="sig-param">typical_run_pca3dvis_draft: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/analarams.html#AnalysisSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.AnalysisSettings" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">AnalysisSettings</code><span class="sig-paren">(</span><em class="sig-param">hparam_selection_specifics: bool</em>, <em class="sig-param">hparam_selection_specific_imgs: bool</em>, <em class="sig-param">training_metric_imgs: bool</em>, <em class="sig-param">typical_run_pca3dvis: bool</em>, <em class="sig-param">typical_run_pca3dvis_draft: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/analarams.html#AnalysisSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.AnalysisSettings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Describes the analysis settings. Note that, where relevant and
 equivalent, parallel computations are described as if they were
 performed sequentially.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>lr_selection_explanation</strong> (<em>bool</em>) – True if the output should include a
-broad text explanation of how the learning rate was selected, False
-otherwise.</p></li>
-<li><p><strong>lr_selection_results</strong> (<em>bool</em>) – True if the output should include a text
-explanation of the selected learning rate, False otherwise.</p></li>
-<li><p><strong>batch_selection_explanation</strong> (<em>bool</em>) – True if the output should include
-a broad text explanation of how the minibatch size was selected, False
-otherwise.</p></li>
-<li><p><strong>batch_selection_results</strong> (<em>bool</em>) – True if the output should include a
-text explanation of the selected minibatch size, False otherwise.</p></li>
 <li><p><strong>hparam_selection_specifics</strong> (<em>bool</em>) – True if the output should include
 a text explanation about how specifically we came about selecting the
 learning rate and batch size, by going through the numbers, False
@@ -190,15 +180,9 @@ otherwise.</p></li>
 <li><p><strong>hparam_selection_specific_imgs</strong> (<em>bool</em>) – True if the output should
 include figures with captions for the hyper paramater selection process
 as it occurred for this model specifically, False otherwise.</p></li>
-<li><p><strong>training_explanation</strong> (<em>bool</em>) – True if the output should include a broad
-text explanation of the training procedure, False otherwise.</p></li>
-<li><p><strong>training_metrics</strong> (<em>bool</em>) – True if the output should include text metrics
-for the models performance through training, False otherwise.</p></li>
 <li><p><strong>training_metric_imgs</strong> (<em>bool</em>) – True if the output should include figures
 with captions for the performance of the model through training, i.e.,
 accuracy vs epoch and loss vs epoch figures.</p></li>
-<li><p><strong>final_metrics</strong> (<em>bool</em>) – True if the output should include in text the
-final accuracy and loss, False otherwise.</p></li>
 <li><p><strong>typical_run_pca3dvis</strong> (<em>bool</em>) – True if the output should include a video
 from pca3dvis for the points as they moved through the network, False
 otherwise.</p></li>
@@ -453,10 +437,9 @@ outputs are one-hot encoded classes</p>
 </li>
 <li><dl>
 <dt>inv-loss</dt><dd><p>accuracy is not measured and inverse loss is used as the
-performance metric instead. For stability, instead of exactly
-inverse loss,</p>
+performance metric instead. For stability, and legibility of plots,</p>
 <div class="math">
-<p><img src="_images/math/5ef9beb093b043cd92526190c668543adb9d71ed.svg" alt="\frac{1}{\text{loss} + 10^{-6}}"/></p>
+<p><img src="_images/math/54d36e66a02b3c9c7ec49ec80fae4533ce23f580.svg" alt="\frac{1}{\text{loss} + 1}"/></p>
 </div><p>is used.</p>
 </dd>
 </dl>
@@ -543,7 +526,7 @@ and keyword arguments bound.</p>
 
 <dl class="class">
 <dt id="ignite_simple.trainer.TrainState">
-<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.trainer.</code><code class="sig-name descname">TrainState</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module</em>, <em class="sig-param">train_set: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">val_set: torch.utils.data.dataset.Dataset</em>, <em class="sig-param">train_loader: torch.utils.data.dataloader.DataLoader</em>, <em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">cycle_time_epochs: int</em>, <em class="sig-param">lr_scheduler: ignite.contrib.handlers.param_scheduler.CyclicalScheduler</em>, <em class="sig-param">loss: torch.nn.modules.module.Module</em>, <em class="sig-param">evaluator: ignite.engine.engine.Engine</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainState" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.trainer.</code><code class="sig-name descname">TrainState</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, unstripped_model: Optional[torch.nn.modules.module.Module], train_set: torch.utils.data.dataset.Dataset, val_set: torch.utils.data.dataset.Dataset, train_loader: torch.utils.data.dataloader.DataLoader, optimizer: torch.optim.optimizer.Optimizer, cycle_time_epochs: int, lr_scheduler: ignite.contrib.handlers.param_scheduler.CyclicalScheduler, loss: torch.nn.modules.module.Module, evaluator: ignite.engine.engine.Engine</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/trainer.html#TrainState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.trainer.TrainState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Describes the state which is passed as the second positional argument to
 each event handler, which contains generic information about the training
 session that may be useful.</p>
@@ -551,6 +534,8 @@ session that may be useful.</p>
 <dt class="field-odd">Variables</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> (<em>torch.nn.Module</em>) – the model which is being trained</p></li>
+<li><p><strong>unstripped_model</strong> (<em>optional</em><em>[</em><em>torch.nn.Module</em><em>]</em>) – the unstripped model, if
+there is one, otherwise just the same reference as model</p></li>
 <li><p><strong>train_set</strong> (<em>torch.utils.data.Dataset</em>) – the dataset which is used to
 train the model</p></li>
 <li><p><strong>val_set</strong> (<em>torch.utils.data.Dataset</em>) – the dataset which is used to
@@ -605,7 +590,69 @@ have been generated from model_manager.train. The output folder structure
 is as follows:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>folder/
     analysis/
-        TODO
+        hparams/
+            lr/
+                i/  (where i=0,1,...)
+                    lr_vs_perf.(img)
+                    lr_vs_smoothed_perf.(img)
+                    lr_vs_perf_deriv.(img)
+                    lr_vs_smoothed_perf_deriv.(img)
+
+                lr_vs_perf_*.(img)
+                lr_vs_smoothed_perf_*.(img)
+                lr_vs_perf_deriv_*.(img)
+                lr_vs_smoothed_perf_deriv_*.(img)
+                lr_vs_lse_smoothed_perf_then_deriv_*.(img)
+            batch/
+                i/ (where i=0,1,...)
+                    batch_vs_perf.(img)
+                    batch_vs_smoothed_perf.(img)
+                    batch_vs_perf_deriv.(img)
+                    batch_vs_smoothed_perf_deriv.(img)
+
+                batch_vs_perf_*.(img)
+                batch_vs_smoothed_perf_*.(img)
+                batch_vs_perf_derivs_*.(img)
+                batch_vs_smoothed_perf_derivs_*.(img)
+                batch_vs_lse_smoothed_perf_then_derivs_*.(img)
+
+            TODO videos &amp; animations
+        trials/
+            i/  (where i=0,1,...)
+                epoch_vs_loss_train.(img) (*)
+                epoch_vs_loss_val.(img) (*)
+                epoch_vs_perf_train.(img) (*)
+                epoch_vs_perf_val.(img) (*)
+
+                pca3dvis_train_draft/
+                    Only produced if settings.typical_run_pca3dvis and
+                    settings.typical_run_pca3dvis_draft are set, and
+                    only done on trial 0
+                pca3dvis_train/
+                    Only produced if settings.typical_run_pca3dvis and
+                    not settings.typical_run_pca3dvis_draft, and only
+                    done on trial 0
+
+            epoch_vs_loss_train_*.(img) (*)
+            epoch_vs_loss_val_*.(img) (*)
+            epoch_vs_smoothed_loss_train_*.(img) (*)
+            epoch_vs_smoothed_loss_val_*.(img) (*)
+            epoch_vs_perf_train_*.(img) (*)
+            epoch_vs_smoothed_perf_train_*.(img) (*)
+            epoch_vs_perf_val_*.(img) (*)
+            epoch_vs_smoothed_perf_val_*.(img) (*)
+
+
+            (*)
+                Only produced if throughtime.npz is available for
+                the trial and settings.training_metric_images is
+                set
+
+            TODO more summary of trials
+            TODO text &amp; videos &amp; animations
+
+        html/
+            See text_analysis.py for details
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -639,33 +686,23 @@ to speed up analysis.</p></li>
 a measure is increasing most rapidly. This works best when the y-values have
 already been smoothed.</p>
 <dl class="function">
-<dt id="ignite_simple.range_finder.find">
-<code class="sig-prename descclassname">ignite_simple.range_finder.</code><code class="sig-name descname">find</code><span class="sig-paren">(</span><em class="sig-param">xs: numpy.ndarray</em>, <em class="sig-param">ys: numpy.ndarray</em><span class="sig-paren">)</span> &#x2192; Tuple[float, float]<a class="reference internal" href="_modules/ignite_simple/range_finder.html#find"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.range_finder.find" title="Permalink to this definition">¶</a></dt>
-<dd><p>Finds the range (min, max) of xs over which the derivative of y is
-positive and during which we saw the greatest change in x. This requires
-that ys is fairly smooth to produce reasonable results.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>If ys was smoothed, then this will be biased to producing intervals
-right of the true best interval. If the derivative is smoothed instead,
-then find_with_derivs will produce an unbiased interval.</p>
-</div>
+<dt id="ignite_simple.range_finder.autosmooth">
+<code class="sig-prename descclassname">ignite_simple.range_finder.</code><code class="sig-name descname">autosmooth</code><span class="sig-paren">(</span><em class="sig-param">arr: numpy.ndarray</em>, <em class="sig-param">axis: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/range_finder.html#autosmooth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.range_finder.autosmooth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Causes scipy.signal.savgol_filter on the given data for the given
+dimension with the default settings.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>xs</strong> (<em>np.ndarray</em>) – The x-values, with shape (num_pts,)</p></li>
-<li><p><strong>ys</strong> (<em>np.ndarray</em>) – The y-values, with the same shape as the xs</p></li>
+<li><p><strong>arr</strong> – the array to smooth</p></li>
+<li><p><strong>dim</strong> – the smooth dimension</p></li>
 </ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(min, max) of xs where the ys increase the quickest</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="function">
 <dt id="ignite_simple.range_finder.find_with_derivs">
-<code class="sig-prename descclassname">ignite_simple.range_finder.</code><code class="sig-name descname">find_with_derivs</code><span class="sig-paren">(</span><em class="sig-param">xs: numpy.ndarray</em>, <em class="sig-param">derivs: numpy.ndarray</em><span class="sig-paren">)</span> &#x2192; Tuple[int, int]<a class="reference internal" href="_modules/ignite_simple/range_finder.html#find_with_derivs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.range_finder.find_with_derivs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ignite_simple.range_finder.</code><code class="sig-name descname">find_with_derivs</code><span class="sig-paren">(</span><em class="sig-param">xs: numpy.ndarray</em>, <em class="sig-param">derivs: numpy.ndarray</em><span class="sig-paren">)</span> &#x2192; Tuple[float, float]<a class="reference internal" href="_modules/ignite_simple/range_finder.html#find_with_derivs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.range_finder.find_with_derivs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finds the range in derivs wherein the derivative is always
 positive. From these intervals, this returns specifically the one with
 the greatest integral.</p>
@@ -717,6 +754,30 @@ or 101, whichever is smaller.</p>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="ignite_simple.range_finder.trim_range_derivs">
+<code class="sig-prename descclassname">ignite_simple.range_finder.</code><code class="sig-name descname">trim_range_derivs</code><span class="sig-paren">(</span><em class="sig-param">xs: numpy.ndarray</em>, <em class="sig-param">derivs: numpy.ndarray</em>, <em class="sig-param">x_st_ind: int</em>, <em class="sig-param">x_en_ind: int</em><span class="sig-paren">)</span> &#x2192; Tuple[int, int]<a class="reference internal" href="_modules/ignite_simple/range_finder.html#trim_range_derivs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.range_finder.trim_range_derivs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given that we have found a good interval in the xs for which the derivs
+is positive, it may be possible that the bulk of the integral can be
+maintained while reducing the width of the integral. This function returns
+a new interval which is a subset of the given interval for which the
+bulk of the integral is maintained.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs</strong> (<em>np.ndarray</em>) – with shape <cite>(points,)</cite>, the x-values corresponding
+to the derivatives</p></li>
+<li><p><strong>derivs</strong> (<em>np.ndarray</em>) – with shape <cite>(points,)</cite>, the relevant derivatives</p></li>
+<li><p><strong>x_st_ind</strong> (<em>int</em>) – the index in xs the good interval starts at</p></li>
+<li><p><strong>x_en_ind</strong> (<em>int</em>) – the index in xs the good interval ends at</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><cite>(x_st_ind, x_end_ind)</cite> which is a subset of the passed interval</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 <div class="section" id="module-ignite_simple.tuner">
 <span id="ignite-simple-tuner"></span><h1>ignite_simple.tuner<a class="headerlink" href="#module-ignite_simple.tuner" title="Permalink to this headline">¶</a></h1>
@@ -732,12 +793,41 @@ information:</p>
     final.json
         {&#39;lr_start&#39;: float, &#39;lr_end&#39;: float, &#39;batch_size&#39;: float,
          &#39;cycle_size_epochs&#39;: int, &#39;epochs&#39;: int}
+    misc.json
+        Variables that went into the final output. Typically selected
+        via heuristics, constants, or come from the hyperparameter
+        settings. Some may be deduced from the numpy array files
+        directly
+
+        {
+            &#39;initial_batch_size&#39;: int,
+            &#39;initial_cycle_time&#39;: int,
+            &#39;initial_min_lr&#39;: float,
+            &#39;initial_max_lr&#39;: float,
+            &#39;initial_lr_num_to_val&#39;: int,
+            &#39;initial_lr_num_trials&#39;: int,
+            &#39;initial_lr_window_size&#39;: int,
+            &#39;initial_lr_sweep_result_min&#39;: float,
+            &#39;initial_lr_sweep_result_max&#39;: float,
+            &#39;second_min_lr&#39;: float,
+            &#39;second_max_lr&#39;: float
+        }
+
     lr_vs_perf.npz
         lrs=np.ndarray[number of batches]
         perfs=np.ndarray[trials, number of batches]
+        smoothed_perfs=np.ndarray[trials, number of batches]
+        lse_smoothed_perfs=np.ndarray[trials, number of batches]
         perf_derivs=np.ndarray[trials, number_of_batches]
         smoothed_perf_derivs=np.ndarray[trials, number of batches]
         mean_smoothed_perf_derivs=np.ndarray[number of batches]
+        lse_smoothed_perf_then_derivs=np.ndarray[number of batches]
+            lse = log sum exp. when there are many trials, the mean
+            gets overly pessimistic from bad initializations,
+            so LSE is more stable. however, we can&#39;t do lse on the
+            smoothed derivatives because then derivatives will tend
+            to be positive everywhere, so we have to smooth first,
+            then take lse, then take derivative
         lr_range=np.ndarray[2]
             min, max for the good range of learning rates
     bs_vs_perf.npz  (bs=batch_size)
@@ -747,9 +837,12 @@ information:</p>
 
         bss=np.ndarray[number of batches]
         perfs=np.ndarray[trials, number of batches]
+        smoothed_perfs=np.ndarray[number of batches]
+        lse_smoothed_perfs=np.ndarray[number of batches]
         perf_derivs=np.ndarray[trials, number_of_batches]
         smoothed_perf_derivs=np.ndarray[trials, number of batches]
         mean_smoothed_perf_derivs=np.ndarray[number of batches]
+        lse_smoothed_perf_then_derivs=np.ndarray[number of batches]
         bs_range=np.ndarray[2]
             min, max for the good range of batch sizes
     lr_vs_perf2.npz
