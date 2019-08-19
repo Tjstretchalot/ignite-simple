@@ -164,14 +164,25 @@
 <span class="kn">import</span> <span class="nn">scipy.signal</span>
 <span class="kn">import</span> <span class="nn">scipy.special</span>
 <span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">math</span>
 
 <span class="n">_valldr</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">create_partial_loader</span>
 <span class="n">_task_loader</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">task_loader</span>
 
+<span class="n">NUM_TO_VAL_MAX</span> <span class="o">=</span> <span class="mi">64</span> <span class="o">*</span> <span class="mi">3</span>
+
 <span class="k">def</span> <span class="nf">_store_lr_and_perf</span><span class="p">(</span><span class="n">lrs</span><span class="p">,</span> <span class="n">perfs</span><span class="p">,</span> <span class="n">cur_iter</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span>
                        <span class="n">state</span><span class="p">:</span> <span class="n">ignite_simple</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">TrainState</span><span class="p">):</span>
-    <span class="n">valldr</span> <span class="o">=</span> <span class="n">_valldr</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">val_set</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">)</span>
+    <span class="n">valldr</span> <span class="o">=</span> <span class="n">_valldr</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">train_set</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">)</span>
     <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">valldr</span><span class="p">)</span>
+
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">loss</span><span class="p">):</span>
+        <span class="c1"># our network has died!</span>
+        <span class="n">lrs</span><span class="p">[</span><span class="n">cur_iter</span><span class="p">[</span><span class="mi">0</span><span class="p">]:]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="n">perfs</span><span class="p">[</span><span class="n">cur_iter</span><span class="p">[</span><span class="mi">0</span><span class="p">]:]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="n">tnr</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="k">return</span>
 
     <span class="n">lrs</span><span class="p">[</span><span class="n">cur_iter</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">get_param</span><span class="p">()</span>
     <span class="n">perfs</span><span class="p">[</span><span class="n">cur_iter</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">]</span>
@@ -183,12 +194,12 @@
 <span class="k">def</span> <span class="nf">_lr_vs_perf</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span>
                 <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
                 <span class="n">cycle_time_epochs</span><span class="p">):</span>
-    <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
+    <span class="n">train_set</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
 
     <span class="n">num_train_iters</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">)</span> <span class="o">//</span> <span class="n">batch_size</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">cycle_time_epochs</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span>
 
     <span class="n">cur_iter</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_set</span><span class="p">))</span>
+    <span class="n">num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">NUM_TO_VAL_MAX</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">))</span>
 
     <span class="n">lrs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_train_iters</span><span class="p">)</span>
     <span class="n">perfs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_train_iters</span><span class="p">)</span>
@@ -222,7 +233,7 @@
 
 <span class="k">def</span> <span class="nf">_store_bs_and_perf</span><span class="p">(</span><span class="n">bss</span><span class="p">,</span> <span class="n">perfs</span><span class="p">,</span> <span class="n">cur</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span>
                        <span class="n">state</span><span class="p">:</span> <span class="n">ignite_simple</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">TrainState</span><span class="p">):</span>
-    <span class="n">valldr</span> <span class="o">=</span> <span class="n">_valldr</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">val_set</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">)</span>
+    <span class="n">valldr</span> <span class="o">=</span> <span class="n">_valldr</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">train_set</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">)</span>
     <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">valldr</span><span class="p">)</span>
     <span class="n">perf</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">]</span>
 
@@ -253,7 +264,7 @@
 <span class="k">def</span> <span class="nf">_batch_vs_perf</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span>
                    <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">batch_start</span><span class="p">,</span> <span class="n">batch_end</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span>
                    <span class="n">cycle_time_epochs</span><span class="p">):</span>
-    <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
+    <span class="n">train_set</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
 
     <span class="c1"># N = 0.5 * k * (k + 1)</span>
     <span class="c1"># =&gt; k^2 + k - 2N = 0</span>
@@ -273,7 +284,7 @@
     <span class="n">perfs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">bss</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;float32&#39;</span><span class="p">)</span>
 
     <span class="n">cur</span> <span class="o">=</span> <span class="p">[(</span><span class="n">bss</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">]</span>
-    <span class="n">num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_set</span><span class="p">))</span>
+    <span class="n">num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">NUM_TO_VAL_MAX</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">))</span>
 
     <span class="n">tnr_settings</span> <span class="o">=</span> <span class="n">ignite_simple</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">TrainSettings</span><span class="p">(</span>
         <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">model_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
@@ -296,25 +307,25 @@
     <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">bss</span><span class="o">=</span><span class="n">bss</span><span class="p">,</span> <span class="n">perfs</span><span class="o">=</span><span class="n">perfs</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_store_perf</span><span class="p">(</span><span class="n">perfs</span><span class="p">,</span> <span class="n">cur</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
-    <span class="n">valldr</span> <span class="o">=</span> <span class="n">_valldr</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">val_set</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">)</span>
+    <span class="n">valldr</span> <span class="o">=</span> <span class="n">_valldr</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">train_set</span><span class="p">,</span> <span class="n">num_to_val</span><span class="p">)</span>
     <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">valldr</span><span class="p">)</span>
     <span class="n">perfs</span><span class="p">[</span><span class="n">cur</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">]</span>
 
 <span class="k">def</span> <span class="nf">_train_with_perf</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span>
                      <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span>
                      <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">with_raw</span><span class="p">):</span>
-    <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
+    <span class="n">train_set</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
 
     <span class="n">final_perf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">final_ind</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">handlers</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span>
          <span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_store_perf&#39;</span><span class="p">,</span>
-          <span class="p">(</span><span class="n">final_perf</span><span class="p">,</span> <span class="n">final_ind</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_set</span><span class="p">)),</span> <span class="nb">dict</span><span class="p">()))</span>
+          <span class="p">(</span><span class="n">final_perf</span><span class="p">,</span> <span class="n">final_ind</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">)),</span> <span class="nb">dict</span><span class="p">()))</span>
     <span class="p">]</span>
     <span class="k">if</span> <span class="n">with_raw</span><span class="p">:</span>
         <span class="n">num_iters</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">)</span> <span class="o">//</span> <span class="n">batch_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">epochs</span>
-        <span class="n">num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_set</span><span class="p">))</span>
+        <span class="n">num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">NUM_TO_VAL_MAX</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">))</span>
         <span class="n">perf</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">num_iters</span><span class="p">)</span>
         <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">handlers</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
@@ -377,21 +388,20 @@
         <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
 
     <span class="n">os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">val</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">all_lists</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
 
 <span class="k">def</span> <span class="nf">_select_lr_from</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
                     <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span> <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span>
                     <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">cycle_time_epochs</span><span class="p">,</span>
-                    <span class="n">batch_size</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+                    <span class="n">batch_size</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">_run_and_collate</span><span class="p">(</span>
         <span class="n">_lr_vs_perf</span><span class="p">,</span> <span class="p">{</span>
             <span class="s1">&#39;model_loader&#39;</span><span class="p">:</span> <span class="n">model_loader</span><span class="p">,</span>
             <span class="s1">&#39;dataset_loader&#39;</span><span class="p">:</span> <span class="n">dataset_loader</span><span class="p">,</span>
             <span class="s1">&#39;loss_loader&#39;</span><span class="p">:</span> <span class="n">loss_loader</span><span class="p">,</span>
             <span class="s1">&#39;accuracy_style&#39;</span><span class="p">:</span> <span class="n">accuracy_style</span><span class="p">,</span>
-            <span class="s1">&#39;lr_start&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_start</span><span class="p">,</span>
-            <span class="s1">&#39;lr_end&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_end</span><span class="p">,</span>
+            <span class="s1">&#39;lr_start&#39;</span><span class="p">:</span> <span class="n">lr_start</span><span class="p">,</span>
+            <span class="s1">&#39;lr_end&#39;</span><span class="p">:</span> <span class="n">lr_end</span><span class="p">,</span>
             <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
             <span class="s1">&#39;cycle_time_epochs&#39;</span><span class="p">:</span> <span class="n">cycle_time_epochs</span>
         <span class="p">},</span> <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_min_inits</span>
@@ -399,32 +409,53 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Organizing and interpreting learning rate sweep...&#39;</span><span class="p">)</span>
 
-    <span class="n">lrs</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;lrs&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">lrs</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;lrs&#39;</span><span class="p">]</span>
     <span class="n">lr_perfs</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;perfs&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">sum</span><span class="p">()):</span>
+        <span class="n">clip_at</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">argmax</span><span class="p">()</span>
+        <span class="n">lrs</span> <span class="o">=</span> <span class="n">lrs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">clip_at</span><span class="p">]</span>
+        <span class="n">lr_perfs</span> <span class="o">=</span> <span class="n">lr_perfs</span><span class="p">[:,</span> <span class="p">:</span><span class="n">clip_at</span><span class="p">]</span>
+
+    <span class="n">lrs</span> <span class="o">=</span> <span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num_trials</span> <span class="o">=</span> <span class="n">lr_perfs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">window_size</span> <span class="o">=</span> <span class="n">smooth_window_size</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
+    <span class="n">lr_smoothed_perfs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">savgol_filter</span><span class="p">(</span>
+        <span class="n">lr_perfs</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">old_settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+    <span class="n">lse_smoothed_lr_perfs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span>
+        <span class="n">lr_smoothed_perfs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="o">**</span><span class="n">old_settings</span><span class="p">)</span>
+    <span class="n">lse_smoothed_lr_perf_then_derivs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">lse_smoothed_lr_perfs</span><span class="p">)</span>
     <span class="n">lr_perf_derivs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">lr_perfs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">smoothed_lr_perf_derivs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">savgol_filter</span><span class="p">(</span>
         <span class="n">lr_perfs</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">deriv</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">mean_smoothed_lr_perf_derivs</span> <span class="o">=</span> <span class="n">smoothed_lr_perf_derivs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span> <span class="o">=</span> <span class="n">find_with_derivs</span><span class="p">(</span><span class="n">lrs</span><span class="p">,</span> <span class="n">mean_smoothed_lr_perf_derivs</span><span class="p">)</span>
+    <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span> <span class="o">=</span> <span class="n">find_with_derivs</span><span class="p">(</span><span class="n">lrs</span><span class="p">,</span> <span class="n">lse_smoothed_lr_perf_then_derivs</span><span class="p">)</span>
 
     <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span>
-        <span class="n">outfile</span><span class="p">,</span> <span class="n">lrs</span><span class="o">=</span><span class="n">lrs</span><span class="p">,</span> <span class="n">perfs</span><span class="o">=</span><span class="n">lr_perfs</span><span class="p">,</span>
+        <span class="n">outfile</span><span class="p">,</span>
+        <span class="n">lrs</span><span class="o">=</span><span class="n">lrs</span><span class="p">,</span> <span class="n">perfs</span><span class="o">=</span><span class="n">lr_perfs</span><span class="p">,</span>
+        <span class="n">smoothed_perfs</span><span class="o">=</span><span class="n">lr_smoothed_perfs</span><span class="p">,</span>
+        <span class="n">lse_smoothed_perfs</span><span class="o">=</span><span class="n">lse_smoothed_lr_perfs</span><span class="p">,</span>
         <span class="n">perf_derivs</span><span class="o">=</span><span class="n">lr_perf_derivs</span><span class="p">,</span>
         <span class="n">smoothed_perf_derivs</span><span class="o">=</span><span class="n">smoothed_lr_perf_derivs</span><span class="p">,</span>
         <span class="n">mean_smoothed_perf_derivs</span><span class="o">=</span><span class="n">mean_smoothed_lr_perf_derivs</span><span class="p">,</span>
+        <span class="n">lse_smoothed_perf_then_derivs</span><span class="o">=</span><span class="n">lse_smoothed_lr_perf_then_derivs</span><span class="p">,</span>
         <span class="n">lr_range</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">]))</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Learning rate range: [</span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Learning rate range: [</span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">) (found from </span><span class="si">%s</span><span class="s1"> trials)&#39;</span><span class="p">,</span>
+                <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">num_trials</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="n">num_trials</span>
 
 
 <span class="k">def</span> <span class="nf">_select_batch_size_from</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
                             <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">mainfolder</span><span class="p">,</span> <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span>
                             <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">bss</span><span class="p">,</span>
-                            <span class="n">mean_smoothed_bs_perf_derivs</span><span class="p">,</span>
+                            <span class="n">collated_smoothed_bs_perf_derivs</span><span class="p">,</span>
                             <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">,</span> <span class="n">lr_min_over_batch</span><span class="p">,</span>
                             <span class="n">lr_max_over_batch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="n">settings</span><span class="p">:</span> <span class="n">HyperparameterSettings</span>
@@ -435,23 +466,36 @@
 
     <span class="n">incl_raw</span> <span class="o">=</span> <span class="n">store_up_to</span><span class="o">.</span><span class="n">hparam_selection_specific_imgs</span>
 
-    <span class="k">if</span> <span class="n">bs_min</span> <span class="o">==</span> <span class="n">bs_max</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">bs_min_ind</span> <span class="o">==</span> <span class="n">bs_max_ind</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Only found a single good batch size, using that without &#39;</span>
                     <span class="o">+</span> <span class="s1">&#39;further investigation&#39;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">bs_min</span>
 
-    <span class="k">if</span> <span class="n">bs_max</span> <span class="o">-</span> <span class="n">bs_min</span> <span class="o">&lt;=</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">bs_max_ind</span> <span class="o">-</span> <span class="n">bs_min_ind</span> <span class="o">&lt;=</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Found </span><span class="si">%s</span><span class="s1"> good batch sizes and willing to try up to </span><span class="si">%s</span><span class="s1">, &#39;</span>
-                     <span class="o">+</span> <span class="s1">&#39;so testing all of them.&#39;</span><span class="p">,</span> <span class="n">bs_max</span> <span class="o">-</span> <span class="n">bs_min</span><span class="p">,</span>
+                     <span class="o">+</span> <span class="s1">&#39;so testing all of them.&#39;</span><span class="p">,</span> <span class="n">bs_max_ind</span> <span class="o">-</span> <span class="n">bs_min_ind</span><span class="p">,</span>
                      <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span><span class="p">)</span>
-        <span class="n">test_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">)</span>
+        <span class="n">test_pts</span> <span class="o">=</span> <span class="n">bss</span><span class="p">[</span><span class="n">bs_min_ind</span><span class="p">:</span><span class="n">bs_max_ind</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">mean_smoothed_bs_perf_derivs</span><span class="p">[</span><span class="n">bs_min_ind</span><span class="p">:</span><span class="n">bs_max_ind</span><span class="p">]</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">collated_smoothed_bs_perf_derivs</span><span class="p">[</span><span class="n">bs_min_ind</span><span class="p">:</span><span class="n">bs_max_ind</span><span class="p">]</span>
+        <span class="n">old_settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="n">probs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
 
+        <span class="n">iters</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">probs</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">iters</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="n">probs</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">break</span>
+            <span class="n">probs</span><span class="p">[</span><span class="n">probs</span> <span class="o">&lt;</span> <span class="mf">1e-6</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1e-6</span>
+            <span class="n">probs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+            <span class="n">iters</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="o">**</span><span class="n">old_settings</span><span class="p">)</span>
+
         <span class="n">test_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">),</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">bs_min_ind</span><span class="p">,</span> <span class="n">bs_max_ind</span><span class="p">),</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span><span class="p">,</span>
             <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+        <span class="n">test_pts</span> <span class="o">=</span> <span class="n">bss</span><span class="p">[</span><span class="n">test_pts</span><span class="p">]</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Comparing batch sizes: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">test_pts</span><span class="p">)</span>
 
@@ -466,10 +510,19 @@
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
 
     <span class="n">loops</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># number spawned // test_pts.shape[0]</span>
+    <span class="n">last_loop_printed</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">cur_ind</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># in test_pts</span>
     <span class="n">current_processes</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">while</span> <span class="n">loops</span> <span class="o">&lt;</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pt_min_inits</span><span class="p">:</span>
+    <span class="n">target_num_loops</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">settings</span><span class="o">.</span><span class="n">batch_pt_min_inits</span><span class="p">,</span>
+        <span class="n">cores</span> <span class="o">//</span> <span class="n">test_pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">while</span> <span class="n">loops</span> <span class="o">&lt;</span> <span class="n">target_num_loops</span><span class="p">:</span>
         <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_processes</span><span class="p">)</span> <span class="o">==</span> <span class="n">cores</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">last_loop_printed</span> <span class="o">&lt;</span> <span class="n">loops</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;On loop </span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                             <span class="n">loops</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pt_min_inits</span><span class="p">)</span>
+                <span class="n">last_loop_printed</span> <span class="o">=</span> <span class="n">loops</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
 
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">current_processes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
@@ -478,7 +531,6 @@
 
         <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{cur_ind}</span><span class="s1">_</span><span class="si">{loops}</span><span class="s1">.npz&#39;</span><span class="p">)</span>
         <span class="n">bs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">test_pts</span><span class="p">[</span><span class="n">cur_ind</span><span class="p">])</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Starting run with batch size </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
         <span class="n">proc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span>
             <span class="n">target</span><span class="o">=</span><span class="n">_train_with_perf</span><span class="p">,</span>
             <span class="n">args</span><span class="o">=</span><span class="p">(</span>
@@ -495,6 +547,9 @@
         <span class="k">if</span> <span class="n">cur_ind</span> <span class="o">&gt;=</span> <span class="n">test_pts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="n">cur_ind</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">loops</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Waiting for </span><span class="si">%s</span><span class="s1"> currently running trials to end...&#39;</span><span class="p">,</span>
+                 <span class="nb">len</span><span class="p">(</span><span class="n">current_processes</span><span class="p">))</span>
 
     <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">current_processes</span><span class="p">:</span>
         <span class="n">proc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
@@ -517,7 +572,10 @@
                     <span class="n">trials_raw</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">infile</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">])</span>
             <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
         <span class="n">trials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">trials</span><span class="p">)</span>
+
+        <span class="n">old_settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
         <span class="n">lse_trials</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span><span class="n">trials</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="o">**</span><span class="n">old_settings</span><span class="p">)</span>
 
         <span class="n">all_final_perfs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">trials</span>
         <span class="n">all_final_lse_perfs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">lse_trials</span>
@@ -527,8 +585,10 @@
             <span class="n">smoothed_trials_raw</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">savgol_filter</span><span class="p">(</span>
                 <span class="n">trials_raw</span><span class="p">,</span> <span class="n">smooth_window_size</span><span class="p">(</span><span class="n">trials_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span>
             <span class="p">)</span>
+            <span class="n">old_settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
             <span class="n">lse_smoothed_trials_raw</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span>
                 <span class="n">smoothed_trials_raw</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="o">**</span><span class="n">old_settings</span><span class="p">)</span>
 
             <span class="n">raws_dict</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;raw_</span><span class="si">{bs}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">trials_raw</span>
             <span class="n">raws_dict</span><span class="p">[</span><span class="n">f</span><span class="s1">&#39;smoothed_raw_</span><span class="si">{bs}</span><span class="s1">&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">smoothed_trials_raw</span>
@@ -547,7 +607,7 @@
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found best batch size of those tested: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">best_bs</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">best_bs</span>
+    <span class="k">return</span> <span class="n">best_bs</span><span class="p">,</span> <span class="n">test_pts</span><span class="p">,</span> <span class="n">loops</span>
 
 <div class="viewcode-block" id="tune"><a class="viewcode-back" href="../../index.html#ignite_simple.tuner.tune">[docs]</a><span class="k">def</span> <span class="nf">tune</span><span class="p">(</span><span class="n">model_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
          <span class="n">dataset_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
@@ -567,12 +627,41 @@
 <span class="sd">            final.json</span>
 <span class="sd">                {&#39;lr_start&#39;: float, &#39;lr_end&#39;: float, &#39;batch_size&#39;: float,</span>
 <span class="sd">                 &#39;cycle_size_epochs&#39;: int, &#39;epochs&#39;: int}</span>
+<span class="sd">            misc.json</span>
+<span class="sd">                Variables that went into the final output. Typically selected</span>
+<span class="sd">                via heuristics, constants, or come from the hyperparameter</span>
+<span class="sd">                settings. Some may be deduced from the numpy array files</span>
+<span class="sd">                directly</span>
+
+<span class="sd">                {</span>
+<span class="sd">                    &#39;initial_batch_size&#39;: int,</span>
+<span class="sd">                    &#39;initial_cycle_time&#39;: int,</span>
+<span class="sd">                    &#39;initial_min_lr&#39;: float,</span>
+<span class="sd">                    &#39;initial_max_lr&#39;: float,</span>
+<span class="sd">                    &#39;initial_lr_num_to_val&#39;: int,</span>
+<span class="sd">                    &#39;initial_lr_num_trials&#39;: int,</span>
+<span class="sd">                    &#39;initial_lr_window_size&#39;: int,</span>
+<span class="sd">                    &#39;initial_lr_sweep_result_min&#39;: float,</span>
+<span class="sd">                    &#39;initial_lr_sweep_result_max&#39;: float,</span>
+<span class="sd">                    &#39;second_min_lr&#39;: float,</span>
+<span class="sd">                    &#39;second_max_lr&#39;: float</span>
+<span class="sd">                }</span>
+
 <span class="sd">            lr_vs_perf.npz</span>
 <span class="sd">                lrs=np.ndarray[number of batches]</span>
 <span class="sd">                perfs=np.ndarray[trials, number of batches]</span>
+<span class="sd">                smoothed_perfs=np.ndarray[trials, number of batches]</span>
+<span class="sd">                lse_smoothed_perfs=np.ndarray[trials, number of batches]</span>
 <span class="sd">                perf_derivs=np.ndarray[trials, number_of_batches]</span>
 <span class="sd">                smoothed_perf_derivs=np.ndarray[trials, number of batches]</span>
 <span class="sd">                mean_smoothed_perf_derivs=np.ndarray[number of batches]</span>
+<span class="sd">                lse_smoothed_perf_then_derivs=np.ndarray[number of batches]</span>
+<span class="sd">                    lse = log sum exp. when there are many trials, the mean</span>
+<span class="sd">                    gets overly pessimistic from bad initializations,</span>
+<span class="sd">                    so LSE is more stable. however, we can&#39;t do lse on the</span>
+<span class="sd">                    smoothed derivatives because then derivatives will tend</span>
+<span class="sd">                    to be positive everywhere, so we have to smooth first,</span>
+<span class="sd">                    then take lse, then take derivative</span>
 <span class="sd">                lr_range=np.ndarray[2]</span>
 <span class="sd">                    min, max for the good range of learning rates</span>
 <span class="sd">            bs_vs_perf.npz  (bs=batch_size)</span>
@@ -582,9 +671,12 @@
 
 <span class="sd">                bss=np.ndarray[number of batches]</span>
 <span class="sd">                perfs=np.ndarray[trials, number of batches]</span>
+<span class="sd">                smoothed_perfs=np.ndarray[number of batches]</span>
+<span class="sd">                lse_smoothed_perfs=np.ndarray[number of batches]</span>
 <span class="sd">                perf_derivs=np.ndarray[trials, number_of_batches]</span>
 <span class="sd">                smoothed_perf_derivs=np.ndarray[trials, number of batches]</span>
 <span class="sd">                mean_smoothed_perf_derivs=np.ndarray[number of batches]</span>
+<span class="sd">                lse_smoothed_perf_then_derivs=np.ndarray[number of batches]</span>
 <span class="sd">                bs_range=np.ndarray[2]</span>
 <span class="sd">                    min, max for the good range of batch sizes</span>
 <span class="sd">            lr_vs_perf2.npz</span>
@@ -638,7 +730,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
 
     <span class="n">train_set</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ignite_simple</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
@@ -647,11 +738,16 @@
     <span class="n">init_batch_size</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">init_cycle_time</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">150000</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
 
-    <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span> <span class="o">=</span> <span class="n">_select_lr_from</span><span class="p">(</span>
-        <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf.npz&#39;</span><span class="p">),</span> <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span>
-        <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">init_cycle_time</span><span class="p">,</span> <span class="n">init_batch_size</span>
+    <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">lr_initial_window_size</span><span class="p">,</span> <span class="n">lr_initial_trials</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">_select_lr_from</span><span class="p">(</span>
+            <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf.npz&#39;</span><span class="p">),</span> <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span>
+            <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">init_cycle_time</span><span class="p">,</span> <span class="n">init_batch_size</span><span class="p">,</span>
+            <span class="n">settings</span><span class="o">.</span><span class="n">lr_start</span><span class="p">,</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_end</span>
+        <span class="p">)</span>
     <span class="p">)</span>
+    <span class="n">initial_lr_sweep_result_min</span><span class="p">,</span> <span class="n">initial_lr_sweep_result_max</span> <span class="o">=</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span>
+    <span class="n">initial_lr_num_to_val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">NUM_TO_VAL_MAX</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">))</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Performing initial batch size sweep...&#39;</span><span class="p">)</span>
 
@@ -683,48 +779,111 @@
 
     <span class="n">bss</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;bss&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">bs_perfs</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;perfs&#39;</span><span class="p">]</span>
-    <span class="n">window_size</span> <span class="o">=</span> <span class="n">smooth_window_size</span><span class="p">(</span><span class="n">bss</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">bs_sweep_trials</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bs_perfs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">window_size</span> <span class="o">=</span> <span class="n">smooth_window_size</span><span class="p">(</span><span class="n">bs_perfs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">smoothed_bs_perf</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">savgol_filter</span><span class="p">(</span>
+        <span class="n">bs_perfs</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">old_settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="n">under</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+    <span class="n">lse_smoothed_bs_perf</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span>
+        <span class="n">smoothed_bs_perf</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="o">**</span><span class="n">old_settings</span><span class="p">)</span>
+    <span class="n">lse_smoothed_bs_perf_then_derivs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span>
+        <span class="n">lse_smoothed_bs_perf</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">bs_perf_derivs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">bs_perfs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">smoothed_bs_perf_derivs</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">savgol_filter</span><span class="p">(</span>
         <span class="n">bs_perfs</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">deriv</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="n">mean_smoothed_bs_perf_derivs</span> <span class="o">=</span> <span class="n">smoothed_bs_perf_derivs</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span> <span class="o">=</span> <span class="n">find_with_derivs</span><span class="p">(</span><span class="n">bss</span><span class="p">,</span> <span class="n">mean_smoothed_bs_perf_derivs</span><span class="p">)</span>
+    <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span> <span class="o">=</span> <span class="n">find_with_derivs</span><span class="p">(</span><span class="n">bss</span><span class="p">,</span> <span class="n">lse_smoothed_bs_perf_then_derivs</span><span class="p">)</span>
     <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bs_min</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">bs_max</span><span class="p">)</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Batch size range: [</span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Batch size range: [</span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">) (found from </span><span class="si">%s</span><span class="s1"> trials)&#39;</span><span class="p">,</span>
+                <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">,</span> <span class="n">bs_perfs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
     <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;bs_vs_perf.npz&#39;</span><span class="p">),</span> <span class="n">bss</span><span class="o">=</span><span class="n">bss</span><span class="p">,</span> <span class="n">perfs</span><span class="o">=</span><span class="n">bs_perfs</span><span class="p">,</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;bs_vs_perf.npz&#39;</span><span class="p">),</span>
+        <span class="n">bss</span><span class="o">=</span><span class="n">bss</span><span class="p">,</span> <span class="n">perfs</span><span class="o">=</span><span class="n">bs_perfs</span><span class="p">,</span>
         <span class="n">perf_derivs</span><span class="o">=</span><span class="n">bs_perf_derivs</span><span class="p">,</span>
+        <span class="n">smoothed_perfs</span><span class="o">=</span><span class="n">smoothed_bs_perf</span><span class="p">,</span>
         <span class="n">smoothed_perf_derivs</span><span class="o">=</span><span class="n">smoothed_bs_perf_derivs</span><span class="p">,</span>
         <span class="n">mean_smoothed_perf_derivs</span><span class="o">=</span><span class="n">mean_smoothed_bs_perf_derivs</span><span class="p">,</span>
+        <span class="n">lse_smoothed_perf_then_derivs</span><span class="o">=</span><span class="n">lse_smoothed_bs_perf_then_derivs</span><span class="p">,</span>
         <span class="n">bs_range</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">]))</span>
 
     <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_pts</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">_select_batch_size_from</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">batch_pts_checked</span><span class="p">,</span> <span class="n">num_batch_loops</span> <span class="o">=</span> <span class="n">_select_batch_size_from</span><span class="p">(</span>
             <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span>
             <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">init_cycle_time</span><span class="p">,</span> <span class="n">bss</span><span class="p">,</span>
-            <span class="n">mean_smoothed_bs_perf_derivs</span><span class="p">,</span> <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">,</span>
+            <span class="n">lse_smoothed_bs_perf_then_derivs</span><span class="p">,</span> <span class="n">bs_min</span><span class="p">,</span> <span class="n">bs_max</span><span class="p">,</span>
             <span class="n">lr_min</span> <span class="o">/</span> <span class="n">init_batch_size</span><span class="p">,</span> <span class="n">lr_max</span> <span class="o">/</span> <span class="n">init_batch_size</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">bs_min</span> <span class="o">+</span> <span class="n">bs_max</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">batch_pts_checked</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_batch_loops</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Choosing mean batch size: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">rescan_lr_after_bs</span> <span class="ow">and</span> <span class="n">batch_size</span> <span class="o">!=</span> <span class="n">init_batch_size</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finding learning rate range on new batch size...&#39;</span><span class="p">)</span>
-        <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span> <span class="o">=</span> <span class="n">_select_lr_from</span><span class="p">(</span>
+        <span class="n">second_min_lr</span> <span class="o">=</span> <span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">lr_start</span> <span class="o">/</span> <span class="n">init_batch_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span>
+        <span class="n">second_max_lr</span> <span class="o">=</span> <span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">lr_end</span> <span class="o">/</span> <span class="n">init_batch_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span>
+        <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">second_lr_window_size</span><span class="p">,</span> <span class="n">second_lr_num_trials</span> <span class="o">=</span> <span class="n">_select_lr_from</span><span class="p">(</span>
             <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span>
             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf2.npz&#39;</span><span class="p">),</span> <span class="n">cores</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span>
-            <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">init_cycle_time</span><span class="p">,</span> <span class="n">init_batch_size</span>
+            <span class="n">store_up_to</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">init_cycle_time</span><span class="p">,</span> <span class="n">init_batch_size</span><span class="p">,</span>
+            <span class="n">second_min_lr</span><span class="p">,</span> <span class="n">second_max_lr</span>
         <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">second_min_lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="n">second_max_lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="n">second_lr_window_size</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="n">second_lr_num_trials</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="n">lr_min</span> <span class="o">=</span> <span class="p">(</span><span class="n">lr_min</span> <span class="o">/</span> <span class="n">init_batch_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span>
+        <span class="n">lr_max</span> <span class="o">=</span> <span class="p">(</span><span class="n">lr_max</span> <span class="o">/</span> <span class="n">init_batch_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span>
 
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;final.json&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
         <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span><span class="s1">&#39;lr_start&#39;</span><span class="p">:</span> <span class="n">lr_min</span><span class="p">,</span> <span class="s1">&#39;lr_end&#39;</span><span class="p">:</span> <span class="n">lr_max</span><span class="p">,</span>
                    <span class="s1">&#39;batch_size&#39;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
                    <span class="s1">&#39;cycle_size_epochs&#39;</span><span class="p">:</span> <span class="n">init_cycle_time</span><span class="p">,</span>
-                   <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="n">init_cycle_time</span> <span class="o">*</span> <span class="mi">4</span><span class="p">},</span> <span class="n">outfile</span><span class="p">)</span></div>
+                   <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="n">init_cycle_time</span> <span class="o">*</span> <span class="mi">4</span><span class="p">},</span> <span class="n">outfile</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;misc.json&#39;</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;initial_batch_size&#39;</span><span class="p">:</span> <span class="n">init_batch_size</span><span class="p">,</span>
+                <span class="s1">&#39;initial_cycle_time&#39;</span><span class="p">:</span> <span class="n">init_cycle_time</span><span class="p">,</span>
+                <span class="s1">&#39;initial_min_lr&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_start</span><span class="p">,</span>
+                <span class="s1">&#39;initial_max_lr&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">lr_end</span><span class="p">,</span>
+                <span class="s1">&#39;initial_lr_num_to_val&#39;</span><span class="p">:</span> <span class="n">initial_lr_num_to_val</span><span class="p">,</span>
+                <span class="s1">&#39;initial_lr_num_trials&#39;</span><span class="p">:</span> <span class="n">lr_initial_trials</span><span class="p">,</span>
+                <span class="s1">&#39;initial_lr_window_size&#39;</span><span class="p">:</span> <span class="n">lr_initial_window_size</span><span class="p">,</span>
+                <span class="s1">&#39;initial_lr_sweep_result_min&#39;</span><span class="p">:</span> <span class="n">initial_lr_sweep_result_min</span><span class="p">,</span>
+                <span class="s1">&#39;initial_lr_sweep_result_max&#39;</span><span class="p">:</span> <span class="n">initial_lr_sweep_result_max</span><span class="p">,</span>
+                <span class="s1">&#39;initial_avg_lr&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">initial_lr_sweep_result_min</span> <span class="o">+</span> <span class="n">initial_lr_sweep_result_max</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="s1">&#39;initial_min_batch&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_start</span><span class="p">,</span>
+                <span class="s1">&#39;initial_max_batch&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">batch_end</span><span class="p">,</span>
+                <span class="s1">&#39;initial_batch_num_to_val&#39;</span><span class="p">:</span> <span class="n">initial_lr_num_to_val</span><span class="p">,</span>
+                <span class="s1">&#39;initial_batch_num_trials&#39;</span><span class="p">:</span> <span class="n">bs_sweep_trials</span><span class="p">,</span>
+                <span class="s1">&#39;batch_sweep_result_min&#39;</span><span class="p">:</span> <span class="n">bs_min</span><span class="p">,</span>
+                <span class="s1">&#39;batch_sweep_result_max&#39;</span><span class="p">:</span> <span class="n">bs_max</span><span class="p">,</span>
+                <span class="s1">&#39;batch_sweep_result&#39;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+                <span class="s1">&#39;batch_sweep_num_pts&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_pts_checked</span><span class="p">),</span>
+                <span class="s1">&#39;batch_sweep_pts_list&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">batch_pts_checked</span><span class="p">),</span>
+                <span class="s1">&#39;batch_sweep_trials_each&#39;</span><span class="p">:</span> <span class="n">num_batch_loops</span><span class="p">,</span>
+                <span class="s1">&#39;second_min_lr&#39;</span><span class="p">:</span> <span class="n">second_min_lr</span><span class="p">,</span>
+                <span class="s1">&#39;second_max_lr&#39;</span><span class="p">:</span> <span class="n">second_max_lr</span><span class="p">,</span>
+                <span class="s1">&#39;second_lr_num_trials&#39;</span><span class="p">:</span> <span class="n">second_lr_num_trials</span><span class="p">,</span>
+                <span class="s1">&#39;second_lr_window_size&#39;</span><span class="p">:</span> <span class="n">second_lr_window_size</span><span class="p">,</span>
+                <span class="s1">&#39;lr_sweep_result_min&#39;</span><span class="p">:</span> <span class="n">lr_min</span><span class="p">,</span>
+                <span class="s1">&#39;lr_sweep_result_max&#39;</span><span class="p">:</span> <span class="n">lr_max</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">outfile</span>
+        <span class="p">)</span></div>
 </pre></div>
 
            </div>

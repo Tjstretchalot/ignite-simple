@@ -147,6 +147,7 @@
 
 <span class="kn">import</span> <span class="nn">typing</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy.signal</span>
 
 <div class="viewcode-block" id="smooth_window_size"><a class="viewcode-back" href="../../index.html#ignite_simple.range_finder.smooth_window_size">[docs]</a><span class="k">def</span> <span class="nf">smooth_window_size</span><span class="p">(</span><span class="n">npts</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns the a heuristic for the window size for smoothing an array with</span>
@@ -160,9 +161,21 @@
     <span class="n">result</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">npts</span><span class="p">)</span> <span class="o">//</span> <span class="mi">10</span>
     <span class="k">if</span> <span class="n">result</span> <span class="o">&gt;=</span> <span class="mi">100</span><span class="p">:</span>
         <span class="k">return</span> <span class="mi">101</span>
+    <span class="k">if</span> <span class="n">result</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">3</span>
     <span class="k">if</span> <span class="n">result</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="autosmooth"><a class="viewcode-back" href="../../index.html#ignite_simple.range_finder.autosmooth">[docs]</a><span class="k">def</span> <span class="nf">autosmooth</span><span class="p">(</span><span class="n">arr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Causes scipy.signal.savgol_filter on the given data for the given</span>
+<span class="sd">    dimension with the default settings.</span>
+
+<span class="sd">    :param arr: the array to smooth</span>
+<span class="sd">    :param dim: the smooth dimension</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_size</span> <span class="o">=</span> <span class="n">smooth_window_size</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">axis</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">savgol_filter</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">window_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="nonzero_intervals"><a class="viewcode-back" href="../../index.html#ignite_simple.range_finder.nonzero_intervals">[docs]</a><span class="k">def</span> <span class="nf">nonzero_intervals</span><span class="p">(</span><span class="n">vec</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Find which intervals in the given vector are non-zero.</span>
@@ -186,8 +199,76 @@
 
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">edge_vec</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="trim_range_derivs"><a class="viewcode-back" href="../../index.html#ignite_simple.range_finder.trim_range_derivs">[docs]</a><span class="k">def</span> <span class="nf">trim_range_derivs</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                      <span class="n">derivs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                      <span class="n">x_st_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                      <span class="n">x_en_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;Given that we have found a good interval in the xs for which the derivs</span>
+<span class="sd">    is positive, it may be possible that the bulk of the integral can be</span>
+<span class="sd">    maintained while reducing the width of the integral. This function returns</span>
+<span class="sd">    a new interval which is a subset of the given interval for which the</span>
+<span class="sd">    bulk of the integral is maintained.</span>
+
+<span class="sd">    :param np.ndarray xs: with shape `(points,)`, the x-values corresponding</span>
+<span class="sd">        to the derivatives</span>
+
+<span class="sd">    :param np.ndarray derivs: with shape `(points,)`, the relevant derivatives</span>
+
+<span class="sd">    :param int x_st_ind: the index in xs the good interval starts at</span>
+
+<span class="sd">    :param int x_en_ind: the index in xs the good interval ends at</span>
+
+<span class="sd">    :returns: `(x_st_ind, x_end_ind)` which is a subset of the passed interval</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">xs_in_range</span> <span class="o">=</span> <span class="n">xs</span><span class="p">[</span><span class="n">x_st_ind</span><span class="p">:</span><span class="n">x_en_ind</span><span class="p">]</span>
+    <span class="n">in_range</span> <span class="o">=</span> <span class="n">derivs</span><span class="p">[</span><span class="n">x_st_ind</span><span class="p">:</span><span class="n">x_en_ind</span><span class="p">]</span>
+    <span class="n">max_in_range</span> <span class="o">=</span> <span class="n">in_range</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="n">intvl_width</span> <span class="o">=</span> <span class="n">xs_in_range</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xs_in_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">intvl_intgrl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">in_range</span><span class="p">,</span> <span class="n">xs_in_range</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">new_floor_perc</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">new_floor</span> <span class="o">=</span> <span class="n">max_in_range</span> <span class="o">*</span> <span class="n">new_floor_perc</span>
+        <span class="n">new_valid</span> <span class="o">=</span> <span class="n">in_range</span> <span class="o">&gt;</span> <span class="n">new_floor</span>
+        <span class="n">new_valid_rev</span> <span class="o">=</span> <span class="n">new_valid</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">first_true</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">new_valid</span><span class="p">)</span>
+        <span class="n">last_true</span> <span class="o">=</span> <span class="n">new_valid</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">new_valid_rev</span><span class="p">)</span>
+        <span class="c1"># now first_true:last_true is the correct range</span>
+
+        <span class="n">new_intvl_xs</span> <span class="o">=</span> <span class="n">xs_in_range</span><span class="p">[</span><span class="n">first_true</span><span class="p">:</span><span class="n">last_true</span><span class="p">]</span>
+        <span class="n">new_intvl_derivs</span> <span class="o">=</span> <span class="n">in_range</span><span class="p">[</span><span class="n">first_true</span><span class="p">:</span><span class="n">last_true</span><span class="p">]</span>
+
+        <span class="n">new_intvl_width</span> <span class="o">=</span> <span class="n">new_intvl_xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">new_intvl_xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">new_intvl_perc</span> <span class="o">=</span> <span class="n">new_intvl_width</span> <span class="o">/</span> <span class="n">intvl_width</span>
+
+        <span class="k">if</span> <span class="n">new_intvl_perc</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">new_floor_perc</span> <span class="o">*</span> <span class="mf">1.2</span><span class="p">):</span>
+            <span class="c1"># e.g. we shaved off 10% of max and only lost 5% of width,</span>
+            <span class="c1"># not meaningfully helpful for reducing interval size</span>
+            <span class="k">continue</span>
+
+        <span class="n">new_intvl_intgrl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="n">new_intvl_derivs</span><span class="p">,</span> <span class="n">new_intvl_xs</span><span class="p">)</span>
+        <span class="n">new_intvl_intgrl_perc</span> <span class="o">=</span> <span class="n">new_intvl_intgrl</span> <span class="o">/</span> <span class="n">intvl_intgrl</span>
+
+        <span class="k">if</span> <span class="n">new_intvl_intgrl_perc</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">new_floor_perc</span> <span class="o">*</span> <span class="mf">1.2</span><span class="p">):</span>
+            <span class="c1"># e.g. we shaved off 10% of max and lost 20% of integral,</span>
+            <span class="c1"># not meaningfully helpful for reducing interval size</span>
+            <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">new_intvl_intgrl_perc</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">new_intvl_perc</span> <span class="o">*</span> <span class="mf">1.2</span><span class="p">):</span>
+            <span class="c1"># e.g. we shaved off 15% of width and lost 20% of integral,</span>
+            <span class="c1"># not meaningfully helpful for reducing interval size</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># now e.g. shaved off 10% of max, lost 15% width but only</span>
+        <span class="c1"># 5% of the integral</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x_st_ind</span> <span class="o">+</span> <span class="n">first_true</span><span class="p">,</span> <span class="n">x_st_ind</span> <span class="o">+</span> <span class="n">last_true</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span><span class="n">x_st_ind</span><span class="p">,</span> <span class="n">x_en_ind</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="find_with_derivs"><a class="viewcode-back" href="../../index.html#ignite_simple.range_finder.find_with_derivs">[docs]</a><span class="k">def</span> <span class="nf">find_with_derivs</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-                     <span class="n">derivs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+                     <span class="n">derivs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
     <span class="sd">&quot;&quot;&quot;Finds the range in derivs wherein the derivative is always</span>
 <span class="sd">    positive. From these intervals, this returns specifically the one with</span>
 <span class="sd">    the greatest integral.</span>
@@ -218,44 +299,12 @@
             <span class="n">best_candidate</span> <span class="o">=</span> <span class="n">i</span>
             <span class="n">best_change</span> <span class="o">=</span> <span class="n">change</span>
 
-    <span class="k">return</span> <span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_candidate</span><span class="p">]],</span>
-            <span class="n">xs</span><span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_candidate</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]])</span></div>
+    <span class="n">x_st_ind</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">best_candidate</span><span class="p">]</span>
+    <span class="n">x_en_ind</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">best_candidate</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
-<div class="viewcode-block" id="find"><a class="viewcode-back" href="../../index.html#ignite_simple.range_finder.find">[docs]</a><span class="k">def</span> <span class="nf">find</span><span class="p">(</span><span class="n">xs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Finds the range (min, max) of xs over which the derivative of y is</span>
-<span class="sd">    positive and during which we saw the greatest change in x. This requires</span>
-<span class="sd">    that ys is fairly smooth to produce reasonable results.</span>
+    <span class="n">x_st_ind</span><span class="p">,</span> <span class="n">x_en_ind</span> <span class="o">=</span> <span class="n">trim_range_derivs</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">derivs</span><span class="p">,</span> <span class="n">x_st_ind</span><span class="p">,</span> <span class="n">x_en_ind</span><span class="p">)</span>
 
-<span class="sd">    .. note::</span>
-
-<span class="sd">        If ys was smoothed, then this will be biased to producing intervals</span>
-<span class="sd">        right of the true best interval. If the derivative is smoothed instead,</span>
-<span class="sd">        then find_with_derivs will produce an unbiased interval.</span>
-
-<span class="sd">    :param np.ndarray xs: The x-values, with shape (num_pts,)</span>
-<span class="sd">    :param np.ndarray ys: The y-values, with the same shape as the xs</span>
-
-<span class="sd">    :returns: (min, max) of xs where the ys increase the quickest</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">deriv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
-    <span class="n">deriv</span><span class="p">[</span><span class="n">deriv</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">candidates</span> <span class="o">=</span> <span class="n">nonzero_intervals</span><span class="p">(</span><span class="n">deriv</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-
-    <span class="n">best_change</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">best_candidate</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">candidates</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="n">st</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">en</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="n">change</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[</span><span class="n">en</span><span class="p">]</span> <span class="o">-</span> <span class="n">ys</span><span class="p">[</span><span class="n">st</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">change</span> <span class="o">&gt;</span> <span class="n">best_change</span><span class="p">:</span>
-            <span class="n">best_candidate</span> <span class="o">=</span> <span class="n">i</span>
-            <span class="n">best_change</span> <span class="o">=</span> <span class="n">change</span>
-
-    <span class="k">return</span> <span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_candidate</span><span class="p">]],</span>
-            <span class="n">xs</span><span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_candidate</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]])</span></div>
+    <span class="k">return</span> <span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">x_st_ind</span><span class="p">],</span> <span class="n">xs</span><span class="p">[</span><span class="n">x_en_ind</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span></div>
 </pre></div>
 
            </div>

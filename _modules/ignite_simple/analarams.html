@@ -152,20 +152,6 @@
 <span class="sd">    equivalent, parallel computations are described as if they were</span>
 <span class="sd">    performed sequentially.</span>
 
-<span class="sd">    :ivar bool lr_selection_explanation: True if the output should include a</span>
-<span class="sd">        broad text explanation of how the learning rate was selected, False</span>
-<span class="sd">        otherwise.</span>
-
-<span class="sd">    :ivar bool lr_selection_results: True if the output should include a text</span>
-<span class="sd">        explanation of the selected learning rate, False otherwise.</span>
-
-<span class="sd">    :ivar bool batch_selection_explanation: True if the output should include</span>
-<span class="sd">        a broad text explanation of how the minibatch size was selected, False</span>
-<span class="sd">        otherwise.</span>
-
-<span class="sd">    :ivar bool batch_selection_results: True if the output should include a</span>
-<span class="sd">        text explanation of the selected minibatch size, False otherwise.</span>
-
 <span class="sd">    :ivar bool hparam_selection_specifics: True if the output should include</span>
 <span class="sd">        a text explanation about how specifically we came about selecting the</span>
 <span class="sd">        learning rate and batch size, by going through the numbers, False</span>
@@ -175,18 +161,9 @@
 <span class="sd">        include figures with captions for the hyper paramater selection process</span>
 <span class="sd">        as it occurred for this model specifically, False otherwise.</span>
 
-<span class="sd">    :ivar bool training_explanation: True if the output should include a broad</span>
-<span class="sd">        text explanation of the training procedure, False otherwise.</span>
-
-<span class="sd">    :ivar bool training_metrics: True if the output should include text metrics</span>
-<span class="sd">        for the models performance through training, False otherwise.</span>
-
 <span class="sd">    :ivar bool training_metric_imgs: True if the output should include figures</span>
 <span class="sd">        with captions for the performance of the model through training, i.e.,</span>
 <span class="sd">        accuracy vs epoch and loss vs epoch figures.</span>
-
-<span class="sd">    :ivar bool final_metrics: True if the output should include in text the</span>
-<span class="sd">        final accuracy and loss, False otherwise.</span>
 
 <span class="sd">    :ivar bool typical_run_pca3dvis: True if the output should include a video</span>
 <span class="sd">        from pca3dvis for the points as they moved through the network, False</span>
@@ -198,28 +175,14 @@
 <span class="sd">        this has no effect.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                 <span class="n">lr_selection_explanation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">lr_selection_results</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">batch_selection_explanation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">batch_selection_results</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">hparam_selection_specifics</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">hparam_selection_specific_imgs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">training_explanation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">training_metrics</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">training_metric_imgs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-                 <span class="n">final_metrics</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">typical_run_pca3dvis</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">typical_run_pca3dvis_draft</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lr_selection_explanation</span> <span class="o">=</span> <span class="n">lr_selection_explanation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lr_selection_results</span> <span class="o">=</span> <span class="n">lr_selection_results</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">batch_selection_explanation</span> <span class="o">=</span> <span class="n">batch_selection_explanation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">batch_selection_results</span> <span class="o">=</span> <span class="n">batch_selection_results</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hparam_selection_specifics</span> <span class="o">=</span> <span class="n">hparam_selection_specifics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hparam_selection_specific_imgs</span> <span class="o">=</span> <span class="n">hparam_selection_specific_imgs</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">training_explanation</span> <span class="o">=</span> <span class="n">training_explanation</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">training_metrics</span> <span class="o">=</span> <span class="n">training_metrics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">training_metric_imgs</span> <span class="o">=</span> <span class="n">training_metric_imgs</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">final_metrics</span> <span class="o">=</span> <span class="n">final_metrics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">typical_run_pca3dvis</span> <span class="o">=</span> <span class="n">typical_run_pca3dvis</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">typical_run_pca3dvis_draft</span> <span class="o">=</span> <span class="n">typical_run_pca3dvis_draft</span></div>
 
@@ -230,16 +193,9 @@
 <span class="sd">    :rtype: AnalysisSettings</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">AnalysisSettings</span><span class="p">(</span>
-        <span class="n">lr_selection_explanation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">lr_selection_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">batch_selection_explanation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">batch_selection_results</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">training_explanation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">training_metrics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">final_metrics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span></div>
@@ -251,16 +207,13 @@
 <span class="sd">        output.</span>
 <span class="sd">    :rtype: AnalysisSettings</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">none</span><span class="p">()</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">lr_selection_explanation</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">lr_selection_results</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">batch_selection_explanation</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">batch_selection_results</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">hparam_selection_specifics</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">training_explanation</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">training_metrics</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">final_metrics</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="n">res</span></div>
+    <span class="k">return</span> <span class="n">AnalysisSettings</span><span class="p">(</span>
+        <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span></div>
 
 <div class="viewcode-block" id="images"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.images">[docs]</a><span class="k">def</span> <span class="nf">images</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AnalysisSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Analysis output that uses text and images only</span>
@@ -269,10 +222,13 @@
 <span class="sd">        and image output.</span>
 <span class="sd">    :rtype: AnalysisSettings</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">text</span><span class="p">()</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">hparam_selection_specific_imgs</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">res</span><span class="o">.</span><span class="n">training_metric_imgs</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">return</span> <span class="n">res</span></div>
+    <span class="k">return</span> <span class="n">AnalysisSettings</span><span class="p">(</span>
+        <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span></div>
 
 <div class="viewcode-block" id="animations_draft"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.animations_draft">[docs]</a><span class="k">def</span> <span class="nf">animations_draft</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AnalysisSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Analysis output that uses text, images, and animations but the</span>

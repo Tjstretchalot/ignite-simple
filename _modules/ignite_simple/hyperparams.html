@@ -230,7 +230,7 @@
     <span class="sd">&quot;&quot;&quot;Returns a somewhat slow (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
         <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
-        <span class="n">lr_end</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="n">batch_start</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
         <span class="n">batch_end</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
@@ -244,10 +244,10 @@
     <span class="sd">&quot;&quot;&quot;Returns the slowest (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
         <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
-        <span class="n">lr_end</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-        <span class="n">batch_start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">batch_end</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>
+        <span class="n">batch_start</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>  <span class="c1"># &lt;8 might sometimes be better, but is painfully</span>
+        <span class="n">batch_end</span><span class="o">=</span><span class="mi">512</span><span class="p">,</span>  <span class="c1"># slow computationally</span>
         <span class="n">batch_rn_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
         <span class="n">batch_pts</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
         <span class="n">batch_pt_min_inits</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
