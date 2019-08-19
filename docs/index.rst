@@ -23,6 +23,13 @@ ignite_simple.hyperparams
    :members:
 
 
+ignite_simple.model_manager
+===========================
+
+.. automodule:: ignite_simple.model_manager
+   :members:
+
+
 ignite_simple.trainer
 =====================
 
@@ -33,6 +40,12 @@ ignite_simple.analysis
 ======================
 
 .. automodule:: ignite_simple.analysis
+   :members:
+
+ignite_simple.text_analysis
+===========================
+
+.. automodule:: ignite_simple.text_analysis
    :members:
 
 ignite_simple.range_finder
@@ -47,16 +60,34 @@ ignite_simple.tuner
 .. automodule:: ignite_simple.tuner
    :members:
 
+ignite_simple.helper
+====================
+
+.. automodule:: ignite_simple.helper
+   :members:
+
 ignite_simple.utils
 ===================
 
 .. automodule:: ignite_simple.utils
    :members:
 
+ignite_simple.figure_utils
+==========================
+
+.. automodule:: ignite_simple.figure_utils
+   :members:
+
 ignite_simple.vary_bs_loader
 ============================
 
 .. automodule:: ignite_simple.vary_bs_loader
+   :members:
+
+ignite_simple.dispatcher
+========================
+
+.. automodule:: ignite_simple.dispatcher
    :members:
 
 Indices and tables
