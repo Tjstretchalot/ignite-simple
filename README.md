@@ -58,6 +58,7 @@ def dataset():
     return train_set, val_set
 
 loss = torch.nn.CrossEntropyLoss
+accuracy_style = 'classification'
 
 def main():
     # a reasonable logging.conf is in this repository to get you started.
@@ -68,13 +69,37 @@ def main():
                         (__name__, 'loss', tuple(), dict()),
                         folder='out', hyperparameters='fast',
                         analysis='images', allow_later_analysis_up_to='video',
-                        accuracy_style='classification',
+                        accuracy_style=accuracy_style,
                         trials=1, is_continuation=False,
                         history_folder='history', cores='all')
 
 if __name__ == '__main__':
     main()
 ```
+
+This involves some boilerplate, especially when you want to include optionally
+reanalyzing under different settings and configuring the output folder via
+command line arguments. The `ignite_simple.helper` module does this for you,
+reducing the amount of repeated code and allowing one to train models quickly
+and robustly. In the previous example, everything after `'accuracy_style'` can
+be replaced with
+
+```py
+if __name__ == '__main__':
+    ignite_simple.helper.handle(__name__)
+```
+
+which will result in the following command-line arguments:
+
+```
+usage: helper.py [-h] [--folder FOLDER] [--hparams HPARAMS]
+                 [--analysis ANALYSIS] [--analysis_up_to ANALYSIS_UP_TO]
+                 [--trials TRIALS] [--not_continuation] [--cores CORES]
+                 [--reanalyze] [--module MODULE] [--loggercfg LOGGERCFG]
+```
+
+Use `python -m ignite_simple.helper --help` and the module documentation for
+details.
 
 ## Continuations and trials
 
@@ -122,7 +147,7 @@ Valid values are `classification`, `multiclass`, and `inv-loss`. Classification
 is for MNIST-style labels (labels are one-hot and the output of the network
 is a one-hot encoding of the label). Multi-class is for when the labels are
 one-hot encoded class labels extended to potentially multiple ones. `inv-loss`
-uses 1/loss as the performance metric instead of accuracy.
+uses 1/(loss+1) as the performance metric instead of accuracy.
 
 ## Automatic hyperparameter tuning
 
@@ -188,18 +213,23 @@ def reanalyze():
         cores='all')
 ```
 
-Example output with the video preset:
-
-TODO coming soon
+This can be done automatically with the `--reanalyze` option in the helper
+module.
 
 Note that reanalysis does not reproduce unless it believes the result would be
 different from that which exists on the file system. The analysis output is
 in the `analysis` subdirectory of the output folder, and then in a folder
 indexed by the number of models trained in the current hyperparameter settings.
+To ensure you get the most up-to-date analysis you can delete the analysis
+folder before calling analyze.
 
 ## Implementation details
 
-This package trains with SGD on a linear cyclical learning rate rule for a
-fixed number of epochs. The batch size is fixed throughout training, and the
-validation dataset is not used during hyperparameter selection nor model
-training, however it is measured and reported for analysis.
+This package trains with SGD without momentum on a linear cyclical learning
+rate rule for a fixed number of epochs. The batch size is fixed throughout
+training, and the validation dataset is not used during hyperparameter
+selection nor model training, however it is measured and reported for analysis.
+In the output folder, `analysis/html/index.html` is produced which explains the
+details of training to a reasonable degree. Further details can be found by
+checking the `ignite_simple.tuner` and `ignite_simple.model_manager`
+documentation and source code.
