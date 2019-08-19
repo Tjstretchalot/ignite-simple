@@ -83,12 +83,17 @@
 <li><a class="reference internal" href="#">Ignite Simple</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.analarams">ignite_simple.analarams</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.hyperparams">ignite_simple.hyperparams</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.model_manager">ignite_simple.model_manager</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.trainer">ignite_simple.trainer</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.analysis">ignite_simple.analysis</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.text_analysis">ignite_simple.text_analysis</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.range_finder">ignite_simple.range_finder</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.tuner">ignite_simple.tuner</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.helper">ignite_simple.helper</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.utils">ignite_simple.utils</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.figure_utils">ignite_simple.figure_utils</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.vary_bs_loader">ignite_simple.vary_bs_loader</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.dispatcher">ignite_simple.dispatcher</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 </div>
@@ -407,6 +412,180 @@ object, and raises an exception in all other circumstances.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-ignite_simple.model_manager">
+<span id="ignite-simple-model-manager"></span><h1>ignite_simple.model_manager<a class="headerlink" href="#module-ignite_simple.model_manager" title="Permalink to this headline">¶</a></h1>
+<p>This module is meant to be responsible for all of the training performed
+on an identical model, dataset, and loss. Specifically, it decides on the
+folder structure, collates results for analysis, and handles archiving
+old data.</p>
+<dl class="function">
+<dt id="ignite_simple.model_manager.train">
+<code class="sig-prename descclassname">ignite_simple.model_manager.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">model_loader: Tuple[str, str, tuple, dict], dataset_loader: Tuple[str, str, tuple, dict], loss_loader: Tuple[str, str, tuple, dict], folder: str, hyperparameters: Union[str, ignite_simple.hyperparams.HyperparameterSettings], analysis: Union[str, ignite_simple.analarams.AnalysisSettings], allow_later_analysis_up_to: Union[str, ignite_simple.analarams.AnalysisSettings], accuracy_style: str, trials: int, is_continuation: bool, history_folder: str, cores: Union[str, int], trials_strict: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/model_manager.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.model_manager.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trains the given model on the given dataset with the given loss by
+finding and saving or loading the hyperparameters with the given settings,
+performing the given analysis but gathering sufficient data to later
+analyze up to the specified amount.</p>
+<p>The folder structure is as follows:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>folder/
+    hparams/
+        the result from tuner.tune
+    trials/
+        i/  (where i=0,1,...)
+            result.json
+                note that for classification tasks perf is accuracy,
+                and in other tasks it is inverse loss. Note that perf
+                is always available and higher is better, whereas for
+                loss lower is better.
+
+                {&#39;loss_train&#39;: float, &#39;loss_val&#39;: float,
+                 &#39;perf_train&#39;: float, &#39;perf_val&#39;: float}
+            model_init.pt
+                the initial random initialization of the model, saved
+                with torch.save
+            model.pt
+                the model after training, saved with torch.save
+            throughtime.npz
+                this is only stored if storing training_metric_imgs.
+
+                settings:
+                    shape (1,), where the values are:
+                        - number of points randomly selected from the
+                          corresponding dataset to calculate metrics
+
+                epochs:
+                    the partial epoch number for the samples
+
+                losses_train:
+                    the loss for the corresponding epoch, same shape as
+                    epochs, for the training dataset
+
+                losses_val:
+                    the loss for the corresponding epoch, same shape as
+                    epochs, for the validation dataset
+
+                perfs_train:
+                    in classification tasks this is fractional accuracy
+                    in other tasks, this is inverse loss
+
+                    the performance at the corresponding epoch, same
+                    shape as epochs, for the training dataset
+
+                perfs_val:
+                    in classification tasks this is fractional accuracy
+                    in other tasks, this is inverse loss
+
+                    the performance at the corresponding epoch, same
+                    shape as epochs, for the validation dataset
+    results.npz
+        The trials/result.json except concatenated together for easier
+        loading
+
+        final_loss_train:
+            shape (trials,)
+
+        final_loss_val:
+            shape (trials,)
+
+        final_perf_train:
+            shape (trials,)
+
+        final_perf_val:
+            shape (trials,)
+
+    throughtimes.npz
+        the trials/throughtime.npz, if available, stacked for easier
+        loading
+
+        settings:
+            shape (1,) the number of points used for gathering metrics
+            at each sample
+
+        epochs:
+            shape (samples,) the epoch that corresponds to each sample
+            during training. this is a float, since we may sample
+            multiple times per epoch
+
+        losses_train:
+            shape (trials, samples)
+
+        losses_train_smoothed:
+            shape (trials, samples)
+
+        losses_val:
+            shape (trials, samples)
+
+        losses_val_smoothed:
+            shape (trials, samples)
+
+        perfs_train:
+            shape (trials, samples)
+
+        perfs_train_smoothed:
+            shape (trials, samples)
+
+        perfs_val:
+            shape (trials, samples)
+
+        perfs_val_smoothed:
+            shape (trials, samples)
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_loader</strong> – (module, attrname, args, kwargs) defines where the
+callable which returns a torch.nn.Module can be found, and what
+arguments to pass to the callable to get the module. The callable
+should return a random initialization of the model.</p></li>
+<li><p><strong>dataset_loader</strong> – (module, attrname, args, kwargs) defines where
+the callable which returns (train_set, val_set) can be found, and
+what arguments to pass to the callable to get the datasets</p></li>
+<li><p><strong>loss_loader</strong> – (module, attrname, args, kwargs) defines where the
+callable which returns the torch.nn.Module that computes a scalar
+value which ought to be minimized, and what arguments to pass the
+callable for the loss.</p></li>
+<li><p><strong>folder</strong> – the folder where the output should be stored</p></li>
+<li><p><strong>hyperparameters</strong> – the hyperparameter settings or a name of a
+preset (one of <cite>fastest</cite>, <cite>fast</cite>, <cite>slow</cite>, and <cite>slowest</cite>)</p></li>
+<li><p><strong>analysis</strong> – the analysis settings or a name of a preset
+(typically one of <cite>none</cite>, <cite>text</cite>, <cite>images</cite>, <cite>animations</cite>, <cite>videos</cite>),
+for a complete list see <cite>ignite_simple.analarams</cite>. It is always
+equivalent to set this value to <cite>none</cite> and then call
+analysis.reanalyze with the desired analysis</p></li>
+<li><p><strong>allow_later_analysis_up_to</strong> – this is also an analysis settings or
+name of a preset, except this analysis isn’t produced but instead
+we ensure that sufficient data is collected to perform this analysis
+if desired later. it must be at least as high as analysis</p></li>
+<li><p><strong>accuracy_style</strong> – one of <cite>classification</cite>, <cite>multiclass</cite>, and
+<cite>inv-loss</cite> to describe how performance is measured. classification
+assumes one-hot labels for the output, multiclass assumes potentially
+multiple ones in the labels, and <cite>inv-loss</cite> uses 1/loss as the
+performance metric instead.</p></li>
+<li><p><strong>trials</strong> – the number of trials which should be formed with the found
+settings</p></li>
+<li><p><strong>is_continuation</strong> – if True then if folder already exists then it is
+assumed to have been the result of this function called with the same
+parameters except possible trials, and the result will be the sum of
+the existing trials plus the new trials to perform. If this is False
+and the folder already exists, it will be moved into history_folder
+where the name is the current timestamp.</p></li>
+<li><p><strong>history_folder</strong> – where to store the old folders if they are found
+when is_continuation is False.</p></li>
+<li><p><strong>cores</strong> – either an integer for the number of physical cores that are
+available for training, or the string ‘all’ for the number of cores
+to be auto-detected and used.</p></li>
+<li><p><strong>trials_strict</strong> – if False, then this will use all available resources
+to compute trials such that this completes in approximately the minimum
+amount of time to produce the required number of trials. This may
+result in more than the specified number of trials being run. If True,
+exactly trial runs will be performed regardless of the amount of
+available computational resources (i.e., available cores may be unused)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 <div class="section" id="module-ignite_simple.trainer">
 <span id="ignite-simple-trainer"></span><h1>ignite_simple.trainer<a class="headerlink" href="#module-ignite_simple.trainer" title="Permalink to this headline">¶</a></h1>
 <p>This module manages preparing and running the training environment for given
@@ -680,6 +859,23 @@ to speed up analysis.</p></li>
 </dd></dl>
 
 </div>
+<div class="section" id="module-ignite_simple.text_analysis">
+<span id="ignite-simple-text-analysis"></span><h1>ignite_simple.text_analysis<a class="headerlink" href="#module-ignite_simple.text_analysis" title="Permalink to this headline">¶</a></h1>
+<p>Produces the html folder for analysis. This is essentially just copying
+the html/ folder and preprocessing certain ids.</p>
+<dl class="function">
+<dt id="ignite_simple.text_analysis.text_analyze">
+<code class="sig-prename descclassname">ignite_simple.text_analysis.</code><code class="sig-name descname">text_analyze</code><span class="sig-paren">(</span><em class="sig-param">settings: ignite_simple.analarams.AnalysisSettings</em>, <em class="sig-param">folder: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/text_analysis.html#text_analyze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.text_analysis.text_analyze" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analyzes the given folder produced by the model manager, storing the
+results in folder/analysis/html</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>settings (AnalysisSettings): the analysis settings.
+folder (str): the folder that was passed to the model manager.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 <div class="section" id="module-ignite_simple.range_finder">
 <span id="ignite-simple-range-finder"></span><h1>ignite_simple.range_finder<a class="headerlink" href="#module-ignite_simple.range_finder" title="Permalink to this headline">¶</a></h1>
 <p>This module is responsible for finding a good range of values within which
@@ -897,6 +1093,81 @@ required to produce this analysis</p></li>
 </dd></dl>
 
 </div>
+<div class="section" id="module-ignite_simple.helper">
+<span id="ignite-simple-helper"></span><h1>ignite_simple.helper<a class="headerlink" href="#module-ignite_simple.helper" title="Permalink to this headline">¶</a></h1>
+<p>This acts as a potential runner for files, or as an import to reduce the
+amount of boilerplate in a runner. Given a module which has a model() function,
+dataset() function, and loss() function this uses argparse to fill in the rest
+of the parameters to train() or reanalyze() as requested.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Example</dt>
+<dd class="field-odd"><p></p></dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># in file mymod.py</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.helper</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="k">def</span> <span class="nf">model</span><span class="p">():</span>
+    <span class="k">pass</span> <span class="c1"># omitted, should return torch.nn.Module</span>
+
+<span class="k">def</span> <span class="nf">dataset</span><span class="p">():</span>
+    <span class="k">pass</span> <span class="c1"># omitted, return train_set, val_set</span>
+
+<span class="n">accuracy_style</span> <span class="o">=</span> <span class="s1">&#39;multiclass&#39;</span>
+<span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span> <span class="c1"># any callable that returns a loss works</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">ignite_simple</span><span class="o">.</span><span class="n">helper</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&gt; python3 -m mymod --help
+</pre></div>
+</div>
+<dl class="function">
+<dt id="ignite_simple.helper.handle">
+<code class="sig-prename descclassname">ignite_simple.helper.</code><code class="sig-name descname">handle</code><span class="sig-paren">(</span><em class="sig-param">module=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/helper.html#handle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.helper.handle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses the given module containing model(), dataset(), loss() and
+accuracy_style as the module for train() or analyze() with everything
+else determined by the command line arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>module</strong> – module containing model(), dataset(), loss(), accuracy_style</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.helper.reanalyze">
+<code class="sig-prename descclassname">ignite_simple.helper.</code><code class="sig-name descname">reanalyze</code><span class="sig-paren">(</span><em class="sig-param">module</em>, <em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/helper.html#reanalyze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.helper.reanalyze" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses the given arguments from argparse to determine the arguments to
+ignite_simple.reanalyze</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module</strong> – module containing model(), dataset(), loss(), accuracy_style</p></li>
+<li><p><strong>args</strong> – argparse result</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.helper.train">
+<code class="sig-prename descclassname">ignite_simple.helper.</code><code class="sig-name descname">train</code><span class="sig-paren">(</span><em class="sig-param">module</em>, <em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/helper.html#train"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.helper.train" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses the given arguments from argparse to determine the arguments to
+ignite_simple.train</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module</strong> – module containing the model(), dataset(), loss(), and
+accuracy_style</p></li>
+<li><p><strong>args</strong> – argparse result</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 <div class="section" id="module-ignite_simple.utils">
 <span id="ignite-simple-utils"></span><h1>ignite_simple.utils<a class="headerlink" href="#module-ignite_simple.utils" title="Permalink to this headline">¶</a></h1>
 <p>Utility functions which are used through ignite-simple but are short
@@ -993,6 +1264,105 @@ same size as the rest. should only be used if shuffle is True</p></li>
 </dd></dl>
 
 </div>
+<div class="section" id="module-ignite_simple.figure_utils">
+<span id="ignite-simple-figure-utils"></span><h1>ignite_simple.figure_utils<a class="headerlink" href="#module-ignite_simple.figure_utils" title="Permalink to this headline">¶</a></h1>
+<p>Some utility functions related to creating good looking figures.</p>
+<dl class="function">
+<dt id="ignite_simple.figure_utils.fig_exists">
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">fig_exists</code><span class="sig-paren">(</span><em class="sig-param">outfile_wo_ext: str</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="_modules/ignite_simple/figure_utils.html#fig_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.fig_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if the files from save_fig with the given outfile already
+exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>outfile_wo_ext</strong> (<em>str</em>) – where we expect the file to have been saved</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the file(s) exists, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.figure_utils.make_vs_title">
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">make_vs_title</code><span class="sig-paren">(</span><em class="sig-param">x: str</em>, <em class="sig-param">y: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/figure_utils.html#make_vs_title"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.make_vs_title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the axes title for a plot with the given x-axis variable and
+y-axis variable</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<em>str</em>) – the name for the x-variable</p></li>
+<li><p><strong>y</strong> (<em>str</em>) – the name for the y-variable</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The correct axes title</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.figure_utils.save_fig">
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">save_fig</code><span class="sig-paren">(</span><em class="sig-param">fig: matplotlib.figure.Figure</em>, <em class="sig-param">ax: matplotlib.axes._axes.Axes</em>, <em class="sig-param">title: str</em>, <em class="sig-param">outfile_wo_ext: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/figure_utils.html#save_fig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.save_fig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the given figure with many different commonly used figure sizes,
+resizing labels and titles as appropriate. This technique works only for
+a single axis plot, since for other styles different font sizes would be
+appropriate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<em>Figure</em>) – The figure to save</p></li>
+<li><p><strong>ax</strong> (<em>Axes</em>) – The axis on the figure</p></li>
+<li><p><strong>title</strong> (<em>str</em>) – The title of the plot</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.figure_utils.set_ticklabel_sizes">
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">set_ticklabel_sizes</code><span class="sig-paren">(</span><em class="sig-param">fig: matplotlib.figure.Figure</em>, <em class="sig-param">ax: matplotlib.axes._axes.Axes</em>, <em class="sig-param">digital: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/figure_utils.html#set_ticklabel_sizes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.set_ticklabel_sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the sizes of the tick labels for the given figure based on its
+canvas size and canvas dpi.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<em>Figure</em>) – The figure to update</p></li>
+<li><p><strong>ax</strong> (<em>Axes</em>) – The specific axes within the figure to update</p></li>
+<li><p><strong>digital</strong> (<em>bool</em>) – True if this is for digital display,
+False for physical display</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.figure_utils.set_title">
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">set_title</code><span class="sig-paren">(</span><em class="sig-param">fig: matplotlib.figure.Figure</em>, <em class="sig-param">ax: matplotlib.axes._axes.Axes</em>, <em class="sig-param">title: str</em>, <em class="sig-param">digital: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/figure_utils.html#set_title"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.set_title" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the title for the given axes to the given value. This is more
+particular than the default matplotlib Axes.set_title.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fig</strong> (<em>Figure</em>) – the figure the axes is in</p></li>
+<li><p><strong>ax</strong> (<em>Axes</em>) – the axes which you want to have a title</p></li>
+<li><p><strong>title</strong> (<em>str</em>) – the desired title text</p></li>
+<li><p><strong>digital</strong> (<em>bool</em>) – if True, a large font size is selected. Otherwise,
+a smaller font size is selected</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>TextCollection that was added</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 <div class="section" id="module-ignite_simple.vary_bs_loader">
 <span id="ignite-simple-vary-bs-loader"></span><h1>ignite_simple.vary_bs_loader<a class="headerlink" href="#module-ignite_simple.vary_bs_loader" title="Permalink to this headline">¶</a></h1>
 <p>A torch dataloader which varies the batch size between two amounts
@@ -1026,6 +1396,102 @@ is iterated over</p></li>
 but has the correct length and updates last_batch_size normally</p>
 </dd></dl>
 
+</dd></dl>
+
+</div>
+<div class="section" id="module-ignite_simple.dispatcher">
+<span id="ignite-simple-dispatcher"></span><h1>ignite_simple.dispatcher<a class="headerlink" href="#module-ignite_simple.dispatcher" title="Permalink to this headline">¶</a></h1>
+<p>This package handles accepting a list of jobs and then deciding which of
+them to run in what order.</p>
+<p>This module is intended for use by the analysis module for managing all the
+jobs it has to do. The analysis package tends to have many jobs are all fairly
+independent of each other. Things like rq and celery are way over-engineered
+for this task.</p>
+<dl class="class">
+<dt id="ignite_simple.dispatcher.MainToWorkerConnection">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">MainToWorkerConnection</code><span class="sig-paren">(</span><em class="sig-param">proc: multiprocessing.context.Process</em>, <em class="sig-param">jobq: pympanim.zeromqqueue.ZeroMQQueue</em>, <em class="sig-param">ackq: pympanim.zeromqqueue.ZeroMQQueue</em>, <em class="sig-param">sleep_delay: float</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#MainToWorkerConnection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.MainToWorkerConnection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes a connection from the main process to the worker process</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>process</strong> (<em>Process</em>) – the actual worker process</p></li>
+<li><p><strong>jobq</strong> (<em>ZeroMQQueue</em>) – the queue that jobs can be sent through to this
+worker</p></li>
+<li><p><strong>ackq</strong> (<em>ZeroMQQueue</em>) – the queue that the worker sends job completed
+notifications through</p></li>
+<li><p><strong>cores</strong> (<em>optional</em><em>[</em><em>int</em><em>]</em>) – the number of cores that this worker is
+currently using, or None if the worker is not doing anything right
+now</p></li>
+<li><p><strong>sleep_delay</strong> (<em>float</em>) – the current sleep delay for this worker</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ignite_simple.dispatcher.MainToWorkerConnection.close">
+<code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#MainToWorkerConnection.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.MainToWorkerConnection.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shuts down the worker</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.MainToWorkerConnection.is_ready">
+<code class="sig-name descname">is_ready</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#MainToWorkerConnection.is_ready"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.MainToWorkerConnection.is_ready" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks to see if the worker is ready to get a new task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.MainToWorkerConnection.send">
+<code class="sig-name descname">send</code><span class="sig-paren">(</span><em class="sig-param">task: ignite_simple.dispatcher.Task</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#MainToWorkerConnection.send"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.MainToWorkerConnection.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells the worker to perform the given task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>task</strong> – the task to perform</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.MainToWorkerConnection.update_sleep_delay">
+<code class="sig-name descname">update_sleep_delay</code><span class="sig-paren">(</span><em class="sig-param">delay: float</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#MainToWorkerConnection.update_sleep_delay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.MainToWorkerConnection.update_sleep_delay" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tells the worker to poll for jobs with the given inter-poll delay</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite_simple.dispatcher.Task">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">Task</code><span class="sig-paren">(</span><em class="sig-param">module: str, attrname: str, args: tuple, kwargs: dict, cores: Optional[int]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.Task" title="Permalink to this definition">¶</a></dt>
+<dd><p>A description of a task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module</strong> (<em>str</em>) – the name of the module which contains the callable</p></li>
+<li><p><strong>attrname</strong> (<em>str</em>) – the name of the attribute within the module</p></li>
+<li><p><strong>args</strong> (<em>tuple</em>) – the arguments to pass to the callable</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – the keyword arguments to pass to the callable</p></li>
+<li><p><strong>cores</strong> (<em>optional</em><em>[</em><em>int</em><em>]</em>) – the number of cores this task will use, None
+for all cores</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.dispatcher.dispatch">
+<code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">dispatch</code><span class="sig-paren">(</span><em class="sig-param">tasks: Tuple[ignite_simple.dispatcher.Task], total_cores: int, suggested_imports: Tuple[str] = ()</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#dispatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.dispatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dispatches the given tasks using greedy selection such that no more
+than the specified number of cores are in use at once, where possible
+to do so. This uses a greedy selection of tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tasks</strong> – an iterable of tasks to dispatch</p></li>
+<li><p><strong>total_cores</strong> – the target number of cores to use at once</p></li>
+<li><p><strong>suggested_imports</strong> – things which are imported in each worker process
+during the spawning phase, which causes jobs to be processed more
+smoothly.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </div>

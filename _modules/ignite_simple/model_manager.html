@@ -1,0 +1,792 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite_simple.model_manager &mdash; ignite-simple 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> ignite-simple
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ignite-simple</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite_simple.model_manager</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite_simple.model_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;This module is meant to be responsible for all of the training performed</span>
+<span class="sd">on an identical model, dataset, and loss. Specifically, it decides on the</span>
+<span class="sd">folder structure, collates results for analysis, and handles archiving</span>
+<span class="sd">old data.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">psutil</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">ignite_simple</span>  <span class="c1"># pylint: disable=unused-import</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.hyperparams</span> <span class="k">as</span> <span class="nn">hparams</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.analarams</span> <span class="k">as</span> <span class="nn">aparams</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.utils</span> <span class="k">as</span> <span class="nn">utils</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.tuner</span> <span class="k">as</span> <span class="nn">tuner</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.trainer</span> <span class="k">as</span> <span class="nn">trainer</span>
+<span class="kn">from</span> <span class="nn">ignite_simple.analysis</span> <span class="k">import</span> <span class="n">analyze</span>
+<span class="kn">from</span> <span class="nn">ignite.engine</span> <span class="k">import</span> <span class="n">Events</span>
+<span class="kn">from</span> <span class="nn">ignite.contrib.handlers</span> <span class="k">import</span> <span class="n">CustomPeriodicEvent</span>
+<span class="kn">from</span> <span class="nn">ignite_simple.range_finder</span> <span class="k">import</span> <span class="n">autosmooth</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+
+<span class="k">def</span> <span class="nf">_snap_perf</span><span class="p">(</span><span class="n">partial_epoch</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">losses_train</span><span class="p">,</span> <span class="n">losses_val</span><span class="p">,</span> <span class="n">perfs_train</span><span class="p">,</span>
+               <span class="n">perfs_val</span><span class="p">,</span> <span class="n">num_for_metric</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">create_partial_loader</span><span class="p">(</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">train_set</span><span class="p">,</span> <span class="n">num_for_metric</span><span class="p">))</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span>
+    <span class="n">losses_train</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+    <span class="n">perfs_train</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">])</span>
+
+    <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">create_partial_loader</span><span class="p">(</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">val_set</span><span class="p">,</span> <span class="n">num_for_metric</span><span class="p">))</span>
+
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">evaluator</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">metrics</span>
+    <span class="n">losses_val</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+    <span class="n">perfs_val</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;perf&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">_update_partial_epoch</span><span class="p">(</span><span class="n">partial_epoch</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">num_in_batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tnr</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">epoch_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">train_set</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">epochs</span><span class="p">[</span><span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">num_in_batch</span><span class="p">)</span> <span class="o">*</span> <span class="n">tnr</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">iteration</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">epoch_size</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;epoch=</span><span class="si">{tnr.state.epoch}</span><span class="s1">, iteration=</span><span class="si">{tnr.state.iteration}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+<span class="k">def</span> <span class="nf">_increment_ind</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">ind</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+<span class="k">def</span> <span class="nf">_reset_partial_epoch</span><span class="p">(</span><span class="n">partial_epoch</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">partial_epoch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">def</span> <span class="nf">_save_result</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="n">loss_train</span><span class="p">,</span> <span class="n">loss_val</span><span class="p">,</span> <span class="n">perf_train</span><span class="p">,</span> <span class="n">perf_val</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span>
+                 <span class="n">state</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span>
+            <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">tnr</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">epoch</span><span class="p">),</span>
+            <span class="s1">&#39;loss_train&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_train</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s1">&#39;loss_val&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">loss_val</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s1">&#39;perf_train&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf_train</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s1">&#39;perf_val&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">perf_val</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">},</span> <span class="n">outfile</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_savez_compressed</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_save_model</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="n">tnr</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">unstripped_model</span><span class="p">,</span> <span class="n">filen</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_init_cpe</span><span class="p">(</span><span class="n">cpe</span><span class="p">,</span> <span class="n">tnr</span><span class="p">):</span>
+    <span class="n">cpe</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">tnr</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_trial</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">trial_folder</span><span class="p">,</span>
+           <span class="n">with_throughtime</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
+           <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">num_epochs</span><span class="p">):</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">)</span>
+
+    <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
+    <span class="n">len_train_set</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_set</span><span class="p">)</span>
+    <span class="n">len_val_set</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_set</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">train_set</span>
+    <span class="k">del</span> <span class="n">val_set</span>
+
+    <span class="n">final_loss_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">final_loss_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">final_perf_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">final_perf_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">final_ind</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">final_partial_epoch</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">handlers</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="n">Events</span><span class="o">.</span><span class="n">STARTED</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_save_model&#39;</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;model_init.pt&#39;</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="nb">dict</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">),</span>
+        <span class="p">(</span>
+            <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_snap_perf&#39;</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">final_partial_epoch</span><span class="p">,</span>
+                    <span class="n">final_ind</span><span class="p">,</span>
+                    <span class="n">final_loss_train</span><span class="p">,</span>
+                    <span class="n">final_loss_val</span><span class="p">,</span>
+                    <span class="n">final_perf_train</span><span class="p">,</span>
+                    <span class="n">final_perf_val</span><span class="p">,</span>
+                    <span class="nb">min</span><span class="p">(</span><span class="n">len_train_set</span><span class="p">,</span> <span class="n">len_val_set</span><span class="p">)</span>
+                <span class="p">),</span>
+                <span class="nb">dict</span><span class="p">()</span>
+            <span class="p">),</span>
+        <span class="p">),</span>
+        <span class="p">(</span>
+            <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_save_result&#39;</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;result.json&#39;</span><span class="p">),</span>
+                    <span class="n">final_loss_train</span><span class="p">,</span> <span class="n">final_loss_val</span><span class="p">,</span> <span class="n">final_perf_train</span><span class="p">,</span>
+                    <span class="n">final_perf_val</span>
+                <span class="p">),</span>
+                <span class="nb">dict</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">),</span>
+        <span class="p">(</span>
+            <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_save_model&#39;</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;model.pt&#39;</span><span class="p">),</span>
+                <span class="p">),</span>
+                <span class="nb">dict</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">initializer</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">with_throughtime</span><span class="p">:</span>
+        <span class="n">iters_per</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">len_train_set</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="n">iters_total</span> <span class="o">=</span> <span class="n">iters_per</span> <span class="o">*</span> <span class="n">num_epochs</span>
+
+        <span class="n">samples_per</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">iters_per</span><span class="p">)</span>
+        <span class="n">iters_per_sample</span> <span class="o">=</span> <span class="n">iters_per</span> <span class="o">//</span> <span class="n">samples_per</span>
+
+        <span class="k">if</span> <span class="n">iters_per_sample</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">iters_per_sample</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">samples_per</span> <span class="o">=</span> <span class="n">iters_per</span>
+
+        <span class="n">cpe</span> <span class="o">=</span> <span class="n">CustomPeriodicEvent</span><span class="p">(</span><span class="n">n_iterations</span><span class="o">=</span><span class="n">iters_per_sample</span><span class="p">)</span>
+        <span class="n">snap_event</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">cpe</span><span class="o">.</span><span class="n">Events</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;ITERATIONS_</span><span class="si">{iters_per_sample}</span><span class="s1">_COMPLETED&#39;</span><span class="p">)</span>  <span class="c1"># pylint: disable=no-member</span>
+        <span class="n">initializer</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_init_cpe&#39;</span><span class="p">,</span> <span class="p">(</span><span class="n">cpe</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">samples_total</span> <span class="o">=</span> <span class="n">iters_total</span> <span class="o">//</span> <span class="n">iters_per_sample</span>
+
+        <span class="n">num_for_metric</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1024</span><span class="p">,</span> <span class="n">len_val_set</span><span class="p">,</span> <span class="n">len_train_set</span><span class="p">)</span>
+        <span class="n">settings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">num_for_metric</span><span class="p">])</span>
+        <span class="n">epochs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">samples_total</span><span class="p">)</span>
+        <span class="n">loss_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">samples_total</span><span class="p">)</span>
+        <span class="n">loss_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">samples_total</span><span class="p">)</span>
+        <span class="n">perf_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">samples_total</span><span class="p">)</span>
+        <span class="n">perf_val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">samples_total</span><span class="p">)</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">partial_epoch</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">handlers</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="p">(</span>
+                <span class="n">snap_event</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_update_partial_epoch&#39;</span><span class="p">,</span>
+                    <span class="p">(</span>
+                        <span class="n">partial_epoch</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">ind</span>
+                    <span class="p">),</span>
+                    <span class="nb">dict</span><span class="p">()</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="n">snap_event</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_snap_perf&#39;</span><span class="p">,</span>
+                    <span class="p">(</span>
+                        <span class="n">partial_epoch</span><span class="p">,</span>
+                        <span class="n">ind</span><span class="p">,</span>
+                        <span class="n">loss_train</span><span class="p">,</span>
+                        <span class="n">loss_val</span><span class="p">,</span>
+                        <span class="n">perf_train</span><span class="p">,</span>
+                        <span class="n">perf_val</span><span class="p">,</span>
+                        <span class="n">num_for_metric</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="nb">dict</span><span class="p">()</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="n">snap_event</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_increment_ind&#39;</span><span class="p">,</span>
+                    <span class="p">(</span>
+                        <span class="n">ind</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="nb">dict</span><span class="p">()</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="n">Events</span><span class="o">.</span><span class="n">EPOCH_COMPLETED</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_reset_partial_epoch&#39;</span><span class="p">,</span>
+                    <span class="p">(</span>
+                        <span class="n">partial_epoch</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="nb">dict</span><span class="p">()</span>
+                <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="p">(</span>
+                <span class="n">Events</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="vm">__name__</span><span class="p">,</span> <span class="s1">&#39;_savez_compressed&#39;</span><span class="p">,</span>
+                    <span class="p">(</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;throughtime.npz&#39;</span><span class="p">),</span>
+                    <span class="p">),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;settings&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="p">,</span>
+                        <span class="s1">&#39;epochs&#39;</span><span class="p">:</span> <span class="n">epochs</span><span class="p">,</span>
+                        <span class="s1">&#39;losses_train&#39;</span><span class="p">:</span> <span class="n">loss_train</span><span class="p">,</span>
+                        <span class="s1">&#39;losses_val&#39;</span><span class="p">:</span> <span class="n">loss_val</span><span class="p">,</span>
+                        <span class="s1">&#39;perfs_train&#39;</span><span class="p">:</span> <span class="n">perf_train</span><span class="p">,</span>
+                        <span class="s1">&#39;perfs_val&#39;</span><span class="p">:</span> <span class="n">perf_val</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="p">])</span>
+
+    <span class="n">tnr_settings</span> <span class="o">=</span> <span class="n">trainer</span><span class="o">.</span><span class="n">TrainSettings</span><span class="p">(</span>
+        <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">model_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="s1">&#39;ignite_simple.utils&#39;</span><span class="p">,</span> <span class="s1">&#39;task_loader&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">dataset_loader</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+            <span class="nb">dict</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="n">handlers</span><span class="p">,</span>
+        <span class="n">initializer</span><span class="p">,</span>
+        <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">num_epochs</span>
+    <span class="p">)</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">tnr_settings</span><span class="p">)</span>
+
+<div class="viewcode-block" id="train"><a class="viewcode-back" href="../../index.html#ignite_simple.model_manager.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">model_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+          <span class="n">dataset_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+          <span class="n">loss_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
+          <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+          <span class="n">hyperparameters</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">hparams</span><span class="o">.</span><span class="n">HyperparameterSettings</span><span class="p">],</span>
+          <span class="n">analysis</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">aparams</span><span class="o">.</span><span class="n">AnalysisSettings</span><span class="p">],</span>
+          <span class="n">allow_later_analysis_up_to</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span>
+              <span class="nb">str</span><span class="p">,</span> <span class="n">aparams</span><span class="o">.</span><span class="n">AnalysisSettings</span><span class="p">],</span>
+          <span class="n">accuracy_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+          <span class="n">trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">is_continuation</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+          <span class="n">history_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cores</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+          <span class="n">trials_strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Trains the given model on the given dataset with the given loss by</span>
+<span class="sd">    finding and saving or loading the hyperparameters with the given settings,</span>
+<span class="sd">    performing the given analysis but gathering sufficient data to later</span>
+<span class="sd">    analyze up to the specified amount.</span>
+
+<span class="sd">    The folder structure is as follows:</span>
+
+<span class="sd">    .. code:: none</span>
+
+<span class="sd">        folder/</span>
+<span class="sd">            hparams/</span>
+<span class="sd">                the result from tuner.tune</span>
+<span class="sd">            trials/</span>
+<span class="sd">                i/  (where i=0,1,...)</span>
+<span class="sd">                    result.json</span>
+<span class="sd">                        note that for classification tasks perf is accuracy,</span>
+<span class="sd">                        and in other tasks it is inverse loss. Note that perf</span>
+<span class="sd">                        is always available and higher is better, whereas for</span>
+<span class="sd">                        loss lower is better.</span>
+
+<span class="sd">                        {&#39;loss_train&#39;: float, &#39;loss_val&#39;: float,</span>
+<span class="sd">                         &#39;perf_train&#39;: float, &#39;perf_val&#39;: float}</span>
+<span class="sd">                    model_init.pt</span>
+<span class="sd">                        the initial random initialization of the model, saved</span>
+<span class="sd">                        with torch.save</span>
+<span class="sd">                    model.pt</span>
+<span class="sd">                        the model after training, saved with torch.save</span>
+<span class="sd">                    throughtime.npz</span>
+<span class="sd">                        this is only stored if storing training_metric_imgs.</span>
+
+<span class="sd">                        settings:</span>
+<span class="sd">                            shape (1,), where the values are:</span>
+<span class="sd">                                - number of points randomly selected from the</span>
+<span class="sd">                                  corresponding dataset to calculate metrics</span>
+
+<span class="sd">                        epochs:</span>
+<span class="sd">                            the partial epoch number for the samples</span>
+
+<span class="sd">                        losses_train:</span>
+<span class="sd">                            the loss for the corresponding epoch, same shape as</span>
+<span class="sd">                            epochs, for the training dataset</span>
+
+<span class="sd">                        losses_val:</span>
+<span class="sd">                            the loss for the corresponding epoch, same shape as</span>
+<span class="sd">                            epochs, for the validation dataset</span>
+
+<span class="sd">                        perfs_train:</span>
+<span class="sd">                            in classification tasks this is fractional accuracy</span>
+<span class="sd">                            in other tasks, this is inverse loss</span>
+
+<span class="sd">                            the performance at the corresponding epoch, same</span>
+<span class="sd">                            shape as epochs, for the training dataset</span>
+
+<span class="sd">                        perfs_val:</span>
+<span class="sd">                            in classification tasks this is fractional accuracy</span>
+<span class="sd">                            in other tasks, this is inverse loss</span>
+
+<span class="sd">                            the performance at the corresponding epoch, same</span>
+<span class="sd">                            shape as epochs, for the validation dataset</span>
+<span class="sd">            results.npz</span>
+<span class="sd">                The trials/result.json except concatenated together for easier</span>
+<span class="sd">                loading</span>
+
+<span class="sd">                final_loss_train:</span>
+<span class="sd">                    shape (trials,)</span>
+
+<span class="sd">                final_loss_val:</span>
+<span class="sd">                    shape (trials,)</span>
+
+<span class="sd">                final_perf_train:</span>
+<span class="sd">                    shape (trials,)</span>
+
+<span class="sd">                final_perf_val:</span>
+<span class="sd">                    shape (trials,)</span>
+
+<span class="sd">            throughtimes.npz</span>
+<span class="sd">                the trials/throughtime.npz, if available, stacked for easier</span>
+<span class="sd">                loading</span>
+
+<span class="sd">                settings:</span>
+<span class="sd">                    shape (1,) the number of points used for gathering metrics</span>
+<span class="sd">                    at each sample</span>
+
+<span class="sd">                epochs:</span>
+<span class="sd">                    shape (samples,) the epoch that corresponds to each sample</span>
+<span class="sd">                    during training. this is a float, since we may sample</span>
+<span class="sd">                    multiple times per epoch</span>
+
+<span class="sd">                losses_train:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                losses_train_smoothed:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                losses_val:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                losses_val_smoothed:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                perfs_train:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                perfs_train_smoothed:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                perfs_val:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">                perfs_val_smoothed:</span>
+<span class="sd">                    shape (trials, samples)</span>
+
+<span class="sd">    :param model_loader: (module, attrname, args, kwargs) defines where the</span>
+<span class="sd">        callable which returns a torch.nn.Module can be found, and what</span>
+<span class="sd">        arguments to pass to the callable to get the module. The callable</span>
+<span class="sd">        should return a random initialization of the model.</span>
+<span class="sd">    :param dataset_loader: (module, attrname, args, kwargs) defines where</span>
+<span class="sd">        the callable which returns (train_set, val_set) can be found, and</span>
+<span class="sd">        what arguments to pass to the callable to get the datasets</span>
+<span class="sd">    :param loss_loader: (module, attrname, args, kwargs) defines where the</span>
+<span class="sd">        callable which returns the torch.nn.Module that computes a scalar</span>
+<span class="sd">        value which ought to be minimized, and what arguments to pass the</span>
+<span class="sd">        callable for the loss.</span>
+<span class="sd">    :param folder: the folder where the output should be stored</span>
+<span class="sd">    :param hyperparameters: the hyperparameter settings or a name of a</span>
+<span class="sd">        preset (one of `fastest`, `fast`, `slow`, and `slowest`)</span>
+<span class="sd">    :param analysis: the analysis settings or a name of a preset</span>
+<span class="sd">        (typically one of `none`, `text`, `images`, `animations`, `videos`),</span>
+<span class="sd">        for a complete list see `ignite_simple.analarams`. It is always</span>
+<span class="sd">        equivalent to set this value to `none` and then call</span>
+<span class="sd">        analysis.reanalyze with the desired analysis</span>
+<span class="sd">    :param allow_later_analysis_up_to: this is also an analysis settings or</span>
+<span class="sd">        name of a preset, except this analysis isn&#39;t produced but instead</span>
+<span class="sd">        we ensure that sufficient data is collected to perform this analysis</span>
+<span class="sd">        if desired later. it must be at least as high as analysis</span>
+<span class="sd">    :param accuracy_style: one of `classification`, `multiclass`, and</span>
+<span class="sd">        `inv-loss` to describe how performance is measured. classification</span>
+<span class="sd">        assumes one-hot labels for the output, multiclass assumes potentially</span>
+<span class="sd">        multiple ones in the labels, and `inv-loss` uses 1/loss as the</span>
+<span class="sd">        performance metric instead.</span>
+<span class="sd">    :param trials: the number of trials which should be formed with the found</span>
+<span class="sd">        settings</span>
+<span class="sd">    :param is_continuation: if True then if folder already exists then it is</span>
+<span class="sd">        assumed to have been the result of this function called with the same</span>
+<span class="sd">        parameters except possible trials, and the result will be the sum of</span>
+<span class="sd">        the existing trials plus the new trials to perform. If this is False</span>
+<span class="sd">        and the folder already exists, it will be moved into history_folder</span>
+<span class="sd">        where the name is the current timestamp.</span>
+<span class="sd">    :param history_folder: where to store the old folders if they are found</span>
+<span class="sd">        when is_continuation is False.</span>
+<span class="sd">    :param cores: either an integer for the number of physical cores that are</span>
+<span class="sd">        available for training, or the string &#39;all&#39; for the number of cores</span>
+<span class="sd">        to be auto-detected and used.</span>
+<span class="sd">    :param trials_strict: if False, then this will use all available resources</span>
+<span class="sd">        to compute trials such that this completes in approximately the minimum</span>
+<span class="sd">        amount of time to produce the required number of trials. This may</span>
+<span class="sd">        result in more than the specified number of trials being run. If True,</span>
+<span class="sd">        exactly trial runs will be performed regardless of the amount of</span>
+<span class="sd">        available computational resources (i.e., available cores may be unused)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_loader</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">fix_imports</span><span class="p">(</span><span class="n">model_loader</span><span class="p">)</span>
+    <span class="n">dataset_loader</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">fix_imports</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
+    <span class="n">loss_loader</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">fix_imports</span><span class="p">(</span><span class="n">loss_loader</span><span class="p">)</span>
+
+    <span class="n">hyperparameters</span> <span class="o">=</span> <span class="n">hparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span><span class="n">hyperparameters</span><span class="p">)</span>
+    <span class="n">analysis</span> <span class="o">=</span> <span class="n">aparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+    <span class="n">allow_later_analysis_up_to</span> <span class="o">=</span> <span class="n">aparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span>
+        <span class="n">allow_later_analysis_up_to</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cores</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+        <span class="n">cores</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(</span><span class="n">logical</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_continuation</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+        <span class="n">tstr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="n">tstr</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">history_folder</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">ctr</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">history_folder</span><span class="p">,</span> <span class="n">fname</span><span class="p">)):</span>
+            <span class="n">ctr</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{tstr}</span><span class="s1">_(</span><span class="si">{ctr}</span><span class="s1">)&#39;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Archiving </span><span class="si">%s</span><span class="s1"> to </span><span class="si">%s</span><span class="s1">...&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">history_folder</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">history_folder</span><span class="p">,</span> <span class="n">fname</span><span class="p">))</span>
+
+    <span class="n">continuing</span> <span class="o">=</span> <span class="n">is_continuation</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">continuing</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Tuning learning rate and batch size...&#39;</span><span class="p">)</span>
+        <span class="n">tuner</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="s1">&#39;inv-loss&#39;</span><span class="p">,</span>
+                   <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">),</span> <span class="n">cores</span><span class="p">,</span>
+                   <span class="n">hyperparameters</span><span class="p">,</span>
+                   <span class="n">allow_later_analysis_up_to</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">,</span> <span class="s1">&#39;final.json&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">hparam_final</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+    <span class="n">lr_start</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">hparam_final</span><span class="p">[</span><span class="s1">&#39;lr_start&#39;</span><span class="p">])</span>
+    <span class="n">lr_end</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">hparam_final</span><span class="p">[</span><span class="s1">&#39;lr_end&#39;</span><span class="p">])</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hparam_final</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">])</span>
+    <span class="n">cycle_time_epochs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hparam_final</span><span class="p">[</span><span class="s1">&#39;cycle_size_epochs&#39;</span><span class="p">])</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hparam_final</span><span class="p">[</span><span class="s1">&#39;epochs&#39;</span><span class="p">])</span>
+
+    <span class="n">trial_offset</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">continuing</span><span class="p">:</span>
+        <span class="k">while</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;trials&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial_offset</span><span class="p">))):</span>
+            <span class="n">trial_offset</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Detected </span><span class="si">%s</span><span class="s1"> existing trials...&#39;</span><span class="p">,</span> <span class="n">trial_offset</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">trial_offset</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">continuing</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Performing trials...&#39;</span><span class="p">)</span>
+    <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_trials</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">last_print_trial</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">with_throughtime</span> <span class="o">=</span> <span class="n">allow_later_analysis_up_to</span><span class="o">.</span><span class="n">training_metric_imgs</span>
+    <span class="k">while</span> <span class="n">num_trials</span> <span class="o">&lt;</span> <span class="n">trials</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">trials_strict</span> <span class="ow">and</span> <span class="n">num_trials</span> <span class="o">&lt;</span> <span class="n">cores</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">cores</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">last_print_trial</span> <span class="o">&lt;</span> <span class="n">num_trials</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Started up to trial </span><span class="si">%s</span><span class="s1">...&#39;</span><span class="p">,</span> <span class="n">num_trials</span><span class="p">)</span>
+                <span class="n">last_print_trial</span> <span class="o">=</span> <span class="n">num_trials</span>
+
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+                    <span class="n">processes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">proc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">_trial</span><span class="p">,</span>
+            <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;trials&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial_offset</span> <span class="o">+</span> <span class="n">num_trials</span><span class="p">)),</span>
+                <span class="n">with_throughtime</span><span class="p">,</span>
+                <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">epochs</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">proc</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span>
+        <span class="n">num_trials</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for </span><span class="si">%s</span><span class="s1"> trials to complete...&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+        <span class="n">proc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Collating data...&#39;</span><span class="p">)</span>
+
+    <span class="c1"># This is a bit messy and a bit repetitive, but trying to break it out</span>
+    <span class="c1"># into functions would require some very arduent function signatures</span>
+    <span class="c1"># that are all but certainly never going to be reused</span>
+
+    <span class="n">res_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;results.npz&#39;</span><span class="p">)</span>
+    <span class="n">tt_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;throughtimes.npz&#39;</span><span class="p">)</span>
+
+    <span class="n">to_collate</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">skip_collate</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;settings&#39;</span><span class="p">,</span> <span class="s1">&#39;epochs&#39;</span><span class="p">}</span>
+    <span class="n">skipped_sample</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">continuing</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">res_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">infile</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip_collate</span><span class="p">:</span>
+                    <span class="n">skipped_sample</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">val</span><span class="p">]</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">res_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">with_throughtime</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">tt_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">infile</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip_collate</span><span class="p">:</span>
+                        <span class="n">skipped_sample</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">val</span><span class="p">]</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tt_file</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">trial</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">trial_offset</span><span class="p">,</span> <span class="n">trial_offset</span> <span class="o">+</span> <span class="n">num_trials</span><span class="p">):</span>
+        <span class="n">trial_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;trials&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;result.json&#39;</span><span class="p">),</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="n">inparsed</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">inparsed</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;final_</span><span class="si">{key}</span><span class="s1">&#39;</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip_collate</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">skipped_sample</span><span class="p">:</span>
+                        <span class="n">skipped_sample</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">to_ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="p">)])</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_collate</span><span class="p">:</span>
+                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_ap</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to_ap</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;throughtime.npz&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">infile</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip_collate</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">skipped_sample</span><span class="p">:</span>
+                        <span class="n">skipped_sample</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">to_ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="p">)])</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_collate</span><span class="p">:</span>
+                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_ap</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to_ap</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">to_collate</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span>
+        <span class="n">res_file</span><span class="p">,</span>
+        <span class="n">final_loss_train</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;final_loss_train&#39;</span><span class="p">],</span>
+        <span class="n">final_loss_val</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;final_loss_val&#39;</span><span class="p">],</span>
+        <span class="n">final_perf_train</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;final_perf_train&#39;</span><span class="p">],</span>
+        <span class="n">final_perf_val</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;final_perf_val&#39;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">with_throughtime</span><span class="p">:</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span>
+            <span class="n">tt_file</span><span class="p">,</span>
+            <span class="n">settings</span><span class="o">=</span><span class="n">skipped_sample</span><span class="p">[</span><span class="s1">&#39;settings&#39;</span><span class="p">],</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">skipped_sample</span><span class="p">[</span><span class="s1">&#39;epochs&#39;</span><span class="p">],</span>
+            <span class="n">losses_train</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;losses_train&#39;</span><span class="p">],</span>
+            <span class="n">losses_train_smoothed</span><span class="o">=</span><span class="n">autosmooth</span><span class="p">(</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;losses_train&#39;</span><span class="p">]),</span>
+            <span class="n">losses_val</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;losses_val&#39;</span><span class="p">],</span>
+            <span class="n">losses_val_smoothed</span><span class="o">=</span><span class="n">autosmooth</span><span class="p">(</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;losses_val&#39;</span><span class="p">]),</span>
+            <span class="n">perfs_train</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;perfs_train&#39;</span><span class="p">],</span>
+            <span class="n">perfs_train_smoothed</span><span class="o">=</span><span class="n">autosmooth</span><span class="p">(</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;perfs_train&#39;</span><span class="p">]),</span>
+            <span class="n">perfs_val</span><span class="o">=</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;perfs_val&#39;</span><span class="p">],</span>
+            <span class="n">perfs_val_smoothed</span><span class="o">=</span><span class="n">autosmooth</span><span class="p">(</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;perfs_val&#39;</span><span class="p">]),</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">continuing</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cleaning old analysis folder...&#39;</span><span class="p">)</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;analysis&#39;</span><span class="p">))</span>
+
+    <span class="n">analyze</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">analysis</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">cores</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
