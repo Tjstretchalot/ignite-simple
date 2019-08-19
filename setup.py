@@ -4,7 +4,7 @@ import os
 
 setuptools.setup(
     name='ignite_simple',
-    version='0.0.1',
+    version='0.0.2',
     author='Timothy Moore',
     author_email='mtimothy984@gmail.com',
     description='Easily train pytorch models with automatic LR and BS tuning',
@@ -12,6 +12,7 @@ setuptools.setup(
     keywords='torch pytorch models machine-learning learning-rate batch-size hyperparameters',
     url='https://github.com/tjstretchalot/ignite-simple',
     packages=['ignite_simple'],
+    package_data={'ignite_simple': ['html/*']},
     long_description=open(
         os.path.join(os.path.dirname(__file__), 'README.md')).read(),
     long_description_content_type='text/markdown',

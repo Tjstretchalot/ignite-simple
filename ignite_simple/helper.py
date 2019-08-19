@@ -100,7 +100,7 @@ def handle(module=None):
         '--trials', type=int, default=1,
         help='Minimum number of trials to perform')
     parser.add_argument(
-        '--not_continuation', action='store_false',
+        '--not_continuation', action='store_true',
         help='If specified, trials will be archived if they exist first')
     parser.add_argument(
         '--cores', type=int, default=-1,
