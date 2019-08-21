@@ -58,8 +58,8 @@ class HyperparameterSettings:
 def fastest() -> HyperparameterSettings:
     """Returns the fastest (in time spent tuning parameters) preset"""
     return HyperparameterSettings(
-        lr_start=1e-4,
-        lr_end=0.3,
+        lr_start=1e-6,
+        lr_end=1,
         lr_min_inits=1,
         batch_start=16,
         batch_end=128,
