@@ -434,6 +434,7 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
     loss_loader = utils.fix_imports(loss_loader)
 
     hyperparameters = hparams.get_settings(hyperparameters)
+    skip_analysis = analysis == 'none'
     analysis = aparams.get_settings(analysis)
     allow_later_analysis_up_to = aparams.get_settings(
         allow_later_analysis_up_to)
@@ -605,4 +606,5 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
         logger.info('Cleaning old analysis folder...')
         shutil.rmtree(os.path.join(folder, 'analysis'))
 
-    analyze(dataset_loader, loss_loader, folder, analysis, accuracy_style, cores)
+    if not skip_analysis:
+        analyze(dataset_loader, loss_loader, folder, analysis, accuracy_style, cores)
