@@ -565,17 +565,18 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
                         to_collate[key] = [to_ap]
                     else:
                         to_collate[key].append(to_ap)
-        with np.load(os.path.join(trial_folder, 'throughtime.npz')) as infile:
-            for key, val in infile.items():
-                if key in skip_collate:
-                    if key not in skipped_sample:
-                        skipped_sample[key] = val
-                else:
-                    to_ap = np.stack([np.array(val)])
-                    if key not in to_collate:
-                        to_collate[key] = [to_ap]
+        if with_throughtime:
+            with np.load(os.path.join(trial_folder, 'throughtime.npz')) as infile:
+                for key, val in infile.items():
+                    if key in skip_collate:
+                        if key not in skipped_sample:
+                            skipped_sample[key] = val
                     else:
-                        to_collate[key].append(to_ap)
+                        to_ap = np.stack([np.array(val)])
+                        if key not in to_collate:
+                            to_collate[key] = [to_ap]
+                        else:
+                            to_collate[key].append(to_ap)
 
     for key, val in tuple(to_collate.items()):
         to_collate[key] = np.concatenate(val, axis=0)
