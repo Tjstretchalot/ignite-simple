@@ -11,7 +11,7 @@ import ignite_simple.helper
 import torchvision
 import torch
 
-def _model():
+def model():
     # From https://github.com/zalandoresearch/fashion-mnist/blob/master/benchmark/convnet.py
     return (
         torchluent.FluentModule((1, 28, 28))
@@ -34,7 +34,7 @@ def _model():
         .build(with_stripped=True)
     )
 
-def _dataset():
+def dataset():
     transform = torchvision.transforms.ToTensor()
     train_set = torchvision.datasets.FashionMNIST(
         'datasets/fashion_mnist', download=True, transform=transform)

@@ -4,7 +4,7 @@ import os
 
 setuptools.setup(
     name='ignite_simple',
-    version='0.0.5',
+    version='0.0.6',
     author='Timothy Moore',
     author_email='mtimothy984@gmail.com',
     description='Easily train pytorch models with automatic LR and BS tuning',
@@ -17,7 +17,7 @@ setuptools.setup(
         os.path.join(os.path.dirname(__file__), 'README.md')).read(),
     long_description_content_type='text/markdown',
     install_requires=['pca3dvis', 'torch', 'numpy', 'matplotlib', 'scipy',
-                      'pyzmq', 'beautifulsoup4', 'pytorch-ignite'],
+                      'pyzmq', 'beautifulsoup4', 'pytorch-ignite', 'psutil'],
     classifiers=(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',

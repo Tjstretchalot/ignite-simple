@@ -6,7 +6,7 @@ import ignite_simple.helper
 import torchvision
 import torch
 
-def _model():
+def model():
     return (
         torchluent.FluentModule((1, 28, 28))
         .wrap(True)
@@ -23,7 +23,7 @@ def _model():
         .build(with_stripped=True)
     )
 
-def _dataset():
+def dataset():
     transform = torchvision.transforms.ToTensor()
     train_set = torchvision.datasets.MNIST(
         'datasets/mnist', download=True, transform=transform)

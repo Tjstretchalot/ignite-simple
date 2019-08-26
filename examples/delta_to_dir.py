@@ -70,6 +70,7 @@ def dataset(max_abs_val: int = 30, build=False):
     dset = torch.utils.data.TensorDataset(inps, outs)
 
     result = ignite_simple.utils.split(dset, 0.1)
+    os.makedirs('datasets', exist_ok=True)
     torch.save(result, 'datasets/delta_to_dir.pt')
     return result
 
