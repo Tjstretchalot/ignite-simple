@@ -9,6 +9,7 @@ import ignite_simple.utils as utils
 import ignite_simple.figure_utils as futils
 import ignite_simple.analarams as aparams
 import ignite_simple.dispatcher as dispatcher
+import ignite_simple.text_analysis as text_analysis
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -25,8 +26,51 @@ import pca3dvis.pcs
 REDUCTIONS = ('each', 'mean', 'mean_with_errorbars', 'mean_with_fillbtwn',
               'lse')
 
+def _rawplot_filter(folder, images):
+    """This function gives the filter to pass to futils.save_fig for the images
+    to save. If folder or images is None, this always returns true (i.e.,
+    this filters nothing). Otherwise, this returns true if an images filepath
+    relative to the given folder is in images. This assumes that images uses
+    forward slashes for separators regardless of os.path.sep
+
+    Example:
+
+    folder out/
+
+    images = { john.png, doe/pong.pdf }
+
+    filter result for out/john.png -> true
+    filter result for out/john.pdf -> false
+    filter result for out/pong.pdf -> false
+    filter result for out/doe/pong.pdf -> true
+    filter result for john.png -> false
+
+
+    :param folder: the folder which the images set contains paths relative to,
+        or None to just return a no-op filter
+    :type folder: Optional[str]
+    :param images: the set of images which should be produced or None to return
+        a no-op filter
+    :type images: Optional[set[str]]
+    """
+    if folder is None or images is None:
+        return lambda x: True
+
+    folder = os.path.abspath(folder)
+    def filter_(img: str):
+        img = os.path.abspath(img)
+
+        if not img.startswith(folder):
+            return False
+        img = img[len(folder) + len(os.path.sep):]
+
+        img = img.replace(os.path.sep, '/')
+        return img in images
+
+    return filter_
+
 def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
-             outfile_wo_ext, reduction='none'):
+             outfile_wo_ext, reduction='none', folder=None, images=None):
     """Performs a single plot of the y-axis vs x-axis by loading the given
     numpy file, fetching the arrays by the variable names from the file,
     slicing it as specified, and then plotting.
@@ -72,10 +116,17 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
 
             take the logsumexp over the first dimension
 
+    :param optional[str] folder: the "current" folder or equivalent, which
+        contains  the hparams and trials folders. Only required if images
+        is not None
+    :param optional[set[str]] images: if not None then only images whose
+        filepath relative to folder will be produced.
     """
     with np.load(infile) as nin:
         xs = nin[x_varname][x_slice]
         ys = nin[y_varname][y_slice]
+
+    _filter = _rawplot_filter(folder, images)
 
     new_shape = list(i for i in ys.shape if i != 1)
     ys = ys.reshape(new_shape)
@@ -130,7 +181,7 @@ def _rawplot(infile, title, xlab, ylab, x_varname, x_slice, y_varname, y_slice,
     else:
         raise ValueError(f'unknown reduction {reduction}')
 
-    futils.save_fig(fig, ax, title, outfile_wo_ext)
+    futils.save_fig(fig, ax, title, outfile_wo_ext, _filter)
 
     plt.close(fig)
 
@@ -141,7 +192,8 @@ SELECTED_RANGE_YS = (
     ('smoothed_perf_derivs', '1/(loss + 1) (Deriv. Sm.)', '1/(loss+1) deriv.')
 )
 def _highlight_selected_range(xs, ys, rge, x_lab_short, x_lab_long,
-                              y_lab_short, y_lab_long, outfile_wo_ext):
+                              y_lab_short, y_lab_long, outfile_wo_ext,
+                              folder, images):
     stds = ys.std(0)
     means = ys.mean(0)
 
@@ -176,29 +228,33 @@ def _highlight_selected_range(xs, ys, rge, x_lab_short, x_lab_long,
     ax.set_ylim(ylim)
 
     futils.save_fig(fig, ax, futils.make_vs_title(x_lab_short, y_lab_short),
-                    outfile_wo_ext)
+                    outfile_wo_ext, _rawplot_filter(folder, images))
 
     plt.close(fig)
 
 def _highlight_selected_lr_range(lr_vs_perf: str, y_lab_long: str,
                                  y_lab_short: str, y_varname: str,
-                                 outfile_wo_ext: str):
+                                 outfile_wo_ext: str,
+                                 folder: str = None,
+                                 images: typing.Set[str] = None):
     with np.load(lr_vs_perf) as infile:
         xs = infile['lrs']
         ys = infile[y_varname]
         rge = infile['lr_range']
     _highlight_selected_range(xs, ys, rge, 'LR', 'Learning Rate', y_lab_short,
-                              y_lab_long, outfile_wo_ext)
+                              y_lab_long, outfile_wo_ext, folder, images)
 
 def _highlight_selected_batch_range(batch_vs_perf: str, y_lab_long: str,
                                     y_lab_short: str, y_varname: str,
-                                    outfile_wo_ext: str):
+                                    outfile_wo_ext: str,
+                                    folder: str = None,
+                                    images: typing.Set[str] = None):
     with np.load(batch_vs_perf) as infile:
         xs = infile['bss']
         ys = infile[y_varname]
         rge = infile['bs_range']
     _highlight_selected_range(xs, ys, rge, 'BS', 'Batch Size', y_lab_short,
-                              y_lab_long, outfile_wo_ext)
+                              y_lab_long, outfile_wo_ext, folder, images)
 
 def _pca3dvis_model(dataset_loader, model_file, outfolder, use_train,
                     accuracy_style, draft):
@@ -365,6 +421,13 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
     loss_loader = utils.fix_imports(loss_loader)
 
     settings = aparams.get_settings(settings)
+    if settings.suppress_extra_images:
+        imgs_to_produce = text_analysis.HTML_REFD_IMAGES
+    else:
+        imgs_to_produce = None
+
+    filter_folder = os.path.join(folder, 'analysis')
+    imgs_filter = _rawplot_filter(filter_folder, imgs_to_produce)
 
     logger = logging.getLogger(__name__)
 
@@ -397,7 +460,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                 os.makedirs(real_out, exist_ok=True)
 
                 have_imgs = futils.fig_exists(
-                    os.path.join(real_out, 'lr_vs_perf'))
+                    os.path.join(real_out, 'lr_vs_perf'), imgs_filter)
                 if have_imgs:
                     continue
 
@@ -414,9 +477,12 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             slice(None),
                             'perfs',
                             slice(trial, trial + 1),
-                            os.path.join(real_out, 'lr_vs_perf')
+                            os.path.join(real_out, 'lr_vs_perf'),
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                     dispatcher.Task(
@@ -433,7 +499,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             slice(trial, trial + 1),
                             os.path.join(real_out, 'lr_vs_smoothed_perf')
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                     dispatcher.Task(
@@ -451,7 +520,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             slice(trial, trial + 1),
                             os.path.join(real_out, 'lr_vs_perf_deriv')
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                     dispatcher.Task(
@@ -470,14 +542,17 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             slice(trial, trial + 1),
                             os.path.join(real_out, 'lr_vs_smoothed_perf_deriv')
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                 ])
 
             for reduction in REDUCTIONS:
                 have_imgs = futils.fig_exists(
-                    os.path.join(out_folder, f'lr_vs_perf_{reduction}'))
+                    os.path.join(out_folder, f'lr_vs_perf_{reduction}'), imgs_filter)
                 if have_imgs:
                     continue
 
@@ -498,7 +573,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             os.path.join(out_folder, 'lr_vs_perf_' + reduction),
                             reduction
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                     dispatcher.Task(
@@ -517,7 +595,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             os.path.join(out_folder, 'lr_vs_smoothed_perf_' + reduction),
                             reduction
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                     dispatcher.Task(
@@ -536,7 +617,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                             os.path.join(out_folder, 'lr_vs_perf_deriv_' + reduction),
                             reduction
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                     dispatcher.Task(
@@ -558,13 +642,17 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                                 'lr_vs_smoothed_perf_deriv_' + reduction),
                             reduction
                         ),
-                        dict(),
+                        {
+                            'folder': filter_folder,
+                            'images': imgs_to_produce
+                        },
                         1
                     ),
                 ])
 
-            if not futils.fig_exists(os.path.join(
-                    out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')):
+            if not futils.fig_exists(
+                    os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv'),
+                    imgs_filter):
                 tasks.append(dispatcher.Task(
                     __name__,
                     '_rawplot',
@@ -580,14 +668,17 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(None),
                         os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ))
 
             for y_varname, y_lab_long, y_lab_short in SELECTED_RANGE_YS:
                 outfile_wo_ext = os.path.join(
                     out_folder, f'lr_range_{y_varname}')
-                if futils.fig_exists(outfile_wo_ext):
+                if futils.fig_exists(outfile_wo_ext, imgs_filter):
                     continue
                 tasks.append(dispatcher.Task(
                     __name__,
@@ -599,7 +690,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         y_varname,
                         outfile_wo_ext
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ))
 
@@ -613,7 +707,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
             os.makedirs(real_out, exist_ok=True)
 
             have_imgs = futils.fig_exists(
-                os.path.join(real_out, 'batch_vs_perf'))
+                os.path.join(real_out, 'batch_vs_perf'), imgs_filter)
             if have_imgs:
                 continue
 
@@ -632,7 +726,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(trial, trial + 1),
                         os.path.join(real_out, 'batch_vs_perf')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -650,7 +747,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(trial, trial + 1),
                         os.path.join(real_out, 'batch_vs_smoothed_perf')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -668,7 +768,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(trial, trial + 1),
                         os.path.join(real_out, 'batch_vs_perf_deriv')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -686,7 +789,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(trial, trial + 1),
                         os.path.join(real_out, 'batch_vs_smoothed_perf_deriv')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
             ])
@@ -712,7 +818,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(out_folder, 'batch_vs_perf_' + reduction),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -731,7 +840,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(out_folder, 'batch_vs_smoothed_perf_' + reduction),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -750,7 +862,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(out_folder, 'batch_vs_perf_deriv_' + reduction),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -769,13 +884,17 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(out_folder, 'batch_vs_smoothed_perf_deriv_' + reduction),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
             ])
 
-        if not futils.fig_exists(os.path.join(
-                out_folder, 'batch_vs_lse_smoothed_perf_then_deriv')):
+        if not futils.fig_exists(
+                os.path.join(out_folder, 'batch_vs_lse_smoothed_perf_then_deriv'),
+                imgs_filter):
             tasks.append(dispatcher.Task(
                 __name__,
                 '_rawplot',
@@ -791,7 +910,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     slice(None),
                     os.path.join(out_folder, 'batch_vs_lse_smoothed_perf_then_deriv')
                 ),
-                dict(),
+                {
+                    'folder': filter_folder,
+                    'images': imgs_to_produce
+                },
                 1
             ))
 
@@ -799,7 +921,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
         for y_varname, y_lab_long, y_lab_short in SELECTED_RANGE_YS:
             outfile_wo_ext = os.path.join(
                 out_folder, f'batch_range_{y_varname}')
-            if futils.fig_exists(outfile_wo_ext):
+            if futils.fig_exists(outfile_wo_ext, imgs_filter):
                 continue
             tasks.append(dispatcher.Task(
                 __name__,
@@ -811,7 +933,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                     y_varname,
                     outfile_wo_ext
                 ),
-                dict(),
+                {
+                    'folder': filter_folder,
+                    'images': imgs_to_produce
+                },
                 1
             ))
     if settings.training_metric_imgs:
@@ -828,7 +953,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
 
             trial_out = os.path.join(trial_out_folder, str(trial))
             have_imgs = futils.fig_exists(
-                os.path.join(trial_out, f'epoch_vs_loss_train'))
+                os.path.join(trial_out, f'epoch_vs_loss_train'), imgs_filter)
             if have_imgs:
                 continue
 
@@ -848,7 +973,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(None),
                         os.path.join(trial_out, 'epoch_vs_loss_train')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -865,7 +993,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(None),
                         os.path.join(trial_out, 'epoch_vs_loss_val')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -882,7 +1013,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(None),
                         os.path.join(trial_out, 'epoch_vs_perf_train')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -899,7 +1033,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         slice(None),
                         os.path.join(trial_out, 'epoch_vs_perf_val')
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
             ])
@@ -908,9 +1045,11 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
         trial_src = os.path.join(folder, 'throughtimes.npz')
         for reduction in REDUCTIONS:
             have_imgs = futils.fig_exists(
-                os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}'))
+                os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}'), imgs_filter)
             if have_imgs:
                 continue
+
+            os.makedirs(trial_out, exist_ok=True)
 
             tasks.extend([
                 dispatcher.Task(
@@ -928,7 +1067,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_loss_train_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -946,7 +1088,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_smoothed_loss_train_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -964,7 +1109,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_loss_val_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -982,7 +1130,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_smoothed_loss_val_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -1000,7 +1151,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_perf_train_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -1018,7 +1172,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_smoothed_perf_train_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -1036,7 +1193,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_perf_val_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
                 dispatcher.Task(
@@ -1054,7 +1214,10 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         os.path.join(trial_out, f'epoch_vs_smoothed_perf_val_{reduction}'),
                         reduction
                     ),
-                    dict(),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
                     1
                 ),
             ])

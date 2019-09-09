@@ -22,6 +22,9 @@ class AnalysisSettings:
         with captions for the performance of the model through training, i.e.,
         accuracy vs epoch and loss vs epoch figures.
 
+    :ivar bool suppress_extra_images: Suppresses generating images which are
+        not displayed in the html report.
+
     :ivar bool typical_run_pca3dvis: True if the output should include a video
         from pca3dvis for the points as they moved through the network, False
         otherwise.
@@ -30,16 +33,19 @@ class AnalysisSettings:
         then the value of `typical_run_pca3dvis_draft` corresponds to if the
         video should have draft settings. If `typical_run_pca3dvis` is False,
         this has no effect.
+
     """
     def __init__(self,
                  hparam_selection_specifics: bool,
                  hparam_selection_specific_imgs: bool,
                  training_metric_imgs: bool,
+                 suppress_extra_images: bool,
                  typical_run_pca3dvis: bool,
                  typical_run_pca3dvis_draft: bool):
         self.hparam_selection_specifics = hparam_selection_specifics
         self.hparam_selection_specific_imgs = hparam_selection_specific_imgs
         self.training_metric_imgs = training_metric_imgs
+        self.suppress_extra_images = suppress_extra_images
         self.typical_run_pca3dvis = typical_run_pca3dvis
         self.typical_run_pca3dvis_draft = typical_run_pca3dvis_draft
 
@@ -53,6 +59,7 @@ def none() -> AnalysisSettings:
         hparam_selection_specifics=False,
         hparam_selection_specific_imgs=False,
         training_metric_imgs=False,
+        suppress_extra_images=True,
         typical_run_pca3dvis=False,
         typical_run_pca3dvis_draft=False
     )
@@ -68,6 +75,7 @@ def text() -> AnalysisSettings:
         hparam_selection_specifics=True,
         hparam_selection_specific_imgs=False,
         training_metric_imgs=False,
+        suppress_extra_images=True,
         typical_run_pca3dvis=False,
         typical_run_pca3dvis_draft=False
     )
@@ -83,9 +91,28 @@ def images() -> AnalysisSettings:
         hparam_selection_specifics=True,
         hparam_selection_specific_imgs=True,
         training_metric_imgs=True,
+        suppress_extra_images=False,
         typical_run_pca3dvis=False,
         typical_run_pca3dvis_draft=False
     )
+
+def images_minimum() -> AnalysisSettings:
+    """Analysis output that uses text and images only, and does not produce
+    images which do not make it into the text report.
+
+    :returns: the images_minimum preset for analysis settings, which produces
+        text and enough images for a pretty text output.
+    :rtype: AnalysisSettings
+    """
+    return AnalysisSettings(
+        hparam_selection_specifics=True,
+        hparam_selection_specific_imgs=True,
+        training_metric_imgs=True,
+        suppress_extra_images=True,
+        typical_run_pca3dvis=False,
+        typical_run_pca3dvis_draft=False
+    )
+
 
 def animations_draft() -> AnalysisSettings:
     """Analysis output that uses text, images, and animations but the
@@ -141,6 +168,10 @@ NAME_TO_PRESET = {
     'text': text,
     'images': images,
     'image': images,
+    'images-min': images_minimum,
+    'images_min': images_minimum,
+    'images-minimum': images_minimum,
+    'images_minimum': images_minimum,
     'animation-draft': animations_draft,
     'animation_draft': animations_draft,
     'animations-draft': animations_draft,

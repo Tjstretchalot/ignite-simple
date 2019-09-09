@@ -181,8 +181,12 @@ for a final model.
 
 ## Automatic analysis
 
-Valid presets are `none`, `text`, `images`, `animations-draft`, `animations`,
-`video-draft`, and `video`.
+Valid presets are `none`, `text`, `images`, `images-min`, `animations-draft`,
+`animations`, `video-draft`, and `video`.  See `ignite_simple.analarams` for
+details.
+
+If unsure, choose `images-min` and then upgrade to `images` or `video` for
+final analysis or for additional information as necessary.
 
 This package is capable of producing some explanation about how the model was
 trained and some information about it's solution. The analysis includes:

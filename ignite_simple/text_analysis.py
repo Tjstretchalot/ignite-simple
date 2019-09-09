@@ -14,6 +14,21 @@ def _set_all(soup, iden, val):
     for ele in soup.find_all(id=iden):
         ele.string = str(val)
 
+def find_referenced_images(html):
+    """Searches the given html file for images which are referenced in the standard way
+    (src attribute on img tag) and returns them as they are written."""
+    with open(html, 'r') as infile:
+        soup = BeautifulSoup(infile.read(), 'html.parser')
+
+    return set(img['src'] for img in soup.find_all('img'))
+
+
+HTML_REFD_IMAGES = find_referenced_images(os.path.join(
+    os.path.dirname(__file__), '../html/index.html'))
+
+# we strip the ../ that the images are referenced with
+HTML_REFD_IMAGES = set(i[3:] for i in HTML_REFD_IMAGES)
+
 def text_analyze(settings: AnalysisSettings, folder: str):
     """Analyzes the given folder produced by the model manager, storing the
     results in folder/analysis/html

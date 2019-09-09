@@ -2,6 +2,7 @@
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 import os
+import typing
 
 def set_title(fig: Figure, ax: Axes, title: str, digital: bool):
     """Sets the title for the given axes to the given value. This is more
@@ -55,7 +56,12 @@ def set_ticklabel_sizes(fig: Figure, ax: Axes, digital: bool):
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(font_size)
 
-def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
+def _filtered_savefig(filter_, fig, path, *args, **kwargs):
+    if filter_(path):
+        fig.savefig(path, *args, **kwargs)
+
+def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str,
+             filter_: typing.Optional[typing.Callable] = None):
     """Saves the given figure with many different commonly used figure sizes,
     resizing labels and titles as appropriate. This technique works only for
     a single axis plot, since for other styles different font sizes would be
@@ -64,17 +70,22 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     :param Figure fig: The figure to save
     :param Axes ax: The axis on the figure
     :param str title: The title of the plot
+    :param optional[callable] filter_: if not None, a callable object which
+        accepts a string which is a (possibly relative) path to a file which
+        will only be saved if the result of filter_ is True.
     """
+    filter_ = filter_ if filter_ is not None else lambda x: True
+
     set_title(fig, ax, title, True)
     ax.xaxis.label.set_size(48)
     ax.yaxis.label.set_size(48)
     set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_1920x1080.png', dpi=100)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_1920x1080.png', dpi=100)
     set_title(fig, ax, title, False)
     ax.xaxis.label.set_size(24)
     ax.yaxis.label.set_size(24)
     set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_19.2x10.8.pdf', dpi=300, transparent=True)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_19.2x10.8.pdf', dpi=300, transparent=True)
 
     fig.set_figwidth(7.25)  # paper width
     fig.set_figheight(4.08)  # 56.25% width
@@ -84,12 +95,12 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     ax.xaxis.label.set_size(24)
     ax.yaxis.label.set_size(24)
     set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_725x408.png', dpi=100)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_725x408.png', dpi=100)
     set_title(fig, ax, title, False)
     ax.xaxis.label.set_size(9)
     ax.yaxis.label.set_size(9)
     set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_7.25x4.08.pdf', dpi=300, transparent=True)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_7.25x4.08.pdf', dpi=300, transparent=True)
 
     fig.set_figwidth(3.54)  # column width
     fig.set_figheight(1.99)  # 56.25% width
@@ -99,12 +110,12 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
     ax.xaxis.label.set_size(12)
     ax.yaxis.label.set_size(12)
     set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_354x199.png', dpi=100)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_354x199.png', dpi=100)
     set_title(fig, ax, title, False)
     ax.xaxis.label.set_size(8)
     ax.yaxis.label.set_size(8)
     set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_3.54x1.99.pdf', dpi=300, transparent=True)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_3.54x1.99.pdf', dpi=300, transparent=True)
 
     fig.set_figwidth(1.73)  # half column width
     fig.set_figheight(1.73)  # square
@@ -112,10 +123,10 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
 
     set_title(fig, ax, title, True)
     set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_173x173.png', dpi=100)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_173x173.png', dpi=100)
     set_title(fig, ax, title, False)
     set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_1.73x1.73.pdf', dpi=300, transparent=True)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_1.73x1.73.pdf', dpi=300, transparent=True)
 
     fig.set_figwidth(1.73)  # half column width
     fig.set_figheight(0.972)  # 56.25% width
@@ -128,24 +139,31 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str):
 
     set_title(fig, ax, title, True)
     set_ticklabel_sizes(fig, ax, True)
-    fig.savefig(outfile_wo_ext + '_173x97.png', dpi=100)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_173x97.png', dpi=100)
     set_title(fig, ax, title, False)
     set_ticklabel_sizes(fig, ax, False)
-    fig.savefig(outfile_wo_ext + '_1.73x0.97.pdf', dpi=300, transparent=True)
+    _filtered_savefig(filter_, fig, outfile_wo_ext + '_1.73x0.97.pdf', dpi=300, transparent=True)
 
-def fig_exists(outfile_wo_ext: str) -> bool:
+def fig_exists(outfile_wo_ext: str, filter_: typing.Optional[typing.Callable] = None) -> bool:
     """Returns true if the files from save_fig with the given outfile already
     exist.
 
     :param outfile_wo_ext: where we expect the file to have been saved
     :type outfile_wo_ext: str
+    :param filter_: an optional callable which accepts images and returns True if they
+        are relevant and False if they can be ignored
+    :type filter_: Optional[callable]
     :return: True if the file(s) exists, False otherwise
     :rtype: bool
     """
+    filter_ = filter_ if filter_ is not None else lambda x: True
+
     for size in ((19.2, 10.8), (7.25, 4.08), (3.54, 1.99), (1.73, 0.97), (1.73, 1.73)):
-        if not os.path.exists(outfile_wo_ext + f'_{size[0]}x{size[1]}.pdf'):
+        img = outfile_wo_ext + f'_{size[0]}x{size[1]}.pdf'
+        if filter_(img) and not os.path.exists(img):
             return False
-        if not os.path.exists(outfile_wo_ext + f'_{int(size[0]*100)}x{int(size[1]*100)}.png'):
+        img = outfile_wo_ext + f'_{int(size[0]*100)}x{int(size[1]*100)}.png'
+        if filter_(img) and not os.path.exists(img):
             return False
     return True
 
