@@ -5,6 +5,9 @@ where at each step you may resweep the learning rate and batch size (using
 any hyperparameter preset desired)."""
 
 import ignite_simple
-from ignite_simple.gen_sweep.sweeper import sweep
 
-__all__ = ['sweep']
+import ignite_simple.gen_sweep.param_selectors as param_selectors
+import ignite_simple.gen_sweep.sweeper as sweeper
+
+sweep = sweeper.sweep
+
