@@ -9,6 +9,17 @@ except:  # pylint: disable=bare-except  # noqa: E722
 __all__ = ['train', 'analyze']
 
 import os
+
+html_path = os.path.join(os.path.dirname(__file__), '../html')
+
+if not os.path.exists('../html'):
+    raise Exception(
+        'ignite_simple is not installed correctly! '
+        + f'It expects {html_path} (found relative to this file) '
+        + 'to exist, like in the repo.  '
+        + 'Uninstall, download the repo, and install with the existing option'
+        + '(-e) in pip')
+
 os.environ['OMP_NUM_THREADS'] = '1'
 os.environ['OPENBLAS_MAIN_FREE'] = '1'
 os.environ['GOTOBLAS_MAIN_FREE'] = '1'
