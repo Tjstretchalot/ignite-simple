@@ -17,7 +17,8 @@ setuptools.setup(
         os.path.join(os.path.dirname(__file__), 'README.md')).read(),
     long_description_content_type='text/markdown',
     install_requires=['pca3dvis', 'torch', 'numpy', 'matplotlib', 'scipy',
-                      'pyzmq', 'beautifulsoup4', 'pytorch-ignite', 'psutil'],
+                      'pyzmq', 'beautifulsoup4', 'pytorch-ignite', 'psutil',
+                      'sortedcontainers'],
     classifiers=(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
