@@ -132,6 +132,7 @@ def replot():
     # or the documentation for sweeper.sweep
     xs = np.array([pt[0][0] for pt in res])
     ys = np.array([pt[7] for pt in res])
+    # ys has shape (len(SIZES_TO_CHECK), TRIALS_WITH_FOUND_HPARAMS)
 
     fig, ax = plt.subplots()
     ax.set_title(f'Number of hidden to loss')
