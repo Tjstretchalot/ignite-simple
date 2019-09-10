@@ -55,7 +55,8 @@ def train(module, args):
         trials=args.trials,
         is_continuation=args.is_continuation,
         history_folder=os.path.join(args.folder, 'history'),
-        cores=args.cores
+        cores=args.cores,
+        trials_strict=args.strict_trials
     )
 
 def reanalyze(module, args):
@@ -112,6 +113,11 @@ def handle(module=None):
         '--module', type=str,
         help='Which module to load the model, dataset, loss, and '
         + ' accuracy style from')
+    parser.add_argument(
+        '--strict_trials', action='store_true',
+        help='Instead of using all available resources, just perform the '
+             + 'specified number of trials'
+    )
     parser.add_argument(
         '--loggercfg', type=str, default='logging.conf',
         help='The logging configuration file to use should it exist'

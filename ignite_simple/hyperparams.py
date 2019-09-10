@@ -55,6 +55,9 @@ class HyperparameterSettings:
         self.batch_pt_min_inits = batch_pt_min_inits
         self.rescan_lr_after_bs = rescan_lr_after_bs
 
+    def __repr__(self):
+        return f'HyperparameterSettings(**{self.__dict__})'
+
 def fastest() -> HyperparameterSettings:
     """Returns the fastest (in time spent tuning parameters) preset"""
     return HyperparameterSettings(

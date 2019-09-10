@@ -49,6 +49,9 @@ class AnalysisSettings:
         self.typical_run_pca3dvis = typical_run_pca3dvis
         self.typical_run_pca3dvis_draft = typical_run_pca3dvis_draft
 
+    def __repr__(self):
+        return f'AnalysisSettings(**{self.__dict__})'
+
 def none() -> AnalysisSettings:
     """Analysis settings that produce absolutely nothing
 

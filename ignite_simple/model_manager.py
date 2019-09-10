@@ -484,6 +484,10 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
     if trial_offset == 0:
         continuing = False
 
+        if trials == 0 and trials_strict:
+            logger.info('No trials -> skipping collating and analyzing')
+            return
+
     logger.info('Performing trials...')
     processes = []
     num_trials = 0
@@ -603,7 +607,7 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
             perfs_val_smoothed=autosmooth(to_collate['perfs_val']),
         )
 
-    if continuing:
+    if continuing and os.path.exists(os.path.join(folder, 'analysis')):
         logger.info('Cleaning old analysis folder...')
         shutil.rmtree(os.path.join(folder, 'analysis'))
 
