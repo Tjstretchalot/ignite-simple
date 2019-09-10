@@ -3,7 +3,7 @@ This is meant to be analagous to mnist_nonlins except actually completes
 in a reasonable amount of time on a consumer laptop
 """
 import ignite_simple
-import ignite_simple.gen_sweep as gen_sweep
+import ignite_simple.gen_sweep.sweeper as sweeper
 from ignite_simple.gen_sweep.param_selectors import FixedSweep
 import torch
 from torchluent import FluentModule
@@ -87,7 +87,7 @@ def main():
         print('enter to continue with no output.')
         input()
 
-    res = gen_sweep.sweep(
+    res = sweeper.sweep(
         __name__, # module
         FixedSweep.with_fixed_trials(  # Trial selector
             list((s,) for s in NONLINEARITIES),  # one variable
