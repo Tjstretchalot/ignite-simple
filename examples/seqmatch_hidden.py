@@ -63,6 +63,9 @@ def dataset(build=False):
     if not build and os.path.exists(DATASET_FILE):
         return torch.load(DATASET_FILE)
 
+    # take a network, initialize it to be suuuper chaotic, then just run
+    # some random data through it
+
     os.makedirs('datasets', exist_ok=True)
 
     mdl = model(REFERENCE_SIZE)
@@ -123,6 +126,8 @@ def replot():
     with open(res_file, 'rb') as infile:
         res = pickle.load(infile)
 
+    # see readme in ignite_simple/gen_sweep for how res looks
+    # or the documentation for sweeper.sweep
     xs = np.array([pt[0][0] for pt in res])
     ys = np.array([pt[7] for pt in res])
 
