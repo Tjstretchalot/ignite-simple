@@ -6,7 +6,7 @@ try:
 except:  # pylint: disable=bare-except  # noqa: E722
     pass
 
-__all__ = ['train', 'analyze']
+__all__ = ['train', 'analyze', 'gen_sweep']
 
 import os
 
