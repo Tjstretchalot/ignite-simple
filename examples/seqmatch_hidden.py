@@ -13,6 +13,10 @@ STREAM_SIZE = 32
 REFERENCE_SIZE = 128
 NUM_SEQUENCES = 3000  # this is not much data; increase this to see the
                       # effect more clearly
+HPARAMS = 'fastest'  # rnns aren't the most stable so consider increasing
+                     # this to fast if having trouble
+TRIALS_TO_FIND_HPARAMS = 3
+TRIALS_WITH_FOUND_HPARAMS = 3
 SEQ_LENGTHS = 10
 SIZES_TO_CHECK = [8, 64, 128, 256]
 # Alternatives: [1, 2, 4, 8, 16, 32, 64, 128, 256]
@@ -92,9 +96,7 @@ def main():
     from ignite_simple.gen_sweep.param_selectors import FixedSweep
 
     folder = os.path.join('out', 'seqmatch_hidden')
-    dataset()
-
-    mdl = model(64)
+    dataset()  # make sure this exists
 
     if os.path.exists('logging-gen.conf'):
         logging.config.fileConfig('logging-gen.conf')
@@ -109,10 +111,10 @@ def main():
         __name__, # module
         FixedSweep.with_fixed_trials(  # Trial selector
             tuple((s,) for s in SIZES_TO_CHECK),
-            3,  # trials per nonlinearity
+            TRIALS_WITH_FOUND_HPARAMS
         ),
-        3,
-        'fastest',
+        TRIALS_TO_FIND_HPARAMS,
+        HPARAMS,
         folder
     )
 
