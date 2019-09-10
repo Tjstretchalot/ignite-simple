@@ -12,7 +12,7 @@ import os
 
 html_path = os.path.join(os.path.dirname(__file__), '../html')
 
-if not os.path.exists('../html'):
+if not os.path.exists(html_path):
     raise Exception(
         'ignite_simple is not installed correctly! '
         + f'It expects {html_path} (found relative to this file) '
