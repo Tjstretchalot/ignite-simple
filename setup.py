@@ -11,7 +11,7 @@ setuptools.setup(
     license='CC0',
     keywords='torch pytorch models machine-learning learning-rate batch-size hyperparameters',
     url='https://github.com/tjstretchalot/ignite-simple',
-    packages=['ignite_simple'],
+    packages=['ignite_simple', 'ignite_simple.gen_sweep'],
     package_data={'ignite_simple': ['html/*']},
     long_description=open(
         os.path.join(os.path.dirname(__file__), 'README.md')).read(),
