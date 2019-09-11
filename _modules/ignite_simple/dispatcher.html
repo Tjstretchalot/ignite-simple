@@ -157,6 +157,9 @@
 <span class="kn">from</span> <span class="nn">queue</span> <span class="k">import</span> <span class="n">Empty</span>
 <span class="kn">from</span> <span class="nn">pympanim.zeromqqueue</span> <span class="k">import</span> <span class="n">ZeroMQQueue</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">sortedcontainers</span> <span class="k">import</span> <span class="n">SortedList</span>
+<span class="kn">import</span> <span class="nn">logging.config</span>
+<span class="kn">import</span> <span class="nn">os</span>
 
 <div class="viewcode-block" id="Task"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.Task">[docs]</a><span class="k">class</span> <span class="nc">Task</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;A description of a task.</span>
@@ -167,15 +170,164 @@
 <span class="sd">    :ivar dict kwargs: the keyword arguments to pass to the callable</span>
 <span class="sd">    :ivar optional[int] cores: the number of cores this task will use, None</span>
 <span class="sd">        for all cores</span>
+<span class="sd">    :ivar optional[callable] callback: an optional callback for when this task</span>
+<span class="sd">        completes, not sent over. The callback is invoked on the main thread</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">attrname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
-                 <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">cores</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+                 <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">cores</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+                 <span class="n">callback</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">module</span> <span class="o">=</span> <span class="n">module</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">attrname</span> <span class="o">=</span> <span class="n">attrname</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="n">args</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="n">cores</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="n">cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
+
+    <span class="k">def</span> <span class="nf">worker_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Task&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="n">Task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">attrname</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cores</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.module}</span><span class="s1">.</span><span class="si">{self.attrname}</span><span class="s1">(*</span><span class="si">{self.args}</span><span class="s1">, **</span><span class="si">{self.kwargs}</span><span class="s1">) [cores=</span><span class="si">{self.cores}</span><span class="s1">]&#39;</span></div>
+
+<div class="viewcode-block" id="TaskQueue"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.TaskQueue">[docs]</a><span class="k">class</span> <span class="nc">TaskQueue</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An interface for something which is capable of returning the next</span>
+<span class="sd">    task to perform based on the number of available cores.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TaskQueue.set_total_cores"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.TaskQueue.set_total_cores">[docs]</a>    <span class="k">def</span> <span class="nf">set_total_cores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Clips the maximum number of cores that each task requires to not</span>
+<span class="sd">        exceed total_cores.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="TaskQueue.get_next_task"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.TaskQueue.get_next_task">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Task</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Gets the next task to perform given that there are the specified</span>
+<span class="sd">        number of cores available. The resulting Task should require fewer</span>
+<span class="sd">        than the number of cores available. May return None if there are</span>
+<span class="sd">        no tasks which meet the requirements to do.</span>
+
+<span class="sd">        :param cores: the number of cores available</span>
+<span class="sd">        :type cores: int</span>
+<span class="sd">        :return: the task to start work on, None if no task available yet</span>
+<span class="sd">        :rtype: typing.Optional[Task]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="TaskQueue.have_more_tasks"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.TaskQueue.have_more_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">have_more_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns True if there is at least one more task to do, and returns</span>
+<span class="sd">        False if there are no more tasks to do</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;An estimate for how many tasks remain in this queue.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GreedyTaskQueue"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue">[docs]</a><span class="k">class</span> <span class="nc">GreedyTaskQueue</span><span class="p">(</span><span class="n">TaskQueue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Describes a greedy task queue, which prioritizes tasks with the highest</span>
+<span class="sd">    number of cores.</span>
+
+<span class="sd">    :ivar int total_cores: if the cores on a task is None, we assume it is</span>
+<span class="sd">        going to require this many cores.</span>
+<span class="sd">    :ivar dict[int, list[Task]] tasks_by_core: a lookup for remaining tasks,</span>
+<span class="sd">        where the key is the number of cores the task requires.</span>
+<span class="sd">    :ivar SortedList[int] sorted_keys: the keys for tasks_by_core in</span>
+<span class="sd">        ascending order.</span>
+<span class="sd">    :ivar bool expecting_more_tasks: if True, we expect that add_task will be</span>
+<span class="sd">        called in the (near) future, hence we always return True from</span>
+<span class="sd">        have_more_tasks</span>
+<span class="sd">    :ivar int _len: the length of this queue</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initializes an empty task queue.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span> <span class="o">=</span> <span class="n">total_cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span> <span class="o">=</span> <span class="n">SortedList</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expecting_more_tasks</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="GreedyTaskQueue.flatten"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue.flatten">[docs]</a>    <span class="k">def</span> <span class="nf">flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Task</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Returns this task queue as a list of tasks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="GreedyTaskQueue.set_total_cores"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue.set_total_cores">[docs]</a>    <span class="k">def</span> <span class="nf">set_total_cores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_cores</span><span class="p">):</span>
+        <span class="n">old_total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span> <span class="o">=</span> <span class="n">total_cores</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">old_total</span> <span class="o">&lt;</span> <span class="n">total_cores</span><span class="p">:</span>
+            <span class="n">flat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span> <span class="o">=</span> <span class="n">SortedList</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_tasks</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">arrs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span><span class="p">:</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">arrs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">last</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">arrs</span><span class="p">:</span>
+            <span class="n">last</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GreedyTaskQueue.add_task"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue.add_task">[docs]</a>    <span class="k">def</span> <span class="nf">add_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">Task</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds the given task to this queue.&quot;&quot;&quot;</span>
+        <span class="n">cores_req</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span>
+        <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">cores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cores_req</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">cores</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span><span class="p">)</span>
+
+        <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cores_req</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="n">cores_req</span><span class="p">]</span> <span class="o">=</span> <span class="n">arr</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cores_req</span><span class="p">)</span>
+        <span class="n">arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="GreedyTaskQueue.add_tasks"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue.add_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">add_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Task</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds all the specified tasks to this queue.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="GreedyTaskQueue.get_next_task"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue.get_next_task">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="n">cores</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">prev</span> <span class="o">=</span> <span class="n">k</span>
+
+        <span class="k">if</span> <span class="n">prev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">arr</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks_by_core</span><span class="p">[</span><span class="n">prev</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="GreedyTaskQueue.have_more_tasks"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.GreedyTaskQueue.have_more_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">have_more_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">expecting_more_tasks</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sorted_keys</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len</span></div>
 
 <div class="viewcode-block" id="MainToWorkerConnection"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.MainToWorkerConnection">[docs]</a><span class="k">class</span> <span class="nc">MainToWorkerConnection</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Describes a connection from the main process to the worker process</span>
@@ -188,6 +340,9 @@
 <span class="sd">    :ivar optional[int] cores: the number of cores that this worker is</span>
 <span class="sd">        currently using, or None if the worker is not doing anything right</span>
 <span class="sd">        now</span>
+<span class="sd">    :ivar optional[callable] callback: a callback function which will be</span>
+<span class="sd">        invoked when the current task completes, or None if there is no</span>
+<span class="sd">        current task or no callback registered</span>
 <span class="sd">    :ivar float sleep_delay: the current sleep delay for this worker</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">proc</span><span class="p">:</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">,</span> <span class="n">jobq</span><span class="p">:</span> <span class="n">ZeroMQQueue</span><span class="p">,</span> <span class="n">ackq</span><span class="p">:</span> <span class="n">ZeroMQQueue</span><span class="p">,</span>
@@ -196,6 +351,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">jobq</span> <span class="o">=</span> <span class="n">jobq</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ackq</span> <span class="o">=</span> <span class="n">ackq</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sleep_delay</span> <span class="o">=</span> <span class="n">sleep_delay</span>
 
 <div class="viewcode-block" id="MainToWorkerConnection.send"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.MainToWorkerConnection.send">[docs]</a>    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">Task</span><span class="p">):</span>
@@ -206,8 +362,9 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cores</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;still working!&#39;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">jobq</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cores</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jobq</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">worker_version</span><span class="p">()))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">callback</span></div>
 
 <div class="viewcode-block" id="MainToWorkerConnection.update_sleep_delay"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.MainToWorkerConnection.update_sleep_delay">[docs]</a>    <span class="k">def</span> <span class="nf">update_sleep_delay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Tells the worker to poll for jobs with the given inter-poll delay&quot;&quot;&quot;</span>
@@ -223,6 +380,9 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ackq</span><span class="o">.</span><span class="n">get_nowait</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">False</span></div>
@@ -231,6 +391,7 @@
         <span class="sd">&quot;&quot;&quot;Shuts down the worker&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">jobq</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="s1">&#39;shutdown&#39;</span><span class="p">,))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_ready</span><span class="p">()</span> <span class="c1"># try to ensure callbacks handled</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">jobq</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ackq</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">process</span> <span class="o">=</span> <span class="kc">None</span>
@@ -242,6 +403,10 @@
     <span class="k">for</span> <span class="n">imp</span> <span class="ow">in</span> <span class="n">imps</span><span class="p">:</span>
         <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">imp</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">&#39;logging-worker.conf&#39;</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">fileConfig</span><span class="p">(</span><span class="s1">&#39;logging-worker.conf&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
     <span class="n">jobq</span> <span class="o">=</span> <span class="n">ZeroMQQueue</span><span class="o">.</span><span class="n">deser</span><span class="p">(</span><span class="n">jobq</span><span class="p">)</span>
     <span class="n">ackq</span> <span class="o">=</span> <span class="n">ZeroMQQueue</span><span class="o">.</span><span class="n">deser</span><span class="p">(</span><span class="n">ackq</span><span class="p">)</span>
 
@@ -265,53 +430,73 @@
             <span class="n">tocall</span><span class="p">(</span><span class="o">*</span><span class="n">task</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">task</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>  <span class="c1"># noqa: E722</span>
             <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Dispatcher encountered an error&#39;</span><span class="p">)</span>
         <span class="n">ackq</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s1">&#39;ack&#39;</span><span class="p">)</span>
 
     <span class="n">jobq</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
     <span class="n">ackq</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
-<div class="viewcode-block" id="dispatch"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.dispatch">[docs]</a><span class="k">def</span> <span class="nf">dispatch</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Task</span><span class="p">],</span> <span class="n">total_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-             <span class="n">suggested_imports</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">())</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="dispatch"><a class="viewcode-back" href="../../index.html#ignite_simple.dispatcher.dispatch">[docs]</a><span class="k">def</span> <span class="nf">dispatch</span><span class="p">(</span><span class="n">tasks</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">TaskQueue</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">Task</span><span class="p">]],</span>
+             <span class="n">total_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+             <span class="n">suggested_imports</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(),</span>
+             <span class="n">wait_function</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Callable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Dispatches the given tasks using greedy selection such that no more</span>
 <span class="sd">    than the specified number of cores are in use at once, where possible</span>
 <span class="sd">    to do so. This uses a greedy selection of tasks.</span>
 
-<span class="sd">    :param tasks: an iterable of tasks to dispatch</span>
+<span class="sd">    :param tasks: an iterable of tasks to dispatch, or a task queue. May be</span>
+<span class="sd">        modified, but the logging may be incorrect if modified outside of</span>
+<span class="sd">        the wait function.</span>
 <span class="sd">    :param total_cores: the target number of cores to use at once</span>
 <span class="sd">    :param suggested_imports: things which are imported in each worker process</span>
 <span class="sd">        during the spawning phase, which causes jobs to be processed more</span>
 <span class="sd">        smoothly.</span>
+<span class="sd">    :param wait_function: if not None, this will be invoked when the dispatcher</span>
+<span class="sd">        is idling. Expected to be fairly fast, and it is safe to modify tasks</span>
+<span class="sd">        within this call.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">TaskQueue</span><span class="p">):</span>
+        <span class="n">que</span><span class="p">:</span> <span class="n">TaskQueue</span> <span class="o">=</span> <span class="n">GreedyTaskQueue</span><span class="p">(</span><span class="n">total_cores</span><span class="p">)</span>
+        <span class="n">que</span><span class="o">.</span><span class="n">add_tasks</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="n">que</span>
+        <span class="k">del</span> <span class="n">que</span>
+
+    <span class="n">ntasks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">total_cores</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">last_print</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+
+        <span class="n">skips</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">tasks</span><span class="o">.</span><span class="n">have_more_tasks</span><span class="p">():</span>
+            <span class="n">old_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">get_next_task</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">ntasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">-</span> <span class="n">old_len</span>
+            <span class="k">if</span> <span class="n">task</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">skips</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">skips</span> <span class="o">&gt;</span> <span class="mi">1000</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="s1">&#39;TaskQueue have_more_tasks is True but &#39;</span>
+                        <span class="o">+</span> <span class="s1">&#39;get_next_task is has been None for a long time&#39;</span><span class="p">)</span>
+                    <span class="n">skips</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="k">if</span> <span class="n">wait_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">old_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+                    <span class="n">wait_function</span><span class="p">()</span>
+                    <span class="n">ntasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">-</span> <span class="n">old_len</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">ntasks</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">skips</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
             <span class="n">mod</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">module</span><span class="p">)</span>
             <span class="n">tocall</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">attrname</span><span class="p">)</span>
             <span class="n">tocall</span><span class="p">(</span><span class="o">*</span><span class="n">task</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">task</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">last_print</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Finished task {i+1}/{len(tasks)}...&#39;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Finished task </span><span class="si">{i}</span><span class="s1">/</span><span class="si">{ntasks}</span><span class="s1">...&#39;</span><span class="p">)</span>
         <span class="k">return</span>
-
-    <span class="n">tasks_by_cores</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-    <span class="n">smallest_num_cores</span> <span class="o">=</span> <span class="n">total_cores</span>
-    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
-        <span class="n">cores</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">cores</span>
-        <span class="k">if</span> <span class="n">cores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">cores</span> <span class="o">=</span> <span class="n">total_cores</span>
-        <span class="k">elif</span> <span class="n">cores</span> <span class="o">&gt;</span> <span class="n">total_cores</span><span class="p">:</span>
-            <span class="n">cores</span> <span class="o">=</span> <span class="n">total_cores</span>
-        <span class="k">elif</span> <span class="n">cores</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">cores</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">cores</span> <span class="o">=</span> <span class="n">cores</span>
-
-        <span class="k">if</span> <span class="n">cores</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tasks_by_cores</span><span class="p">:</span>
-            <span class="n">tasks_by_cores</span><span class="p">[</span><span class="n">cores</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">tasks_by_cores</span><span class="p">[</span><span class="n">cores</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
-
-        <span class="n">smallest_num_cores</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">smallest_num_cores</span><span class="p">,</span> <span class="n">cores</span><span class="p">)</span>
 
     <span class="n">processes</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">MainToWorkerConnection</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -328,42 +513,36 @@
     <span class="n">tasks_dispatched</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">last_printed_at</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="n">last_printed_tasks</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="n">tasks_by_cores</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">tasks</span><span class="o">.</span><span class="n">have_more_tasks</span><span class="p">():</span>
         <span class="n">cores_in_use</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">proc</span><span class="o">.</span><span class="n">is_ready</span><span class="p">():</span>
                 <span class="n">cores_in_use</span> <span class="o">+=</span> <span class="n">proc</span><span class="o">.</span><span class="n">cores</span>
 
         <span class="n">avail_cores</span> <span class="o">=</span> <span class="n">total_cores</span> <span class="o">-</span> <span class="n">cores_in_use</span>
-        <span class="k">if</span> <span class="n">avail_cores</span> <span class="o">&lt;</span> <span class="n">smallest_num_cores</span><span class="p">:</span>
+        <span class="n">old_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="n">tasks</span><span class="o">.</span><span class="n">get_next_task</span><span class="p">(</span><span class="n">avail_cores</span><span class="p">)</span>
+        <span class="n">ntasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">-</span> <span class="n">old_len</span>
+        <span class="k">if</span> <span class="n">task</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
                 <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">proc</span><span class="o">.</span><span class="n">cores</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">sleep_delay</span> <span class="o">&gt;</span> <span class="mf">0.02</span><span class="p">):</span>
                     <span class="n">proc</span><span class="o">.</span><span class="n">update_sleep_delay</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="p">(</span><span class="n">tasks_dispatched</span> <span class="o">&gt;</span> <span class="n">last_printed_tasks</span>
                     <span class="ow">and</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">last_printed_at</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Dispatched </span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1"> tasks...&#39;</span><span class="p">,</span>
-                             <span class="n">tasks_dispatched</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Dispatched </span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1"> tasks... (currently using </span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span>
+                             <span class="o">+</span> <span class="s1">&#39; cores)&#39;</span><span class="p">,</span> <span class="n">tasks_dispatched</span><span class="p">,</span> <span class="n">ntasks</span><span class="p">,</span>
+                             <span class="n">cores_in_use</span><span class="p">,</span> <span class="n">total_cores</span><span class="p">)</span>
                 <span class="n">last_printed_tasks</span> <span class="o">=</span> <span class="n">tasks_dispatched</span>
                 <span class="n">last_printed_at</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">wait_function</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">old_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+                <span class="n">wait_function</span><span class="p">()</span>
+                <span class="n">ntasks</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">-</span> <span class="n">old_len</span>
             <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
             <span class="k">continue</span>
 
-        <span class="n">cores_to_use</span> <span class="o">=</span> <span class="n">avail_cores</span>
-        <span class="k">while</span> <span class="n">cores_to_use</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tasks_by_cores</span><span class="p">:</span>
-            <span class="n">cores_to_use</span> <span class="o">-=</span> <span class="mi">1</span>
-
-        <span class="n">to_choose_from</span> <span class="o">=</span> <span class="n">tasks_by_cores</span><span class="p">[</span><span class="n">cores_to_use</span><span class="p">]</span>
-        <span class="n">task</span> <span class="o">=</span> <span class="n">to_choose_from</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">to_choose_from</span><span class="p">:</span>
-            <span class="k">del</span> <span class="n">tasks_by_cores</span><span class="p">[</span><span class="n">cores_to_use</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="n">tasks_by_cores</span> <span class="ow">and</span> <span class="n">cores_to_use</span> <span class="o">==</span> <span class="n">smallest_num_cores</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Completed all tasks that require </span><span class="si">%s</span><span class="s1"> core</span><span class="si">%s</span><span class="s1">...&#39;</span><span class="p">,</span>
-                             <span class="n">smallest_num_cores</span><span class="p">,</span>
-                             <span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">smallest_num_cores</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-                <span class="k">while</span> <span class="n">smallest_num_cores</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tasks_by_cores</span><span class="p">:</span>
-                    <span class="n">smallest_num_cores</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">ntasks</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="n">proc_to_use</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
@@ -379,7 +558,7 @@
         <span class="n">proc</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
 
         <span class="n">tasks_dispatched</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">cores_in_use</span> <span class="o">+=</span> <span class="n">cores_to_use</span>
+        <span class="n">cores_in_use</span> <span class="o">+=</span> <span class="n">task</span><span class="o">.</span><span class="n">cores</span> <span class="ow">or</span> <span class="n">total_cores</span>
 
     <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
         <span class="n">proc</span><span class="p">:</span> <span class="n">MainToWorkerConnection</span>

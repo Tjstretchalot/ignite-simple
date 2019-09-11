@@ -152,6 +152,7 @@
 <span class="kn">import</span> <span class="nn">ignite_simple.figure_utils</span> <span class="k">as</span> <span class="nn">futils</span>
 <span class="kn">import</span> <span class="nn">ignite_simple.analarams</span> <span class="k">as</span> <span class="nn">aparams</span>
 <span class="kn">import</span> <span class="nn">ignite_simple.dispatcher</span> <span class="k">as</span> <span class="nn">dispatcher</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.text_analysis</span> <span class="k">as</span> <span class="nn">text_analysis</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">matplotlib.colors</span> <span class="k">as</span> <span class="nn">mcolors</span>
@@ -168,8 +169,51 @@
 <span class="n">REDUCTIONS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;each&#39;</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;mean_with_errorbars&#39;</span><span class="p">,</span> <span class="s1">&#39;mean_with_fillbtwn&#39;</span><span class="p">,</span>
               <span class="s1">&#39;lse&#39;</span><span class="p">)</span>
 
+<span class="k">def</span> <span class="nf">_rawplot_filter</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">images</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This function gives the filter to pass to futils.save_fig for the images</span>
+<span class="sd">    to save. If folder or images is None, this always returns true (i.e.,</span>
+<span class="sd">    this filters nothing). Otherwise, this returns true if an images filepath</span>
+<span class="sd">    relative to the given folder is in images. This assumes that images uses</span>
+<span class="sd">    forward slashes for separators regardless of os.path.sep</span>
+
+<span class="sd">    Example:</span>
+
+<span class="sd">    folder out/</span>
+
+<span class="sd">    images = { john.png, doe/pong.pdf }</span>
+
+<span class="sd">    filter result for out/john.png -&gt; true</span>
+<span class="sd">    filter result for out/john.pdf -&gt; false</span>
+<span class="sd">    filter result for out/pong.pdf -&gt; false</span>
+<span class="sd">    filter result for out/doe/pong.pdf -&gt; true</span>
+<span class="sd">    filter result for john.png -&gt; false</span>
+
+
+<span class="sd">    :param folder: the folder which the images set contains paths relative to,</span>
+<span class="sd">        or None to just return a no-op filter</span>
+<span class="sd">    :type folder: Optional[str]</span>
+<span class="sd">    :param images: the set of images which should be produced or None to return</span>
+<span class="sd">        a no-op filter</span>
+<span class="sd">    :type images: Optional[set[str]]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">folder</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">images</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="kc">True</span>
+
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">filter_</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">img</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">):]</span>
+
+        <span class="n">img</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">images</span>
+
+    <span class="k">return</span> <span class="n">filter_</span>
+
 <span class="k">def</span> <span class="nf">_rawplot</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">xlab</span><span class="p">,</span> <span class="n">ylab</span><span class="p">,</span> <span class="n">x_varname</span><span class="p">,</span> <span class="n">x_slice</span><span class="p">,</span> <span class="n">y_varname</span><span class="p">,</span> <span class="n">y_slice</span><span class="p">,</span>
-             <span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">):</span>
+             <span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">images</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs a single plot of the y-axis vs x-axis by loading the given</span>
 <span class="sd">    numpy file, fetching the arrays by the variable names from the file,</span>
 <span class="sd">    slicing it as specified, and then plotting.</span>
@@ -215,10 +259,17 @@
 
 <span class="sd">            take the logsumexp over the first dimension</span>
 
+<span class="sd">    :param optional[str] folder: the &quot;current&quot; folder or equivalent, which</span>
+<span class="sd">        contains  the hparams and trials folders. Only required if images</span>
+<span class="sd">        is not None</span>
+<span class="sd">    :param optional[set[str]] images: if not None then only images whose</span>
+<span class="sd">        filepath relative to folder will be produced.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span> <span class="k">as</span> <span class="n">nin</span><span class="p">:</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">nin</span><span class="p">[</span><span class="n">x_varname</span><span class="p">][</span><span class="n">x_slice</span><span class="p">]</span>
         <span class="n">ys</span> <span class="o">=</span> <span class="n">nin</span><span class="p">[</span><span class="n">y_varname</span><span class="p">][</span><span class="n">y_slice</span><span class="p">]</span>
+
+    <span class="n">_filter</span> <span class="o">=</span> <span class="n">_rawplot_filter</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">images</span><span class="p">)</span>
 
     <span class="n">new_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ys</span><span class="o">.</span><span class="n">shape</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
@@ -273,7 +324,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;unknown reduction </span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-    <span class="n">futils</span><span class="o">.</span><span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">)</span>
+    <span class="n">futils</span><span class="o">.</span><span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">_filter</span><span class="p">)</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
@@ -284,7 +335,8 @@
     <span class="p">(</span><span class="s1">&#39;smoothed_perf_derivs&#39;</span><span class="p">,</span> <span class="s1">&#39;1/(loss + 1) (Deriv. Sm.)&#39;</span><span class="p">,</span> <span class="s1">&#39;1/(loss+1) deriv.&#39;</span><span class="p">)</span>
 <span class="p">)</span>
 <span class="k">def</span> <span class="nf">_highlight_selected_range</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">rge</span><span class="p">,</span> <span class="n">x_lab_short</span><span class="p">,</span> <span class="n">x_lab_long</span><span class="p">,</span>
-                              <span class="n">y_lab_short</span><span class="p">,</span> <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">):</span>
+                              <span class="n">y_lab_short</span><span class="p">,</span> <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">,</span>
+                              <span class="n">folder</span><span class="p">,</span> <span class="n">images</span><span class="p">):</span>
     <span class="n">stds</span> <span class="o">=</span> <span class="n">ys</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">means</span> <span class="o">=</span> <span class="n">ys</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
@@ -319,29 +371,33 @@
     <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylim</span><span class="p">)</span>
 
     <span class="n">futils</span><span class="o">.</span><span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">futils</span><span class="o">.</span><span class="n">make_vs_title</span><span class="p">(</span><span class="n">x_lab_short</span><span class="p">,</span> <span class="n">y_lab_short</span><span class="p">),</span>
-                    <span class="n">outfile_wo_ext</span><span class="p">)</span>
+                    <span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">_rawplot_filter</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="n">images</span><span class="p">))</span>
 
     <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_highlight_selected_lr_range</span><span class="p">(</span><span class="n">lr_vs_perf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_lab_long</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                                  <span class="n">y_lab_short</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_varname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                                 <span class="n">outfile_wo_ext</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+                                 <span class="n">outfile_wo_ext</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                 <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">images</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">lr_vs_perf</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;lrs&#39;</span><span class="p">]</span>
         <span class="n">ys</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="n">y_varname</span><span class="p">]</span>
         <span class="n">rge</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;lr_range&#39;</span><span class="p">]</span>
     <span class="n">_highlight_selected_range</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">rge</span><span class="p">,</span> <span class="s1">&#39;LR&#39;</span><span class="p">,</span> <span class="s1">&#39;Learning Rate&#39;</span><span class="p">,</span> <span class="n">y_lab_short</span><span class="p">,</span>
-                              <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">)</span>
+                              <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">images</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_highlight_selected_batch_range</span><span class="p">(</span><span class="n">batch_vs_perf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_lab_long</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                                     <span class="n">y_lab_short</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">y_varname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                                    <span class="n">outfile_wo_ext</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+                                    <span class="n">outfile_wo_ext</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                    <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                    <span class="n">images</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">batch_vs_perf</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
         <span class="n">xs</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;bss&#39;</span><span class="p">]</span>
         <span class="n">ys</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="n">y_varname</span><span class="p">]</span>
         <span class="n">rge</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;bs_range&#39;</span><span class="p">]</span>
     <span class="n">_highlight_selected_range</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">rge</span><span class="p">,</span> <span class="s1">&#39;BS&#39;</span><span class="p">,</span> <span class="s1">&#39;Batch Size&#39;</span><span class="p">,</span> <span class="n">y_lab_short</span><span class="p">,</span>
-                              <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">)</span>
+                              <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">images</span><span class="p">)</span>
 
 <span class="k">def</span> <span class="nf">_pca3dvis_model</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">outfolder</span><span class="p">,</span> <span class="n">use_train</span><span class="p">,</span>
                     <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">draft</span><span class="p">):</span>
@@ -508,6 +564,13 @@
     <span class="n">loss_loader</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">fix_imports</span><span class="p">(</span><span class="n">loss_loader</span><span class="p">)</span>
 
     <span class="n">settings</span> <span class="o">=</span> <span class="n">aparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span><span class="n">settings</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">suppress_extra_images</span><span class="p">:</span>
+        <span class="n">imgs_to_produce</span> <span class="o">=</span> <span class="n">text_analysis</span><span class="o">.</span><span class="n">HTML_REFD_IMAGES</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">imgs_to_produce</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">filter_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;analysis&#39;</span><span class="p">)</span>
+    <span class="n">imgs_filter</span> <span class="o">=</span> <span class="n">_rawplot_filter</span><span class="p">(</span><span class="n">filter_folder</span><span class="p">,</span> <span class="n">imgs_to_produce</span><span class="p">)</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -540,7 +603,7 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
                 <span class="n">have_imgs</span> <span class="o">=</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf&#39;</span><span class="p">))</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf&#39;</span><span class="p">),</span> <span class="n">imgs_filter</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">have_imgs</span><span class="p">:</span>
                     <span class="k">continue</span>
 
@@ -557,9 +620,12 @@
                             <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                             <span class="s1">&#39;perfs&#39;</span><span class="p">,</span>
                             <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
-                            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf&#39;</span><span class="p">)</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf&#39;</span><span class="p">),</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                     <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -576,7 +642,10 @@
                             <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_smoothed_perf&#39;</span><span class="p">)</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                     <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -594,7 +663,10 @@
                             <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf_deriv&#39;</span><span class="p">)</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                     <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -613,14 +685,17 @@
                             <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;lr_vs_smoothed_perf_deriv&#39;</span><span class="p">)</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                 <span class="p">])</span>
 
             <span class="k">for</span> <span class="n">reduction</span> <span class="ow">in</span> <span class="n">REDUCTIONS</span><span class="p">:</span>
                 <span class="n">have_imgs</span> <span class="o">=</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
-                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;lr_vs_perf_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">))</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;lr_vs_perf_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">imgs_filter</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">have_imgs</span><span class="p">:</span>
                     <span class="k">continue</span>
 
@@ -641,7 +716,10 @@
                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                             <span class="n">reduction</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                     <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -660,7 +738,10 @@
                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_smoothed_perf_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                             <span class="n">reduction</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                     <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -679,7 +760,10 @@
                             <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_perf_deriv_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                             <span class="n">reduction</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                     <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -701,13 +785,17 @@
                                 <span class="s1">&#39;lr_vs_smoothed_perf_deriv_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                             <span class="n">reduction</span>
                         <span class="p">),</span>
-                        <span class="nb">dict</span><span class="p">(),</span>
+                        <span class="p">{</span>
+                            <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                            <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                        <span class="p">},</span>
                         <span class="mi">1</span>
                     <span class="p">),</span>
                 <span class="p">])</span>
 
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_lse_smoothed_perf_then_deriv&#39;</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_lse_smoothed_perf_then_deriv&#39;</span><span class="p">),</span>
+                    <span class="n">imgs_filter</span><span class="p">):</span>
                 <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
                     <span class="vm">__name__</span><span class="p">,</span>
                     <span class="s1">&#39;_rawplot&#39;</span><span class="p">,</span>
@@ -723,14 +811,17 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;lr_vs_lse_smoothed_perf_then_deriv&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">))</span>
 
             <span class="k">for</span> <span class="n">y_varname</span><span class="p">,</span> <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">y_lab_short</span> <span class="ow">in</span> <span class="n">SELECTED_RANGE_YS</span><span class="p">:</span>
                 <span class="n">outfile_wo_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="n">out_folder</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;lr_range_</span><span class="si">{y_varname}</span><span class="s1">&#39;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span><span class="n">outfile_wo_ext</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span><span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">imgs_filter</span><span class="p">):</span>
                     <span class="k">continue</span>
                 <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
                     <span class="vm">__name__</span><span class="p">,</span>
@@ -742,7 +833,10 @@
                         <span class="n">y_varname</span><span class="p">,</span>
                         <span class="n">outfile_wo_ext</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">))</span>
 
@@ -756,7 +850,7 @@
             <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="n">have_imgs</span> <span class="o">=</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;batch_vs_perf&#39;</span><span class="p">))</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;batch_vs_perf&#39;</span><span class="p">),</span> <span class="n">imgs_filter</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">have_imgs</span><span class="p">:</span>
                 <span class="k">continue</span>
 
@@ -775,7 +869,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;batch_vs_perf&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -793,7 +890,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;batch_vs_smoothed_perf&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -811,7 +911,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;batch_vs_perf_deriv&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -829,7 +932,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">trial</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">real_out</span><span class="p">,</span> <span class="s1">&#39;batch_vs_smoothed_perf_deriv&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
             <span class="p">])</span>
@@ -855,7 +961,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_perf_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -874,7 +983,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_smoothed_perf_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -893,7 +1005,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_perf_deriv_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -912,13 +1027,17 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_smoothed_perf_deriv_&#39;</span> <span class="o">+</span> <span class="n">reduction</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
             <span class="p">])</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                <span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_lse_smoothed_perf_then_deriv&#39;</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_lse_smoothed_perf_then_deriv&#39;</span><span class="p">),</span>
+                <span class="n">imgs_filter</span><span class="p">):</span>
             <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
                 <span class="vm">__name__</span><span class="p">,</span>
                 <span class="s1">&#39;_rawplot&#39;</span><span class="p">,</span>
@@ -934,7 +1053,10 @@
                     <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                     <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_folder</span><span class="p">,</span> <span class="s1">&#39;batch_vs_lse_smoothed_perf_then_deriv&#39;</span><span class="p">)</span>
                 <span class="p">),</span>
-                <span class="nb">dict</span><span class="p">(),</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                    <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                <span class="p">},</span>
                 <span class="mi">1</span>
             <span class="p">))</span>
 
@@ -942,7 +1064,7 @@
         <span class="k">for</span> <span class="n">y_varname</span><span class="p">,</span> <span class="n">y_lab_long</span><span class="p">,</span> <span class="n">y_lab_short</span> <span class="ow">in</span> <span class="n">SELECTED_RANGE_YS</span><span class="p">:</span>
             <span class="n">outfile_wo_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                 <span class="n">out_folder</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;batch_range_</span><span class="si">{y_varname}</span><span class="s1">&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span><span class="n">outfile_wo_ext</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span><span class="n">outfile_wo_ext</span><span class="p">,</span> <span class="n">imgs_filter</span><span class="p">):</span>
                 <span class="k">continue</span>
             <span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
                 <span class="vm">__name__</span><span class="p">,</span>
@@ -954,7 +1076,10 @@
                     <span class="n">y_varname</span><span class="p">,</span>
                     <span class="n">outfile_wo_ext</span>
                 <span class="p">),</span>
-                <span class="nb">dict</span><span class="p">(),</span>
+                <span class="p">{</span>
+                    <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                    <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                <span class="p">},</span>
                 <span class="mi">1</span>
             <span class="p">))</span>
     <span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">training_metric_imgs</span><span class="p">:</span>
@@ -971,7 +1096,7 @@
 
             <span class="n">trial_out</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out_folder</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial</span><span class="p">))</span>
             <span class="n">have_imgs</span> <span class="o">=</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_loss_train&#39;</span><span class="p">))</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_loss_train&#39;</span><span class="p">),</span> <span class="n">imgs_filter</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">have_imgs</span><span class="p">:</span>
                 <span class="k">continue</span>
 
@@ -991,7 +1116,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="s1">&#39;epoch_vs_loss_train&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1008,7 +1136,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="s1">&#39;epoch_vs_loss_val&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1025,7 +1156,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="s1">&#39;epoch_vs_perf_train&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1042,7 +1176,10 @@
                         <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span>
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="s1">&#39;epoch_vs_perf_val&#39;</span><span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
             <span class="p">])</span>
@@ -1051,9 +1188,11 @@
         <span class="n">trial_src</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;throughtimes.npz&#39;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">reduction</span> <span class="ow">in</span> <span class="n">REDUCTIONS</span><span class="p">:</span>
             <span class="n">have_imgs</span> <span class="o">=</span> <span class="n">futils</span><span class="o">.</span><span class="n">fig_exists</span><span class="p">(</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_loss_train_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">))</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_loss_train_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">imgs_filter</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">have_imgs</span><span class="p">:</span>
                 <span class="k">continue</span>
+
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="n">tasks</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1071,7 +1210,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_loss_train_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1089,7 +1231,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_smoothed_loss_train_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1107,7 +1252,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_loss_val_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1125,7 +1273,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_smoothed_loss_val_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1143,7 +1294,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_perf_train_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1161,7 +1315,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_smoothed_perf_train_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1179,7 +1336,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_perf_val_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
                 <span class="n">dispatcher</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
@@ -1197,7 +1357,10 @@
                         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_out</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;epoch_vs_smoothed_perf_val_</span><span class="si">{reduction}</span><span class="s1">&#39;</span><span class="p">),</span>
                         <span class="n">reduction</span>
                     <span class="p">),</span>
-                    <span class="nb">dict</span><span class="p">(),</span>
+                    <span class="p">{</span>
+                        <span class="s1">&#39;folder&#39;</span><span class="p">:</span> <span class="n">filter_folder</span><span class="p">,</span>
+                        <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">imgs_to_produce</span>
+                    <span class="p">},</span>
                     <span class="mi">1</span>
                 <span class="p">),</span>
             <span class="p">])</span>

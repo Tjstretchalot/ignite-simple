@@ -198,7 +198,8 @@
         <span class="n">trials</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">trials</span><span class="p">,</span>
         <span class="n">is_continuation</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">is_continuation</span><span class="p">,</span>
         <span class="n">history_folder</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;history&#39;</span><span class="p">),</span>
-        <span class="n">cores</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cores</span>
+        <span class="n">cores</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cores</span><span class="p">,</span>
+        <span class="n">trials_strict</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">strict_trials</span>
     <span class="p">)</span></div>
 
 <div class="viewcode-block" id="reanalyze"><a class="viewcode-back" href="../../index.html#ignite_simple.helper.reanalyze">[docs]</a><span class="k">def</span> <span class="nf">reanalyze</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
@@ -243,7 +244,7 @@
         <span class="s1">&#39;--trials&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Minimum number of trials to perform&#39;</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s1">&#39;--not_continuation&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_false&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;--not_continuation&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;If specified, trials will be archived if they exist first&#39;</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s1">&#39;--cores&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
@@ -255,6 +256,11 @@
         <span class="s1">&#39;--module&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Which module to load the model, dataset, loss, and &#39;</span>
         <span class="o">+</span> <span class="s1">&#39; accuracy style from&#39;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--strict_trials&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;Instead of using all available resources, just perform the &#39;</span>
+             <span class="o">+</span> <span class="s1">&#39;specified number of trials&#39;</span>
+    <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s1">&#39;--loggercfg&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;logging.conf&#39;</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s1">&#39;The logging configuration file to use should it exist&#39;</span>

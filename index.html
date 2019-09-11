@@ -94,6 +94,9 @@
 <li><a class="reference internal" href="#module-ignite_simple.figure_utils">ignite_simple.figure_utils</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.vary_bs_loader">ignite_simple.vary_bs_loader</a></li>
 <li><a class="reference internal" href="#module-ignite_simple.dispatcher">ignite_simple.dispatcher</a></li>
+<li><a class="reference internal" href="#general-sweeping-module">General Sweeping Module</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.gen_sweep.param_selectors">ignite_simple.gen_sweep.param_selectors</a></li>
+<li><a class="reference internal" href="#module-ignite_simple.gen_sweep.sweeper">ignite_simple.gen_sweep.sweeper</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 </div>
@@ -171,7 +174,7 @@ for the output, and what’s required to produce that output is calculated from
 that.</p>
 <dl class="class">
 <dt id="ignite_simple.analarams.AnalysisSettings">
-<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">AnalysisSettings</code><span class="sig-paren">(</span><em class="sig-param">hparam_selection_specifics: bool</em>, <em class="sig-param">hparam_selection_specific_imgs: bool</em>, <em class="sig-param">training_metric_imgs: bool</em>, <em class="sig-param">typical_run_pca3dvis: bool</em>, <em class="sig-param">typical_run_pca3dvis_draft: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/analarams.html#AnalysisSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.AnalysisSettings" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">AnalysisSettings</code><span class="sig-paren">(</span><em class="sig-param">hparam_selection_specifics: bool</em>, <em class="sig-param">hparam_selection_specific_imgs: bool</em>, <em class="sig-param">training_metric_imgs: bool</em>, <em class="sig-param">suppress_extra_images: bool</em>, <em class="sig-param">typical_run_pca3dvis: bool</em>, <em class="sig-param">typical_run_pca3dvis_draft: bool</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/analarams.html#AnalysisSettings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.AnalysisSettings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Describes the analysis settings. Note that, where relevant and
 equivalent, parallel computations are described as if they were
 performed sequentially.</p>
@@ -188,6 +191,8 @@ as it occurred for this model specifically, False otherwise.</p></li>
 <li><p><strong>training_metric_imgs</strong> (<em>bool</em>) – True if the output should include figures
 with captions for the performance of the model through training, i.e.,
 accuracy vs epoch and loss vs epoch figures.</p></li>
+<li><p><strong>suppress_extra_images</strong> (<em>bool</em>) – Suppresses generating images which are
+not displayed in the html report.</p></li>
 <li><p><strong>typical_run_pca3dvis</strong> (<em>bool</em>) – True if the output should include a video
 from pca3dvis for the points as they moved through the network, False
 otherwise.</p></li>
@@ -258,6 +263,22 @@ AnalysisSettings</p>
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>the images preset for analysis settings, which produces text
 and image output.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.analarams.images_minimum">
+<code class="sig-prename descclassname">ignite_simple.analarams.</code><code class="sig-name descname">images_minimum</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; ignite_simple.analarams.AnalysisSettings<a class="reference internal" href="_modules/ignite_simple/analarams.html#images_minimum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.analarams.images_minimum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analysis output that uses text and images only, and does not produce
+images which do not make it into the text report.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>the images_minimum preset for analysis settings, which produces
+text and enough images for a pretty text output.</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#ignite_simple.analarams.AnalysisSettings" title="ignite_simple.analarams.AnalysisSettings">AnalysisSettings</a></p>
@@ -604,8 +625,8 @@ throughout and allows repeating / printing training sessions trivially.</p>
 <li><p><strong>accuracy_style</strong> (<em>str</em>) – <p>one of the following constants:</p>
 <ul>
 <li><dl class="simple">
-<dt>classification</dt><dd><p>labels are integers which correspond to the class,
-outputs are one-hot encoded classes</p>
+<dt>classification</dt><dd><p>labels are one-hot encoded classes,
+outputs are one-hot encoded classes.</p>
 </dd>
 </dl>
 </li>
@@ -863,6 +884,13 @@ to speed up analysis.</p></li>
 <span id="ignite-simple-text-analysis"></span><h1>ignite_simple.text_analysis<a class="headerlink" href="#module-ignite_simple.text_analysis" title="Permalink to this headline">¶</a></h1>
 <p>Produces the html folder for analysis. This is essentially just copying
 the html/ folder and preprocessing certain ids.</p>
+<dl class="function">
+<dt id="ignite_simple.text_analysis.find_referenced_images">
+<code class="sig-prename descclassname">ignite_simple.text_analysis.</code><code class="sig-name descname">find_referenced_images</code><span class="sig-paren">(</span><em class="sig-param">html</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/text_analysis.html#find_referenced_images"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.text_analysis.find_referenced_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Searches the given html file for images which are referenced in the standard way
+(src attribute on img tag) and returns them as they are written.</p>
+</dd></dl>
+
 <dl class="function">
 <dt id="ignite_simple.text_analysis.text_analyze">
 <code class="sig-prename descclassname">ignite_simple.text_analysis.</code><code class="sig-name descname">text_analyze</code><span class="sig-paren">(</span><em class="sig-param">settings: ignite_simple.analarams.AnalysisSettings</em>, <em class="sig-param">folder: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/text_analysis.html#text_analyze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.text_analysis.text_analyze" title="Permalink to this definition">¶</a></dt>
@@ -1269,12 +1297,16 @@ same size as the rest. should only be used if shuffle is True</p></li>
 <p>Some utility functions related to creating good looking figures.</p>
 <dl class="function">
 <dt id="ignite_simple.figure_utils.fig_exists">
-<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">fig_exists</code><span class="sig-paren">(</span><em class="sig-param">outfile_wo_ext: str</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="_modules/ignite_simple/figure_utils.html#fig_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.fig_exists" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">fig_exists</code><span class="sig-paren">(</span><em class="sig-param">outfile_wo_ext: str</em>, <em class="sig-param">filter_: Optional[Callable] = None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="_modules/ignite_simple/figure_utils.html#fig_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.fig_exists" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns true if the files from save_fig with the given outfile already
 exist.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>outfile_wo_ext</strong> (<em>str</em>) – where we expect the file to have been saved</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>outfile_wo_ext</strong> (<em>str</em>) – where we expect the file to have been saved</p></li>
+<li><p><strong>filter</strong> (<em>Optional</em><em>[</em><em>callable</em><em>]</em>) – an optional callable which accepts images and returns True if they
+are relevant and False if they can be ignored</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>True if the file(s) exists, False otherwise</p>
@@ -1308,7 +1340,7 @@ y-axis variable</p>
 
 <dl class="function">
 <dt id="ignite_simple.figure_utils.save_fig">
-<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">save_fig</code><span class="sig-paren">(</span><em class="sig-param">fig: matplotlib.figure.Figure</em>, <em class="sig-param">ax: matplotlib.axes._axes.Axes</em>, <em class="sig-param">title: str</em>, <em class="sig-param">outfile_wo_ext: str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/figure_utils.html#save_fig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.save_fig" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ignite_simple.figure_utils.</code><code class="sig-name descname">save_fig</code><span class="sig-paren">(</span><em class="sig-param">fig: matplotlib.figure.Figure</em>, <em class="sig-param">ax: matplotlib.axes._axes.Axes</em>, <em class="sig-param">title: str</em>, <em class="sig-param">outfile_wo_ext: str</em>, <em class="sig-param">filter_: Optional[Callable] = None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/figure_utils.html#save_fig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.figure_utils.save_fig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves the given figure with many different commonly used figure sizes,
 resizing labels and titles as appropriate. This technique works only for
 a single axis plot, since for other styles different font sizes would be
@@ -1319,6 +1351,11 @@ appropriate.</p>
 <li><p><strong>fig</strong> (<em>Figure</em>) – The figure to save</p></li>
 <li><p><strong>ax</strong> (<em>Axes</em>) – The axis on the figure</p></li>
 <li><p><strong>title</strong> (<em>str</em>) – The title of the plot</p></li>
+<li><p><strong>outfile_wo_ext</strong> (<em>str</em>) – where to save the figure, omitting the file
+extension (as many files may be saved)</p></li>
+<li><p><strong>filter</strong> (<em>optional</em><em>[</em><em>callable</em><em>]</em>) – if not None, a callable object which
+accepts a string which is a (possibly relative) path to a file which
+will only be saved if the result of filter_ is True.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1408,6 +1445,81 @@ jobs it has to do. The analysis package tends to have many jobs are all fairly
 independent of each other. Things like rq and celery are way over-engineered
 for this task.</p>
 <dl class="class">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">GreedyTaskQueue</code><span class="sig-paren">(</span><em class="sig-param">total_cores: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes a greedy task queue, which prioritizes tasks with the highest
+number of cores.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>total_cores</strong> (<em>int</em>) – if the cores on a task is None, we assume it is
+going to require this many cores.</p></li>
+<li><p><strong>list</strong><strong>[</strong><a class="reference internal" href="#ignite_simple.dispatcher.Task" title="ignite_simple.dispatcher.Task"><strong>Task</strong></a><strong>]</strong><strong>] </strong><strong>tasks_by_core</strong> (<em>dict</em><em>[</em><em>int</em><em>,</em>) – a lookup for remaining tasks,
+where the key is the number of cores the task requires.</p></li>
+<li><p><strong>sorted_keys</strong> (<em>SortedList</em><em>[</em><em>int</em><em>]</em>) – the keys for tasks_by_core in
+ascending order.</p></li>
+<li><p><strong>expecting_more_tasks</strong> (<em>bool</em>) – if True, we expect that add_task will be
+called in the (near) future, hence we always return True from
+have_more_tasks</p></li>
+<li><p><strong>_len</strong> (<em>int</em>) – the length of this queue</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue.add_task">
+<code class="sig-name descname">add_task</code><span class="sig-paren">(</span><em class="sig-param">task: ignite_simple.dispatcher.Task</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue.add_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue.add_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds the given task to this queue.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue.add_tasks">
+<code class="sig-name descname">add_tasks</code><span class="sig-paren">(</span><em class="sig-param">tasks: Iterable[ignite_simple.dispatcher.Task]</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue.add_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue.add_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds all the specified tasks to this queue.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue.flatten">
+<code class="sig-name descname">flatten</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[ignite_simple.dispatcher.Task]<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue.flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue.flatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns this task queue as a list of tasks.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue.get_next_task">
+<code class="sig-name descname">get_next_task</code><span class="sig-paren">(</span><em class="sig-param">cores: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue.get_next_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue.get_next_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the next task to perform given that there are the specified
+number of cores available. The resulting Task should require fewer
+than the number of cores available. May return None if there are
+no tasks which meet the requirements to do.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cores</strong> (<em>int</em>) – the number of cores available</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the task to start work on, None if no task available yet</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>typing.Optional[<a class="reference internal" href="#ignite_simple.dispatcher.Task" title="ignite_simple.dispatcher.Task">Task</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue.have_more_tasks">
+<code class="sig-name descname">have_more_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue.have_more_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue.have_more_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if there is at least one more task to do, and returns
+False if there are no more tasks to do</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.GreedyTaskQueue.set_total_cores">
+<code class="sig-name descname">set_total_cores</code><span class="sig-paren">(</span><em class="sig-param">total_cores</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#GreedyTaskQueue.set_total_cores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.GreedyTaskQueue.set_total_cores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clips the maximum number of cores that each task requires to not
+exceed total_cores.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="ignite_simple.dispatcher.MainToWorkerConnection">
 <em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">MainToWorkerConnection</code><span class="sig-paren">(</span><em class="sig-param">proc: multiprocessing.context.Process</em>, <em class="sig-param">jobq: pympanim.zeromqqueue.ZeroMQQueue</em>, <em class="sig-param">ackq: pympanim.zeromqqueue.ZeroMQQueue</em>, <em class="sig-param">sleep_delay: float</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#MainToWorkerConnection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.MainToWorkerConnection" title="Permalink to this definition">¶</a></dt>
 <dd><p>Describes a connection from the main process to the worker process</p>
@@ -1422,6 +1534,9 @@ notifications through</p></li>
 <li><p><strong>cores</strong> (<em>optional</em><em>[</em><em>int</em><em>]</em>) – the number of cores that this worker is
 currently using, or None if the worker is not doing anything right
 now</p></li>
+<li><p><strong>callback</strong> (<em>optional</em><em>[</em><em>callable</em><em>]</em>) – a callback function which will be
+invoked when the current task completes, or None if there is no
+current task or no callback registered</p></li>
 <li><p><strong>sleep_delay</strong> (<em>float</em>) – the current sleep delay for this worker</p></li>
 </ul>
 </dd>
@@ -1459,7 +1574,7 @@ now</p></li>
 
 <dl class="class">
 <dt id="ignite_simple.dispatcher.Task">
-<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">Task</code><span class="sig-paren">(</span><em class="sig-param">module: str, attrname: str, args: tuple, kwargs: dict, cores: Optional[int]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.Task" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">Task</code><span class="sig-paren">(</span><em class="sig-param">module: str, attrname: str, args: tuple, kwargs: dict, cores: Optional[int], callback: Optional[Callable] = None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#Task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.Task" title="Permalink to this definition">¶</a></dt>
 <dd><p>A description of a task.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Variables</dt>
@@ -1470,28 +1585,613 @@ now</p></li>
 <li><p><strong>kwargs</strong> (<em>dict</em>) – the keyword arguments to pass to the callable</p></li>
 <li><p><strong>cores</strong> (<em>optional</em><em>[</em><em>int</em><em>]</em>) – the number of cores this task will use, None
 for all cores</p></li>
+<li><p><strong>callback</strong> (<em>optional</em><em>[</em><em>callable</em><em>]</em>) – an optional callback for when this task
+completes, not sent over. The callback is invoked on the main thread</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
+<dl class="class">
+<dt id="ignite_simple.dispatcher.TaskQueue">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">TaskQueue</code><a class="reference internal" href="_modules/ignite_simple/dispatcher.html#TaskQueue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.TaskQueue" title="Permalink to this definition">¶</a></dt>
+<dd><p>An interface for something which is capable of returning the next
+task to perform based on the number of available cores.</p>
+<dl class="method">
+<dt id="ignite_simple.dispatcher.TaskQueue.get_next_task">
+<code class="sig-name descname">get_next_task</code><span class="sig-paren">(</span><em class="sig-param">cores: int</em><span class="sig-paren">)</span> &#x2192; Optional[ignite_simple.dispatcher.Task]<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#TaskQueue.get_next_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.TaskQueue.get_next_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the next task to perform given that there are the specified
+number of cores available. The resulting Task should require fewer
+than the number of cores available. May return None if there are
+no tasks which meet the requirements to do.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cores</strong> (<em>int</em>) – the number of cores available</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the task to start work on, None if no task available yet</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>typing.Optional[<a class="reference internal" href="#ignite_simple.dispatcher.Task" title="ignite_simple.dispatcher.Task">Task</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.TaskQueue.have_more_tasks">
+<code class="sig-name descname">have_more_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#TaskQueue.have_more_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.TaskQueue.have_more_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if there is at least one more task to do, and returns
+False if there are no more tasks to do</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.dispatcher.TaskQueue.set_total_cores">
+<code class="sig-name descname">set_total_cores</code><span class="sig-paren">(</span><em class="sig-param">total_cores: int</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#TaskQueue.set_total_cores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.TaskQueue.set_total_cores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clips the maximum number of cores that each task requires to not
+exceed total_cores.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="ignite_simple.dispatcher.dispatch">
-<code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">dispatch</code><span class="sig-paren">(</span><em class="sig-param">tasks: Tuple[ignite_simple.dispatcher.Task], total_cores: int, suggested_imports: Tuple[str] = ()</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#dispatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.dispatch" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ignite_simple.dispatcher.</code><code class="sig-name descname">dispatch</code><span class="sig-paren">(</span><em class="sig-param">tasks: Union[ignite_simple.dispatcher.TaskQueue, Iterable[ignite_simple.dispatcher.Task]], total_cores: int, suggested_imports: Tuple[str] = (), wait_function: Callable = None</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/dispatcher.html#dispatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.dispatcher.dispatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Dispatches the given tasks using greedy selection such that no more
 than the specified number of cores are in use at once, where possible
 to do so. This uses a greedy selection of tasks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tasks</strong> – an iterable of tasks to dispatch</p></li>
+<li><p><strong>tasks</strong> – an iterable of tasks to dispatch, or a task queue. May be
+modified, but the logging may be incorrect if modified outside of
+the wait function.</p></li>
 <li><p><strong>total_cores</strong> – the target number of cores to use at once</p></li>
 <li><p><strong>suggested_imports</strong> – things which are imported in each worker process
 during the spawning phase, which causes jobs to be processed more
 smoothly.</p></li>
+<li><p><strong>wait_function</strong> – if not None, this will be invoked when the dispatcher
+is idling. Expected to be fairly fast, and it is safe to modify tasks
+within this call.</p></li>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+</div>
+<div class="section" id="general-sweeping-module">
+<h1>General Sweeping Module<a class="headerlink" href="#general-sweeping-module" title="Permalink to this headline">¶</a></h1>
+</div>
+<div class="section" id="module-ignite_simple.gen_sweep.param_selectors">
+<span id="ignite-simple-gen-sweep-param-selectors"></span><h1>ignite_simple.gen_sweep.param_selectors<a class="headerlink" href="#module-ignite_simple.gen_sweep.param_selectors" title="Permalink to this headline">¶</a></h1>
+<p>Contains the interface and some implementations for how parameters are
+selected for a particular point. Method selection techniques which do not
+depend on the results of previous points are more easily parallelizable.</p>
+<dl class="class">
+<dt id="ignite_simple.gen_sweep.param_selectors.FixedSweep">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.gen_sweep.param_selectors.</code><code class="sig-name descname">FixedSweep</code><span class="sig-paren">(</span><em class="sig-param">gnt_results: tuple</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#FixedSweep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.FixedSweep" title="Permalink to this definition">¶</a></dt>
+<dd><p>A sweep which has a fixed order of results from get_next_trials.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gnt_results</strong> (<em>tuple</em>) – the results for get_next_trials in the order
+they should appear</p></li>
+<li><p><strong>gnt_results_index</strong> (<em>int</em>) – the index in gnt_results for the next
+invocation of get_next_trials.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.FixedSweep.get_next_trials">
+<code class="sig-name descname">get_next_trials</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#FixedSweep.get_next_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.FixedSweep.get_next_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the next set of trials to perform. The result will be a tuple
+of two elements - the values (a tuple) and the number of trials to
+perform. This may return the same values multiple times, although
+it may improve performance to batch trials of the same values
+together.</p>
+<p>This may return None only if the ParamSelector is waiting on the result
+of previous trials before it will continue. After returning None, this
+function will be invoked after the next on_trials_completed or
+on_hparams_found call. It may return None multiple times in a row if
+there were multiple function calls which it’s waiting for.</p>
+<p>Note it should return None, not (None, None)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A tuple of 2 elements, the first being a tuple of the values
+for the parameters and the second being a nonnegative int for the
+number of trials to perform. If the int is 0, the hparams will be
+found if they haven’t already but no trials will be performed.
+If the result is None, see above.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>typing.Optional[tuple]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.FixedSweep.has_more_trials">
+<code class="sig-name descname">has_more_trials</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#FixedSweep.has_more_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.FixedSweep.has_more_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines if this param selector will ever want to perform more
+trials. If False, the sweeper will stop calling get_next_trials and
+this must return False at least until the sweep completes. If
+get_next_trials should continue to be called this should return True.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.FixedSweep.with_fixed_trials">
+<em class="property">classmethod </em><code class="sig-name descname">with_fixed_trials</code><span class="sig-paren">(</span><em class="sig-param">pts: Iterable[tuple], trials: int</em><span class="sig-paren">)</span> &#x2192; ignite_simple.gen_sweep.param_selectors.FixedSweep<a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#FixedSweep.with_fixed_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.FixedSweep.with_fixed_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>For each of the given points, perform precisely the specified
+number of trials.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pts</strong> (<em>iterable</em><em>[</em><em>tuple</em><em>]</em>) – the points to test</p></li>
+<li><p><strong>trials</strong> (<em>int</em>) – the numebr of trials to perform at each point</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the corresponding parameter selector</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ignite_simple.gen_sweep.param_selectors.FixedSweep" title="ignite_simple.gen_sweep.param_selectors.FixedSweep">FixedSweep</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.FixedSweep.with_random_trials">
+<em class="property">classmethod </em><code class="sig-name descname">with_random_trials</code><span class="sig-paren">(</span><em class="sig-param">ranges: Tuple[Union[int, set, tuple]], points: int, trials: int, r_eps: float = 0.01</em><span class="sig-paren">)</span> &#x2192; ignite_simple.gen_sweep.param_selectors.FixedSweep<a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#FixedSweep.with_random_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.FixedSweep.with_random_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>For each parameter, ranges contains the valid values for that
+parameter. If the range is an int, it is assumed to be the arange
+for that int + 1. If it is a set, it contains the valid values for
+that parameter. If it’s a tuple, it should contain two elements, the
+min and the max, where both are integers if the values can only be
+integers and either is a float if the values can be floats.</p>
+<p>Ranges are inclusive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ranges</strong> (<em>typing.Union</em><em>[</em><em>int</em><em>, </em><em>set</em><em>, </em><em>tuple</em><em>]</em>) – the possible values for each parameter, one set of
+possible values per parameter.</p></li>
+<li><p><strong>points</strong> (<em>int</em>) – the number of unique points to select</p></li>
+<li><p><strong>trials</strong> (<em>int</em>) – the number of trials per point</p></li>
+<li><p><strong>r_eps</strong> – Only used if one of the ranges is specified as an
+interval (i.e., not a set). Points which would be within
+(r_eps*interval_width) of each other are rejected during sampling.
+Should be less than 1/(2 * trials) for the randomness to be
+meaningfully different from grid. If too large an error may be
+thrown as not enough trials could be found that weren’t
+rejected.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite_simple.gen_sweep.param_selectors.ParamSelector">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.gen_sweep.param_selectors.</code><code class="sig-name descname">ParamSelector</code><a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#ParamSelector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.ParamSelector" title="Permalink to this definition">¶</a></dt>
+<dd><p>The interface for a class which is capable of selecting what values
+for a given known set of parameters should have models initialized
+and compared.</p>
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.ParamSelector.get_next_trials">
+<code class="sig-name descname">get_next_trials</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Optional[tuple]<a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#ParamSelector.get_next_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.ParamSelector.get_next_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the next set of trials to perform. The result will be a tuple
+of two elements - the values (a tuple) and the number of trials to
+perform. This may return the same values multiple times, although
+it may improve performance to batch trials of the same values
+together.</p>
+<p>This may return None only if the ParamSelector is waiting on the result
+of previous trials before it will continue. After returning None, this
+function will be invoked after the next on_trials_completed or
+on_hparams_found call. It may return None multiple times in a row if
+there were multiple function calls which it’s waiting for.</p>
+<p>Note it should return None, not (None, None)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A tuple of 2 elements, the first being a tuple of the values
+for the parameters and the second being a nonnegative int for the
+number of trials to perform. If the int is 0, the hparams will be
+found if they haven’t already but no trials will be performed.
+If the result is None, see above.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>typing.Optional[tuple]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.ParamSelector.has_more_trials">
+<code class="sig-name descname">has_more_trials</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#ParamSelector.has_more_trials"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.ParamSelector.has_more_trials" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines if this param selector will ever want to perform more
+trials. If False, the sweeper will stop calling get_next_trials and
+this must return False at least until the sweep completes. If
+get_next_trials should continue to be called this should return True.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite_simple.gen_sweep.param_selectors.SweepListener">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.gen_sweep.param_selectors.</code><code class="sig-name descname">SweepListener</code><a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#SweepListener"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.SweepListener" title="Permalink to this definition">¶</a></dt>
+<dd><p>An interface for something which is listening for the result of a
+sweep.</p>
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.SweepListener.on_hparams_found">
+<code class="sig-name descname">on_hparams_found</code><span class="sig-paren">(</span><em class="sig-param">values: tuple</em>, <em class="sig-param">lr_min: float</em>, <em class="sig-param">lr_max: float</em>, <em class="sig-param">batch_size: int</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#SweepListener.on_hparams_found"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.SweepListener.on_hparams_found" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called when the parameter sweep has found the appropriate hyper
+parameters for the given set of main parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>tuple</em>) – each element corresponds to the value of the
+corresponding parameter. For example, if the parameters list
+is actuallly “nonlinearity”, “hidden size” then values might
+be “Tanh”, 128</p></li>
+<li><p><strong>lr_min</strong> (<em>float</em>) – the best value for the minimum for the learning
+rate during one oscillation of learning rate</p></li>
+<li><p><strong>lr_max</strong> (<em>float</em>) – the best value for the maximum for the learning
+rate during one oscillation of learning rate</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – the best batch size to use</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.param_selectors.SweepListener.on_trials_completed">
+<code class="sig-name descname">on_trials_completed</code><span class="sig-paren">(</span><em class="sig-param">values: tuple</em>, <em class="sig-param">perfs_train: numpy.ndarray</em>, <em class="sig-param">losses_train: numpy.ndarray</em>, <em class="sig-param">perfs_val: numpy.ndarray</em>, <em class="sig-param">losses_val: numpy.ndarray</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/param_selectors.html#SweepListener.on_trials_completed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.param_selectors.SweepListener.on_trials_completed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invoked when we perform some trials. This could be called multiple
+times of the same point at the decision of the sweeper, but each
+trial will only be sent to this function once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>tuple</em>) – the values for each parameter in order</p></li>
+<li><p><strong>perfs_train</strong> (<em>np.ndarray</em>) – the final performance for each trial
+performed, so has shape (trials,), on the training dataset</p></li>
+<li><p><strong>losses_train</strong> (<em>np.ndarray</em>) – the final loss for each trial
+performed, so has shape (trials,), on the training dataset</p></li>
+<li><p><strong>perfs_val</strong> (<em>np.ndarray</em>) – the final performance for each trial
+performed, so has shape (trials,), on the validation dataset</p></li>
+<li><p><strong>losses_val</strong> (<em>np.ndarray</em>) – the final loss for each trial
+performed, so has shape (trials,), on the validation dataset</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ignite_simple.gen_sweep.sweeper">
+<span id="ignite-simple-gen-sweep-sweeper"></span><h1>ignite_simple.gen_sweep.sweeper<a class="headerlink" href="#module-ignite_simple.gen_sweep.sweeper" title="Permalink to this headline">¶</a></h1>
+<p>Handles performing the model parameter sweep.</p>
+<dl class="class">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTask">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.gen_sweep.sweeper.</code><code class="sig-name descname">ParamsTask</code><span class="sig-paren">(</span><em class="sig-param">params: tuple</em>, <em class="sig-param">trials: int</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Describes a task to call model_manager.train for a particular set of
+model parameters. This isn’t actually a disp.Task, although it can be
+converted to one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> (<em>tuple</em>) – the parameters. this is the instance variable used
+for equality checks.</p></li>
+<li><p><strong>trials</strong> (<em>int</em>) – the number of trials to perform.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTask.as_task">
+<code class="sig-name descname">as_task</code><span class="sig-paren">(</span><em class="sig-param">module_name: str, hparams: ignite_simple.hyperparams.HyperparameterSettings, folder: str, iden: int, trials: int, sweep_cores: int, listeners: Iterable[ignite_simple.gen_sweep.param_selectors.SweepListener], ntrials_disp: int</em><span class="sig-paren">)</span> &#x2192; ignite_simple.dispatcher.Task<a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTask.as_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTask.as_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the task object which performs the specified number of
+trials with this tasks parameters, assuming that the directory
+structure is as follows:</p>
+<dl class="simple">
+<dt>folder/points/</dt><dd><dl class="simple">
+<dt>&lt;id&gt;/</dt><dd><p>&lt;result from model manager&gt;</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>This function assumes that we always perform the hparam sweep in a
+separate call to the trial sweep for the purposes of handling the
+listeners.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.gen_sweep.sweeper.</code><code class="sig-name descname">ParamsTaskQueue</code><span class="sig-paren">(</span><em class="sig-param">total_cores: int, sweep_cores: int, module: str, hparams: ignite_simple.hyperparams.HyperparameterSettings, folder: str, listeners: List[ignite_simple.gen_sweep.param_selectors.SweepListener]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue" title="Permalink to this definition">¶</a></dt>
+<dd><p>This task queue acts like a greedy task queue, except it only works for
+tasks which amount to calling model_manager.train for a particular set of
+models.</p>
+<p>The process for selecting tasks is as follows:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>If we have a hparameter sweep queued and we have enough cores to do
+one, do that.</p></li>
+<li><p>Perform as many trials as possible. Note we can only perform trials
+on parameters we already know the hyperparameters for</p></li>
+</ul>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>total_cores</strong> (<em>int</em>) – the number of physical cores that are available</p></li>
+<li><p><strong>sweep_cores</strong> (<em>int</em>) – the number of cores to use for sweeping (not greater
+than the number of total cores)</p></li>
+<li><p><strong>module</strong> (<em>str</em>) – the module which we are getting the model/dataset/etc</p></li>
+<li><p><strong>hparams</strong> (<a class="reference internal" href="#ignite_simple.hyperparams.HyperparameterSettings" title="ignite_simple.hyperparams.HyperparameterSettings"><em>HyperparameterSettings</em></a>) – strategy for hyperparameters</p></li>
+<li><p><strong>folder</strong> (<em>str</em>) – the folder containing the points folder</p></li>
+<li><p><strong>listeners</strong> (<em>list</em><em>[</em><a class="reference internal" href="#ignite_simple.gen_sweep.param_selectors.SweepListener" title="ignite_simple.gen_sweep.param_selectors.SweepListener"><em>SweepListener</em></a><em>]</em>) – the sweep listeners. contains self.</p></li>
+<li><p><strong>in_progress</strong> (<em>set</em><em>[</em><em>tuple</em><em>]</em>) – parameters which are currently in progress.</p></li>
+<li><p><strong>sweeps</strong> (<em>list</em><em>[</em><a class="reference internal" href="#ignite_simple.gen_sweep.sweeper.ParamsTask" title="ignite_simple.gen_sweep.sweeper.ParamsTask"><em>ParamsTask</em></a><em>]</em>) – the sweeps that need to be performed in an
+arbitrary order</p></li>
+<li><p><strong>int</strong><strong>] </strong><strong>params_to_sweeps_ind</strong> (<em>dict</em><em>[</em><em>tuple</em><em>,</em>) – a lookup that goes from the
+parameters of tasks to the index in sweeps if a sweep is still
+necessary.</p></li>
+<li><p><strong>trials</strong> (<em>SortedList</em><em>[</em><a class="reference internal" href="#ignite_simple.gen_sweep.sweeper.ParamsTask" title="ignite_simple.gen_sweep.sweeper.ParamsTask"><em>ParamsTask</em></a><em>]</em>) – the trials that need to be performed,
+in ascending order of the number of trials.</p></li>
+<li><p><strong>int</strong><strong>] </strong><strong>params_to_id</strong> (<em>dict</em><em>[</em><em>tuple</em><em>,</em>) – dictionary which converts a given
+set of parameters to the corresponding unique identifier for that set
+of parameters.</p></li>
+<li><p><strong>int</strong><strong>] </strong><strong>params_to_ntrials</strong> (<em>dict</em><em>[</em><em>tuple</em><em>,</em>) – dictionary which converts a
+given set of parameters to the corresponding number of trials that have
+been dispatched for those parameters</p></li>
+<li><p><strong>next_id</strong> (<em>int</em>) – the next id that should be given out to a set of
+parameters and then incremented.</p></li>
+<li><p><a class="reference internal" href="#ignite_simple.gen_sweep.sweeper.ParamsTask" title="ignite_simple.gen_sweep.sweeper.ParamsTask"><strong>ParamsTask</strong></a><strong>] </strong><strong>params_to_task</strong> (<em>dict</em><em>[</em><em>tuple</em><em>,</em>) – a lookup that goes from
+params lists to param tasks, where this only contains tasks which have
+not yet been dispatched, and does not include tasks which are in sweeps</p></li>
+<li><p><strong>_len</strong> (<em>int</em>) – number of actual tasks currently in queue</p></li>
+<li><p><strong>expecting_more_trials</strong> (<em>bool</em>) – True to prevent saying we are out of
+trials, False otherwise</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.add_task_by_params">
+<code class="sig-name descname">add_task_by_params</code><span class="sig-paren">(</span><em class="sig-param">params: tuple</em>, <em class="sig-param">trials: int</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue.add_task_by_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.add_task_by_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a task to this queue based on the parameters which should
+be swept and the number of trials to perform. Regardless of the
+value for trials, this will ensure that the hyperparameters for
+the given model parameters have been found.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.get_next_task">
+<code class="sig-name descname">get_next_task</code><span class="sig-paren">(</span><em class="sig-param">cores</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue.get_next_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.get_next_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the next task to perform given that there are the specified
+number of cores available. The resulting Task should require fewer
+than the number of cores available. May return None if there are
+no tasks which meet the requirements to do.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>cores</strong> (<em>int</em>) – the number of cores available</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the task to start work on, None if no task available yet</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>typing.Optional[<a class="reference internal" href="#ignite_simple.dispatcher.Task" title="ignite_simple.dispatcher.Task">Task</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.have_more_tasks">
+<code class="sig-name descname">have_more_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue.have_more_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.have_more_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if there is at least one more task to do, and returns
+False if there are no more tasks to do</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.on_hparams_found">
+<code class="sig-name descname">on_hparams_found</code><span class="sig-paren">(</span><em class="sig-param">values</em>, <em class="sig-param">lr_min</em>, <em class="sig-param">lr_max</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue.on_hparams_found"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.on_hparams_found" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called when the parameter sweep has found the appropriate hyper
+parameters for the given set of main parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>tuple</em>) – each element corresponds to the value of the
+corresponding parameter. For example, if the parameters list
+is actuallly “nonlinearity”, “hidden size” then values might
+be “Tanh”, 128</p></li>
+<li><p><strong>lr_min</strong> (<em>float</em>) – the best value for the minimum for the learning
+rate during one oscillation of learning rate</p></li>
+<li><p><strong>lr_max</strong> (<em>float</em>) – the best value for the maximum for the learning
+rate during one oscillation of learning rate</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – the best batch size to use</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.on_trials_completed">
+<code class="sig-name descname">on_trials_completed</code><span class="sig-paren">(</span><em class="sig-param">values</em>, <em class="sig-param">perfs_train</em>, <em class="sig-param">losses_train</em>, <em class="sig-param">perfs_val</em>, <em class="sig-param">losses_val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue.on_trials_completed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.on_trials_completed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Invoked when we perform some trials. This could be called multiple
+times of the same point at the decision of the sweeper, but each
+trial will only be sent to this function once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>tuple</em>) – the values for each parameter in order</p></li>
+<li><p><strong>perfs_train</strong> (<em>np.ndarray</em>) – the final performance for each trial
+performed, so has shape (trials,), on the training dataset</p></li>
+<li><p><strong>losses_train</strong> (<em>np.ndarray</em>) – the final loss for each trial
+performed, so has shape (trials,), on the training dataset</p></li>
+<li><p><strong>perfs_val</strong> (<em>np.ndarray</em>) – the final performance for each trial
+performed, so has shape (trials,), on the validation dataset</p></li>
+<li><p><strong>losses_val</strong> (<em>np.ndarray</em>) – the final loss for each trial
+performed, so has shape (trials,), on the validation dataset</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.set_total_cores">
+<code class="sig-name descname">set_total_cores</code><span class="sig-paren">(</span><em class="sig-param">total_cores</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#ParamsTaskQueue.set_total_cores"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.set_total_cores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clips the maximum number of cores that each task requires to not
+exceed total_cores.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="ignite_simple.gen_sweep.sweeper.Sweeper">
+<em class="property">class </em><code class="sig-prename descclassname">ignite_simple.gen_sweep.sweeper.</code><code class="sig-name descname">Sweeper</code><span class="sig-paren">(</span><em class="sig-param">module_name: str</em>, <em class="sig-param">param_selector: ignite_simple.gen_sweep.param_selectors.ParamSelector</em>, <em class="sig-param">tasks: ignite_simple.gen_sweep.sweeper.ParamsTaskQueue</em>, <em class="sig-param">sweep_cores: int</em>, <em class="sig-param">folder: str</em>, <em class="sig-param">hparams: ignite_simple.hyperparams.HyperparameterSettings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#Sweeper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.Sweeper" title="Permalink to this definition">¶</a></dt>
+<dd><p>The instance of the class which performs all the individual operations
+required for sweeping over an arbitrary number of architectural
+parameters. Everything within this class occurs on the main thread.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module_name</strong> – the module which contains the model, dataset, loss,
+and accuracy style. The model function has N parameters, where
+N is the number of parameters the param selector gives us.</p></li>
+<li><p><strong>param_selector</strong> (<a class="reference internal" href="#ignite_simple.gen_sweep.param_selectors.ParamSelector" title="ignite_simple.gen_sweep.param_selectors.ParamSelector"><em>ParamSelector</em></a>) – the object which selects which
+combination of parameters to test</p></li>
+<li><p><strong>tasks</strong> (<a class="reference internal" href="#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue" title="ignite_simple.gen_sweep.sweeper.ParamsTaskQueue"><em>ParamsTaskQueue</em></a>) – the tasks that we know we are ready to
+perform. These are being immediately dispatched to other threads
+according to the number of cores required.</p></li>
+<li><p><strong>sweep_cores</strong> (<em>int</em>) – the number of actual physical cores that we assign
+to sweeping. Note that this differs from the argument to sweep.</p></li>
+<li><p><strong>folder</strong> (<em>str</em>) – the path to the folder we are saving things in.
+we actually store stuff at folder/points for the most part.</p></li>
+<li><p><strong>hparams</strong> (<a class="reference internal" href="#ignite_simple.hyperparams.HyperparameterSettings" title="ignite_simple.hyperparams.HyperparameterSettings"><em>HyperparameterSettings</em></a>) – the hyperparameter settings used for
+hyperparameter tuning.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.Sweeper.add_tasks">
+<code class="sig-name descname">add_tasks</code><span class="sig-paren">(</span><em class="sig-param">limit=100</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#Sweeper.add_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.Sweeper.add_tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds as many tasks to the TaskQueue as the parameter selector will
+provide, without causing the tasks list to exceed the given limit. This
+will also update tasks.expecting_more_tasks.</p>
+<p>This must ensure that we don’t enqueue multiple tasks which have the
+same hyperparameters, however we can update tasks to add more trials.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.Sweeper.collate_files">
+<code class="sig-name descname">collate_files</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#Sweeper.collate_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.Sweeper.collate_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collates the information found in each of the sweeps into locations
+which are more readily accessible. This only requires that the folder
+is set correctly and store_params_lookup has been called.</p>
+<p>Produces the following files:</p>
+<dl>
+<dt>folder/points/</dt><dd><dl>
+<dt>funcres.pt</dt><dd><p>Contains a pickled list of tuples of the following form:</p>
+<dl class="simple">
+<dt>(params, min lr, max lr, bs, perfs_train, losses_train,</dt><dd><p>perfs_val, losses_val)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="ignite_simple.gen_sweep.sweeper.Sweeper.store_params_lookup">
+<code class="sig-name descname">store_params_lookup</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#Sweeper.store_params_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.Sweeper.store_params_lookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stores the parameters that corresponded to each of the arbitrarily
+named folders in folder/points. This only works when we just swept
+and hence the details are still in memory.</p>
+<p>Produces the following files:</p>
+<dl class="simple">
+<dt>folder/points/</dt><dd><dl class="simple">
+<dt>params_lookup.pt</dt><dd><p>Contains a pickled tuple of two dictionaries. The first
+dictionary goes form parameter tuples to corresponding ids
+(names of folders). The second goes from ids to parameter
+tuples.</p>
+</dd>
+<dt>params.csv</dt><dd><p>A human-readable variant of params_lookup. A CSV file where
+the rows are &lt;id&gt;,&lt;params&gt;. Each individual parameter is given
+its own column. The first row is used for descriptions and
+should be skipped when parsing.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="ignite_simple.gen_sweep.sweeper.sweep">
+<code class="sig-prename descclassname">ignite_simple.gen_sweep.sweeper.</code><code class="sig-name descname">sweep</code><span class="sig-paren">(</span><em class="sig-param">module_name: str, param_selector: ignite_simple.gen_sweep.param_selectors.ParamSelector, sweep_cores: int, hparams: Union[str, ignite_simple.hyperparams.HyperparameterSettings], folder: str</em><span class="sig-paren">)</span> &#x2192; list<a class="reference internal" href="_modules/ignite_simple/gen_sweep/sweeper.html#sweep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ignite_simple.gen_sweep.sweeper.sweep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the given architectural parameter search on the problem defined
+in the given module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>module_name</strong> (<em>str</em>) – the path to the module which contains the
+model / dataset / loss / accuracy style, where the model accepts
+the parameters which are being swept (one argument per parameter).</p></li>
+<li><p><strong>param_selector</strong> (<a class="reference internal" href="#ignite_simple.gen_sweep.param_selectors.ParamSelector" title="ignite_simple.gen_sweep.param_selectors.ParamSelector"><em>ParamSelector</em></a>) – what decides what parameters to be
+sent. Note that this is structured so it can utilize partial sweeps
+to inform further search, although the best performance requires
+that it can give more than one trial at a time.</p></li>
+<li><p><strong>sweep_cores</strong> (<em>int</em>) – <p>the number of cores that are used for sweeping
+parameters. This is important both for being able to replicate the
+results of the sweep and in terms of performance. If this number
+exceeds the number of physical cores, it will be simulated in a way
+that correctly utilizes the available resources.</p>
+<p>A higher number of sweep cores gives more accurate and consistent
+hyperparameters, which is essential for meaningful comparisons
+between architectures. 4 is a reasonable starting place.</p>
+</p></li>
+<li><p><strong>hparams</strong> (<a class="reference internal" href="#ignite_simple.hyperparams.HyperparameterSettings" title="ignite_simple.hyperparams.HyperparameterSettings"><em>HyperparameterSettings</em></a>) – either the hyperparameter settings
+to use or a name of a preset (‘fastest’, ‘fast’, ‘slow’, ‘slowest’)
+that is used for sweeping hyperparameters. This value will be modified
+to ensure we are simulating sweep_cores correctly if necessary.</p></li>
+<li><p><strong>folder</strong> (<em>str</em>) – <p>where to save the output to. the main output that
+one will typically want to use is</p>
+<dl class="simple">
+<dt>folder/points/</dt><dd><dl class="simple">
+<dt>funcres.pt: contains a list of tuples where each tuple is</dt><dd><p>of the form (params, lr_min, lr_max, bs, perf_train,
+loss_train, perf_val, loss_val). The performance and
+loss are expressed as an array with one element per
+trial.</p>
+</dd>
+<dt>params_lookup.pt: contains a tuple of two dictionaries,</dt><dd><p>where the first is params_to_ids and goes from a
+tuple of parameters to the corresponding name of
+the folder in folder/points which is the result
+of the model_manager train, and the second has
+the keys/values swapped (ids to params).</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+<p>This returns the unpickled content in folder/points/funcres.pt, which is
+a list of tuples of the form</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>
+<span class="n">lr_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="n">lr_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="n">bs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="n">perf_train</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="c1">#  (shape=(trials,)),</span>
+<span class="n">loss_train</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="c1">#  (shape=(trials,)),</span>
+<span class="n">perf_val</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="c1">#  (shape=(trials,)),</span>
+<span class="n">loss_val</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="c1">#  (shape=(trials,))</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>As is typical, loss is non-negative and lower is better. Performance is
+between 0 and 1 and higher is better.</p>
 </dd></dl>
 
 </div>

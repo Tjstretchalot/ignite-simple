@@ -196,13 +196,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_rn_min_inits</span> <span class="o">=</span> <span class="n">batch_rn_min_inits</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_pts</span> <span class="o">=</span> <span class="n">batch_pts</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_pt_min_inits</span> <span class="o">=</span> <span class="n">batch_pt_min_inits</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">rescan_lr_after_bs</span> <span class="o">=</span> <span class="n">rescan_lr_after_bs</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rescan_lr_after_bs</span> <span class="o">=</span> <span class="n">rescan_lr_after_bs</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;HyperparameterSettings(**</span><span class="si">{self.__dict__}</span><span class="s1">)&#39;</span></div>
 
 <div class="viewcode-block" id="fastest"><a class="viewcode-back" href="../../index.html#ignite_simple.hyperparams.fastest">[docs]</a><span class="k">def</span> <span class="nf">fastest</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">HyperparameterSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Returns the fastest (in time spent tuning parameters) preset&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">HyperparameterSettings</span><span class="p">(</span>
-        <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
-        <span class="n">lr_end</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">lr_start</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">lr_end</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">lr_min_inits</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">batch_start</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
         <span class="n">batch_end</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>

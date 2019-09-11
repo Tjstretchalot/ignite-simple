@@ -165,6 +165,9 @@
 <span class="sd">        with captions for the performance of the model through training, i.e.,</span>
 <span class="sd">        accuracy vs epoch and loss vs epoch figures.</span>
 
+<span class="sd">    :ivar bool suppress_extra_images: Suppresses generating images which are</span>
+<span class="sd">        not displayed in the html report.</span>
+
 <span class="sd">    :ivar bool typical_run_pca3dvis: True if the output should include a video</span>
 <span class="sd">        from pca3dvis for the points as they moved through the network, False</span>
 <span class="sd">        otherwise.</span>
@@ -173,18 +176,24 @@
 <span class="sd">        then the value of `typical_run_pca3dvis_draft` corresponds to if the</span>
 <span class="sd">        video should have draft settings. If `typical_run_pca3dvis` is False,</span>
 <span class="sd">        this has no effect.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">hparam_selection_specifics</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">hparam_selection_specific_imgs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">training_metric_imgs</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+                 <span class="n">suppress_extra_images</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">typical_run_pca3dvis</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
                  <span class="n">typical_run_pca3dvis_draft</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hparam_selection_specifics</span> <span class="o">=</span> <span class="n">hparam_selection_specifics</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hparam_selection_specific_imgs</span> <span class="o">=</span> <span class="n">hparam_selection_specific_imgs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">training_metric_imgs</span> <span class="o">=</span> <span class="n">training_metric_imgs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suppress_extra_images</span> <span class="o">=</span> <span class="n">suppress_extra_images</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">typical_run_pca3dvis</span> <span class="o">=</span> <span class="n">typical_run_pca3dvis</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">typical_run_pca3dvis_draft</span> <span class="o">=</span> <span class="n">typical_run_pca3dvis_draft</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">typical_run_pca3dvis_draft</span> <span class="o">=</span> <span class="n">typical_run_pca3dvis_draft</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;AnalysisSettings(**</span><span class="si">{self.__dict__}</span><span class="s1">)&#39;</span></div>
 
 <div class="viewcode-block" id="none"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.none">[docs]</a><span class="k">def</span> <span class="nf">none</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AnalysisSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Analysis settings that produce absolutely nothing</span>
@@ -196,6 +205,7 @@
         <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">suppress_extra_images</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span></div>
@@ -211,6 +221,7 @@
         <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">suppress_extra_images</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span></div>
@@ -226,9 +237,28 @@
         <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">suppress_extra_images</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
     <span class="p">)</span></div>
+
+<div class="viewcode-block" id="images_minimum"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.images_minimum">[docs]</a><span class="k">def</span> <span class="nf">images_minimum</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AnalysisSettings</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Analysis output that uses text and images only, and does not produce</span>
+<span class="sd">    images which do not make it into the text report.</span>
+
+<span class="sd">    :returns: the images_minimum preset for analysis settings, which produces</span>
+<span class="sd">        text and enough images for a pretty text output.</span>
+<span class="sd">    :rtype: AnalysisSettings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">AnalysisSettings</span><span class="p">(</span>
+        <span class="n">hparam_selection_specifics</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">hparam_selection_specific_imgs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">training_metric_imgs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">suppress_extra_images</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">typical_run_pca3dvis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">typical_run_pca3dvis_draft</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="animations_draft"><a class="viewcode-back" href="../../index.html#ignite_simple.analarams.animations_draft">[docs]</a><span class="k">def</span> <span class="nf">animations_draft</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AnalysisSettings</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Analysis output that uses text, images, and animations but the</span>
@@ -284,6 +314,10 @@
     <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">,</span>
     <span class="s1">&#39;images&#39;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
     <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">images</span><span class="p">,</span>
+    <span class="s1">&#39;images-min&#39;</span><span class="p">:</span> <span class="n">images_minimum</span><span class="p">,</span>
+    <span class="s1">&#39;images_min&#39;</span><span class="p">:</span> <span class="n">images_minimum</span><span class="p">,</span>
+    <span class="s1">&#39;images-minimum&#39;</span><span class="p">:</span> <span class="n">images_minimum</span><span class="p">,</span>
+    <span class="s1">&#39;images_minimum&#39;</span><span class="p">:</span> <span class="n">images_minimum</span><span class="p">,</span>
     <span class="s1">&#39;animation-draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>
     <span class="s1">&#39;animation_draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>
     <span class="s1">&#39;animations-draft&#39;</span><span class="p">:</span> <span class="n">animations_draft</span><span class="p">,</span>

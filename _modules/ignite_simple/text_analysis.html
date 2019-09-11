@@ -157,6 +157,21 @@
     <span class="k">for</span> <span class="n">ele</span> <span class="ow">in</span> <span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">iden</span><span class="p">):</span>
         <span class="n">ele</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
 
+<div class="viewcode-block" id="find_referenced_images"><a class="viewcode-back" href="../../index.html#ignite_simple.text_analysis.find_referenced_images">[docs]</a><span class="k">def</span> <span class="nf">find_referenced_images</span><span class="p">(</span><span class="n">html</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Searches the given html file for images which are referenced in the standard way</span>
+<span class="sd">    (src attribute on img tag) and returns them as they are written.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">soup</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">infile</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="s1">&#39;html.parser&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">img</span><span class="p">[</span><span class="s1">&#39;src&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;img&#39;</span><span class="p">))</span></div>
+
+
+<span class="n">HTML_REFD_IMAGES</span> <span class="o">=</span> <span class="n">find_referenced_images</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">),</span> <span class="s1">&#39;../html/index.html&#39;</span><span class="p">))</span>
+
+<span class="c1"># we strip the ../ that the images are referenced with</span>
+<span class="n">HTML_REFD_IMAGES</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">HTML_REFD_IMAGES</span><span class="p">)</span>
+
 <div class="viewcode-block" id="text_analyze"><a class="viewcode-back" href="../../index.html#ignite_simple.text_analysis.text_analyze">[docs]</a><span class="k">def</span> <span class="nf">text_analyze</span><span class="p">(</span><span class="n">settings</span><span class="p">:</span> <span class="n">AnalysisSettings</span><span class="p">,</span> <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Analyzes the given folder produced by the model manager, storing the</span>
 <span class="sd">    results in folder/analysis/html</span>

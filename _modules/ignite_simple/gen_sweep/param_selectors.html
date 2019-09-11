@@ -1,0 +1,394 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite_simple.gen_sweep.param_selectors &mdash; ignite-simple 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ignite-simple
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ignite-simple</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite_simple.gen_sweep.param_selectors</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite_simple.gen_sweep.param_selectors</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Contains the interface and some implementations for how parameters are</span>
+<span class="sd">selected for a particular point. Method selection techniques which do not</span>
+<span class="sd">depend on the results of previous points are more easily parallelizable.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+
+<div class="viewcode-block" id="SweepListener"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.SweepListener">[docs]</a><span class="k">class</span> <span class="nc">SweepListener</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;An interface for something which is listening for the result of a</span>
+<span class="sd">    sweep.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SweepListener.on_hparams_found"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.SweepListener.on_hparams_found">[docs]</a>    <span class="k">def</span> <span class="nf">on_hparams_found</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">lr_min</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+                         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Called when the parameter sweep has found the appropriate hyper</span>
+<span class="sd">        parameters for the given set of main parameters.</span>
+
+<span class="sd">        :param tuple values: each element corresponds to the value of the</span>
+<span class="sd">            corresponding parameter. For example, if the parameters list</span>
+<span class="sd">            is actuallly &quot;nonlinearity&quot;, &quot;hidden size&quot; then values might</span>
+<span class="sd">            be &quot;Tanh&quot;, 128</span>
+
+<span class="sd">        :param float lr_min: the best value for the minimum for the learning</span>
+<span class="sd">            rate during one oscillation of learning rate</span>
+<span class="sd">        :param float lr_max: the best value for the maximum for the learning</span>
+<span class="sd">            rate during one oscillation of learning rate</span>
+<span class="sd">        :param int batch_size: the best batch size to use</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SweepListener.on_trials_completed"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.SweepListener.on_trials_completed">[docs]</a>    <span class="k">def</span> <span class="nf">on_trials_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">perfs_train</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                            <span class="n">losses_train</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                            <span class="n">perfs_val</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+                            <span class="n">losses_val</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Invoked when we perform some trials. This could be called multiple</span>
+<span class="sd">        times of the same point at the decision of the sweeper, but each</span>
+<span class="sd">        trial will only be sent to this function once.</span>
+
+<span class="sd">        :param tuple values: the values for each parameter in order</span>
+<span class="sd">        :param np.ndarray perfs_train: the final performance for each trial</span>
+<span class="sd">            performed, so has shape (trials,), on the training dataset</span>
+<span class="sd">        :param np.ndarray losses_train: the final loss for each trial</span>
+<span class="sd">            performed, so has shape (trials,), on the training dataset</span>
+<span class="sd">        :param np.ndarray perfs_val: the final performance for each trial</span>
+<span class="sd">            performed, so has shape (trials,), on the validation dataset</span>
+<span class="sd">        :param np.ndarray losses_val: the final loss for each trial</span>
+<span class="sd">            performed, so has shape (trials,), on the validation dataset</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+
+<div class="viewcode-block" id="ParamSelector"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.ParamSelector">[docs]</a><span class="k">class</span> <span class="nc">ParamSelector</span><span class="p">(</span><span class="n">SweepListener</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The interface for a class which is capable of selecting what values</span>
+<span class="sd">    for a given known set of parameters should have models initialized</span>
+<span class="sd">    and compared.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ParamSelector.get_next_trials"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.ParamSelector.get_next_trials">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_trials</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Get the next set of trials to perform. The result will be a tuple</span>
+<span class="sd">        of two elements - the values (a tuple) and the number of trials to</span>
+<span class="sd">        perform. This may return the same values multiple times, although</span>
+<span class="sd">        it may improve performance to batch trials of the same values</span>
+<span class="sd">        together.</span>
+
+<span class="sd">        This may return None only if the ParamSelector is waiting on the result</span>
+<span class="sd">        of previous trials before it will continue. After returning None, this</span>
+<span class="sd">        function will be invoked after the next on_trials_completed or</span>
+<span class="sd">        on_hparams_found call. It may return None multiple times in a row if</span>
+<span class="sd">        there were multiple function calls which it&#39;s waiting for.</span>
+
+<span class="sd">        Note it should return None, not (None, None)</span>
+
+<span class="sd">        :return: A tuple of 2 elements, the first being a tuple of the values</span>
+<span class="sd">            for the parameters and the second being a nonnegative int for the</span>
+<span class="sd">            number of trials to perform. If the int is 0, the hparams will be</span>
+<span class="sd">            found if they haven&#39;t already but no trials will be performed.</span>
+<span class="sd">            If the result is None, see above.</span>
+<span class="sd">        :rtype: typing.Optional[tuple]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+<div class="viewcode-block" id="ParamSelector.has_more_trials"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.ParamSelector.has_more_trials">[docs]</a>    <span class="k">def</span> <span class="nf">has_more_trials</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Determines if this param selector will ever want to perform more</span>
+<span class="sd">        trials. If False, the sweeper will stop calling get_next_trials and</span>
+<span class="sd">        this must return False at least until the sweep completes. If</span>
+<span class="sd">        get_next_trials should continue to be called this should return True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+
+<div class="viewcode-block" id="FixedSweep"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.FixedSweep">[docs]</a><span class="k">class</span> <span class="nc">FixedSweep</span><span class="p">(</span><span class="n">ParamSelector</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A sweep which has a fixed order of results from get_next_trials.</span>
+
+<span class="sd">    :ivar tuple gnt_results: the results for get_next_trials in the order</span>
+<span class="sd">        they should appear</span>
+<span class="sd">    :ivar int gnt_results_index: the index in gnt_results for the next</span>
+<span class="sd">        invocation of get_next_trials.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gnt_results</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gnt_results</span> <span class="o">=</span> <span class="n">gnt_results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gnt_results_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="FixedSweep.get_next_trials"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.FixedSweep.get_next_trials">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_trials</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gnt_results_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gnt_results</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">gnt_results_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="FixedSweep.has_more_trials"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.FixedSweep.has_more_trials">[docs]</a>    <span class="k">def</span> <span class="nf">has_more_trials</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gnt_results_index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gnt_results</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FixedSweep.with_fixed_trials"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.FixedSweep.with_fixed_trials">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">with_fixed_trials</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pts</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">],</span>
+                          <span class="n">trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;FixedSweep&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;For each of the given points, perform precisely the specified</span>
+<span class="sd">        number of trials.</span>
+
+<span class="sd">        :param pts: the points to test</span>
+<span class="sd">        :type pts: iterable[tuple]</span>
+<span class="sd">        :param trials: the numebr of trials to perform at each point</span>
+<span class="sd">        :type trials: int</span>
+<span class="sd">        :returns: the corresponding parameter selector</span>
+<span class="sd">        :rtype: FixedSweep</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="nb">tuple</span><span class="p">((</span><span class="n">pt</span><span class="p">,</span> <span class="n">trials</span><span class="p">)</span> <span class="k">for</span> <span class="n">pt</span> <span class="ow">in</span> <span class="n">pts</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="FixedSweep.with_random_trials"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.param_selectors.FixedSweep.with_random_trials">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">with_random_trials</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">ranges</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span>
+                <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">set</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">]],</span>
+            <span class="n">points</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">r_eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;FixedSweep&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;For each parameter, ranges contains the valid values for that</span>
+<span class="sd">        parameter. If the range is an int, it is assumed to be the arange</span>
+<span class="sd">        for that int + 1. If it is a set, it contains the valid values for</span>
+<span class="sd">        that parameter. If it&#39;s a tuple, it should contain two elements, the</span>
+<span class="sd">        min and the max, where both are integers if the values can only be</span>
+<span class="sd">        integers and either is a float if the values can be floats.</span>
+
+<span class="sd">        Ranges are inclusive.</span>
+
+<span class="sd">        :param ranges: the possible values for each parameter, one set of</span>
+<span class="sd">            possible values per parameter.</span>
+<span class="sd">        :type ranges: typing.Union[int, set, tuple]</span>
+<span class="sd">        :param points: the number of unique points to select</span>
+<span class="sd">        :type points: int</span>
+<span class="sd">        :param trials: the number of trials per point</span>
+<span class="sd">        :type trials: int</span>
+<span class="sd">        :param r_eps: Only used if one of the ranges is specified as an</span>
+<span class="sd">            interval (i.e., not a set). Points which would be within</span>
+<span class="sd">            (r_eps*interval_width) of each other are rejected during sampling.</span>
+<span class="sd">            Should be less than 1/(2 * trials) for the randomness to be</span>
+<span class="sd">            meaningfully different from grid. If too large an error may be</span>
+<span class="sd">            thrown as not enough trials could be found that weren&#39;t</span>
+<span class="sd">            rejected.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># convert ints into the corresponding integer range, lists into tuples</span>
+        <span class="c1"># for convenience (since lists usually can be substituted in where we</span>
+        <span class="c1"># expect tuples), and then convert sets to lists. We will use the list</span>
+        <span class="c1"># type to indicate treating it like a set instead of the set type, b/c</span>
+        <span class="c1"># random.choice expects list-like not set-like.</span>
+
+        <span class="c1"># We also ensure that if any element is a float than so is the first</span>
+        <span class="c1"># one for ranges.</span>
+
+        <span class="n">ranges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ranges</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ranges</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">(</span><span class="nb">set</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">)):</span>
+                <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="nb">float</span><span class="p">):</span>
+                    <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="n">ranges</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">def</span> <span class="nf">should_reject</span><span class="p">(</span><span class="n">pms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">res</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                <span class="n">num_same</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">rge</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ranges</span><span class="p">,</span> <span class="n">res</span><span class="p">,</span> <span class="n">pms</span><span class="p">):</span>
+                    <span class="n">are_same</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">==</span> <span class="n">v2</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">v1</span> <span class="o">==</span> <span class="n">v2</span> <span class="ow">or</span> <span class="p">(</span>
+                            <span class="nb">isinstance</span><span class="p">(</span><span class="n">rge</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+                            <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v1</span> <span class="o">-</span> <span class="n">v2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">r_eps</span> <span class="o">*</span> <span class="p">(</span><span class="n">rge</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rge</span><span class="p">[</span><span class="mi">0</span><span class="p">]))):</span>
+                        <span class="n">num_same</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">num_same</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pms</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">n_rejections</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">points</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">rg</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rg</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">rg</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">float</span><span class="p">):</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">rg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rg</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">rg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rg</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">should_reject</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_rejections</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">n_rejections</span> <span class="o">&gt;</span> <span class="n">points</span> <span class="o">*</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;exceeded max number of rejections: &#39;</span>
+                                     <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">n_rejections</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">with_fixed_trials</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">trials</span><span class="p">)</span></div></div>
+
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

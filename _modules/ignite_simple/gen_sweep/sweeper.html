@@ -1,0 +1,728 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ignite_simple.gen_sweep.sweeper &mdash; ignite-simple 0.0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> ignite-simple
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ignite-simple</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>ignite_simple.gen_sweep.sweeper</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ignite_simple.gen_sweep.sweeper</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Handles performing the model parameter sweep.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.gen_sweep.param_selectors</span> <span class="k">as</span> <span class="nn">ps</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.hyperparams</span> <span class="k">as</span> <span class="nn">hyperparams</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.dispatcher</span> <span class="k">as</span> <span class="nn">disp</span>
+<span class="kn">import</span> <span class="nn">ignite_simple.utils</span> <span class="k">as</span> <span class="nn">mutils</span>
+<span class="kn">import</span> <span class="nn">psutil</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sortedcontainers</span> <span class="k">import</span> <span class="n">SortedKeyList</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">partial</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_post_hparam_sweep</span><span class="p">(</span><span class="n">listeners</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span><span class="p">],</span>
+                       <span class="n">params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">mm_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="n">filen</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mm_folder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">,</span> <span class="s1">&#39;final.json&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filen</span><span class="p">):</span>
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Expected file </span><span class="si">%s</span><span class="s1"> to exist, corresponding with hparams&#39;</span>
+                     <span class="o">+</span> <span class="s1">&#39; for params </span><span class="si">%s</span><span class="s1">, but it does not&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filen</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">final</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+    <span class="n">lr_min</span> <span class="o">=</span> <span class="n">final</span><span class="p">[</span><span class="s1">&#39;lr_start&#39;</span><span class="p">]</span>
+    <span class="n">lr_max</span> <span class="o">=</span> <span class="n">final</span><span class="p">[</span><span class="s1">&#39;lr_end&#39;</span><span class="p">]</span>
+    <span class="n">bs</span> <span class="o">=</span> <span class="n">final</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">listeners</span><span class="p">:</span>
+        <span class="n">lst</span><span class="p">:</span> <span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span>
+        <span class="n">lst</span><span class="o">.</span><span class="n">on_hparams_found</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_post_trials</span><span class="p">(</span><span class="n">listeners</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span><span class="p">],</span>
+                 <span class="n">params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">mm_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_at_trial_ind</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="n">filen</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">mm_folder</span><span class="p">,</span> <span class="s1">&#39;results.npz&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filen</span><span class="p">):</span>
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Expected file </span><span class="si">%s</span><span class="s1"> to exist, corresponding with results&#39;</span>
+                     <span class="o">+</span> <span class="s1">&#39; for params </span><span class="si">%s</span><span class="s1">, but it does not&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">filen</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">l_train</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_loss_train&#39;</span><span class="p">][</span><span class="n">start_at_trial_ind</span><span class="p">:]</span>
+        <span class="n">p_train</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_perf_train&#39;</span><span class="p">][</span><span class="n">start_at_trial_ind</span><span class="p">:]</span>
+        <span class="n">l_val</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_loss_val&#39;</span><span class="p">][</span><span class="n">start_at_trial_ind</span><span class="p">:]</span>
+        <span class="n">p_val</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_perf_val&#39;</span><span class="p">][</span><span class="n">start_at_trial_ind</span><span class="p">:]</span>
+
+    <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">listeners</span><span class="p">:</span>
+        <span class="n">lst</span><span class="p">:</span> <span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span>
+        <span class="n">lst</span><span class="o">.</span><span class="n">on_trials_completed</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">p_train</span><span class="p">,</span> <span class="n">l_train</span><span class="p">,</span> <span class="n">p_val</span><span class="p">,</span> <span class="n">l_val</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ParamsTask"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTask">[docs]</a><span class="k">class</span> <span class="nc">ParamsTask</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Describes a task to call model_manager.train for a particular set of</span>
+<span class="sd">    model parameters. This isn&#39;t actually a disp.Task, although it can be</span>
+<span class="sd">    converted to one.</span>
+
+<span class="sd">    :ivar tuple params: the parameters. this is the instance variable used</span>
+<span class="sd">        for equality checks.</span>
+<span class="sd">    :ivar int trials: the number of trials to perform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trials</span> <span class="o">=</span> <span class="n">trials</span>
+
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ParamsTask&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ParamsTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ParamsTask.as_task"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTask.as_task">[docs]</a>    <span class="k">def</span> <span class="nf">as_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="n">hparams</span><span class="p">:</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">HyperparameterSettings</span><span class="p">,</span>
+                <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">iden</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="n">sweep_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                <span class="n">listeners</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span><span class="p">],</span>
+                <span class="n">ntrials_disp</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">disp</span><span class="o">.</span><span class="n">Task</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates the task object which performs the specified number of</span>
+<span class="sd">        trials with this tasks parameters, assuming that the directory</span>
+<span class="sd">        structure is as follows:</span>
+
+<span class="sd">        folder/points/</span>
+<span class="sd">            &lt;id&gt;/</span>
+<span class="sd">                &lt;result from model manager&gt;</span>
+
+<span class="sd">        This function assumes that we always perform the hparam sweep in a</span>
+<span class="sd">        separate call to the trial sweep for the purposes of handling the</span>
+<span class="sd">        listeners.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+        <span class="n">acc_style</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="s1">&#39;accuracy_style&#39;</span><span class="p">)</span>
+        <span class="n">mm_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">iden</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">trials</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">callback</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">_post_hparam_sweep</span><span class="p">,</span> <span class="n">listeners</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">mm_folder</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">callback</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">_post_trials</span><span class="p">,</span> <span class="n">listeners</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">mm_folder</span><span class="p">,</span>
+                               <span class="n">ntrials_disp</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">disp</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
+            <span class="s1">&#39;ignite_simple.model_manager&#39;</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span>
+            <span class="p">(</span>
+                <span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="nb">dict</span><span class="p">()),</span>
+                <span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="s1">&#39;dataset&#39;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(),</span> <span class="nb">dict</span><span class="p">()),</span>
+                <span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="s1">&#39;loss&#39;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(),</span> <span class="nb">dict</span><span class="p">()),</span>
+                <span class="n">mm_folder</span><span class="p">,</span>
+                <span class="n">hparams</span><span class="p">,</span>
+                <span class="s1">&#39;none&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;none&#39;</span><span class="p">,</span>
+                <span class="n">acc_style</span><span class="p">,</span>
+                <span class="nb">max</span><span class="p">(</span><span class="n">trials</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="kc">True</span><span class="p">,</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="s1">&#39;history&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">iden</span><span class="p">)),</span>
+                <span class="n">sweep_cores</span> <span class="k">if</span> <span class="n">trials</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">trials</span><span class="p">,</span>
+                <span class="kc">True</span>
+            <span class="p">),</span>
+            <span class="nb">dict</span><span class="p">(),</span>
+            <span class="n">sweep_cores</span> <span class="k">if</span> <span class="n">trials</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">trials</span><span class="p">,</span>
+            <span class="n">callback</span>
+        <span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="ParamsTaskQueue"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue">[docs]</a><span class="k">class</span> <span class="nc">ParamsTaskQueue</span><span class="p">(</span><span class="n">disp</span><span class="o">.</span><span class="n">TaskQueue</span><span class="p">,</span> <span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This task queue acts like a greedy task queue, except it only works for</span>
+<span class="sd">    tasks which amount to calling model_manager.train for a particular set of</span>
+<span class="sd">    models.</span>
+
+<span class="sd">    The process for selecting tasks is as follows:</span>
+
+<span class="sd">        - If we have a hparameter sweep queued and we have enough cores to do</span>
+<span class="sd">          one, do that.</span>
+<span class="sd">        - Perform as many trials as possible. Note we can only perform trials</span>
+<span class="sd">          on parameters we already know the hyperparameters for</span>
+
+<span class="sd">    :ivar int total_cores: the number of physical cores that are available</span>
+<span class="sd">    :ivar int sweep_cores: the number of cores to use for sweeping (not greater</span>
+<span class="sd">        than the number of total cores)</span>
+<span class="sd">    :ivar str module: the module which we are getting the model/dataset/etc</span>
+<span class="sd">    :ivar HyperparameterSettings hparams: strategy for hyperparameters</span>
+<span class="sd">    :ivar str folder: the folder containing the points folder</span>
+<span class="sd">    :ivar list[SweepListener] listeners: the sweep listeners. contains self.</span>
+<span class="sd">    :ivar set[tuple] in_progress: parameters which are currently in progress.</span>
+<span class="sd">    :ivar list[ParamsTask] sweeps: the sweeps that need to be performed in an</span>
+<span class="sd">        arbitrary order</span>
+<span class="sd">    :ivar dict[tuple, int] params_to_sweeps_ind: a lookup that goes from the</span>
+<span class="sd">        parameters of tasks to the index in sweeps if a sweep is still</span>
+<span class="sd">        necessary.</span>
+<span class="sd">    :ivar SortedList[ParamsTask] trials: the trials that need to be performed,</span>
+<span class="sd">        in ascending order of the number of trials.</span>
+<span class="sd">    :ivar dict[tuple, int] params_to_id: dictionary which converts a given</span>
+<span class="sd">        set of parameters to the corresponding unique identifier for that set</span>
+<span class="sd">        of parameters.</span>
+<span class="sd">    :ivar dict[tuple, int] params_to_ntrials: dictionary which converts a</span>
+<span class="sd">        given set of parameters to the corresponding number of trials that have</span>
+<span class="sd">        been dispatched for those parameters</span>
+<span class="sd">    :ivar int next_id: the next id that should be given out to a set of</span>
+<span class="sd">        parameters and then incremented.</span>
+<span class="sd">    :ivar dict[tuple, ParamsTask] params_to_task: a lookup that goes from</span>
+<span class="sd">        params lists to param tasks, where this only contains tasks which have</span>
+<span class="sd">        not yet been dispatched, and does not include tasks which are in sweeps</span>
+<span class="sd">    :ivar int _len: number of actual tasks currently in queue</span>
+<span class="sd">    :ivar bool expecting_more_trials: True to prevent saying we are out of</span>
+<span class="sd">        trials, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">sweep_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">module</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">hparams</span><span class="p">:</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">HyperparameterSettings</span><span class="p">,</span>
+                 <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">listeners</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">SweepListener</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span> <span class="o">=</span> <span class="n">total_cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweep_cores</span> <span class="o">=</span> <span class="n">sweep_cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module</span> <span class="o">=</span> <span class="n">module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hparams</span> <span class="o">=</span> <span class="n">hparams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">listeners</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_to_sweeps_ind</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trials</span> <span class="o">=</span> <span class="n">SortedKeyList</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">tsk</span><span class="p">:</span> <span class="n">tsk</span><span class="o">.</span><span class="n">trials</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_to_id</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_to_ntrials</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_to_task</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expecting_more_trials</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="ParamsTaskQueue.add_task_by_params"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.add_task_by_params">[docs]</a>    <span class="k">def</span> <span class="nf">add_task_by_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">trials</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds a task to this queue based on the parameters which should</span>
+<span class="sd">        be swept and the number of trials to perform. Regardless of the</span>
+<span class="sd">        value for trials, this will ensure that the hyperparameters for</span>
+<span class="sd">        the given model parameters have been found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sweep_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_to_id</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sweep_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sweep_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next_id</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ParamsTask</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params_to_sweeps_ind</span><span class="p">[</span><span class="n">params</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params_to_id</span><span class="p">[</span><span class="n">params</span><span class="p">]</span> <span class="o">=</span> <span class="n">sweep_id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params_to_ntrials</span><span class="p">[</span><span class="n">params</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">trials</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="n">tsk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_to_task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tsk</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tsk</span><span class="p">)</span>
+            <span class="n">tsk</span><span class="o">.</span><span class="n">trials</span> <span class="o">+=</span> <span class="n">trials</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tsk</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">tsk</span> <span class="o">=</span> <span class="n">ParamsTask</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">trials</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_to_task</span><span class="p">[</span><span class="n">params</span><span class="p">]</span> <span class="o">=</span> <span class="n">tsk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tsk</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="ParamsTaskQueue.set_total_cores"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.set_total_cores">[docs]</a>    <span class="k">def</span> <span class="nf">set_total_cores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_cores</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_cores</span> <span class="o">=</span> <span class="n">total_cores</span></div>
+
+<div class="viewcode-block" id="ParamsTaskQueue.on_hparams_found"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.on_hparams_found">[docs]</a>    <span class="k">def</span> <span class="nf">on_hparams_found</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Found hyperparameters for </span><span class="si">%s</span><span class="s1">: lr=(</span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">), bs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">values</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTaskQueue.on_trials_completed"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.on_trials_completed">[docs]</a>    <span class="k">def</span> <span class="nf">on_trials_completed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">perfs_train</span><span class="p">,</span> <span class="n">losses_train</span><span class="p">,</span> <span class="n">perfs_val</span><span class="p">,</span> <span class="n">losses_val</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Completed some trials for </span><span class="si">%s</span><span class="s1"> - mean train/val perf = </span><span class="si">%s</span><span class="s1"> / </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span> <span class="n">perfs_train</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">perfs_val</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> - perf: </span><span class="si">%s</span><span class="s1">, loss: </span><span class="si">%s</span><span class="s1">, val - perf: </span><span class="si">%s</span><span class="s1">, loss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">values</span><span class="p">,</span> <span class="n">perfs_train</span><span class="p">,</span> <span class="n">losses_train</span><span class="p">,</span> <span class="n">perfs_val</span><span class="p">,</span> <span class="n">losses_val</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params_to_ntrials</span><span class="p">[</span><span class="n">values</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">losses_train</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_next_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cores</span><span class="p">):</span>
+        <span class="c1"># Pseudocode:</span>
+        <span class="c1">#   if we have enough cores to sweep and a sweep available then</span>
+        <span class="c1">#       pop from the end of sweeps (so only one index changes)</span>
+        <span class="c1">#       remove from params_to_sweeps_ind</span>
+        <span class="c1">#       add to in_progress</span>
+        <span class="c1">#       return</span>
+        <span class="c1">#</span>
+        <span class="c1">#   pop the item with the most number of trials from trials, ignoring</span>
+        <span class="c1">#   ones which are already in progress or haven&#39;t been sweep yet</span>
+        <span class="c1">#</span>
+        <span class="c1">#   if we cannot finish this then</span>
+        <span class="c1">#       build the disp.Task which does the right # of trials</span>
+        <span class="c1">#       update the remaining number of trials for this trial</span>
+        <span class="c1">#       add to in_progress</span>
+        <span class="c1">#       return the built disp.Task</span>
+        <span class="c1">#   build the disp.Task which finishes the queued trials for this set</span>
+        <span class="c1">#   remove from params_to_task</span>
+        <span class="c1">#   add to in_progress</span>
+        <span class="c1">#   return built disp.Task</span>
+        <span class="k">if</span> <span class="n">cores</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">cores</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep_cores</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="p">:</span>
+            <span class="n">swp</span><span class="p">:</span> <span class="n">ParamsTask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweeps</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_to_sweeps_ind</span><span class="p">[</span><span class="n">swp</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">swp</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">swp</span><span class="o">.</span><span class="n">as_task</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">params_to_id</span><span class="p">[</span><span class="n">swp</span><span class="o">.</span><span class="n">params</span><span class="p">],</span>
+                <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep_cores</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">params_to_ntrials</span><span class="p">[</span><span class="n">swp</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">pop_ind</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">trl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="p">[</span><span class="n">pop_ind</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span>
+                    <span class="ow">and</span> <span class="n">trl</span><span class="o">.</span><span class="n">params</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_to_sweeps_ind</span><span class="p">):</span>
+                <span class="k">break</span>
+
+            <span class="n">pop_ind</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">pop_ind</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">trl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">pop_ind</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">trl</span><span class="o">.</span><span class="n">trials</span> <span class="o">&gt;</span> <span class="n">cores</span><span class="p">:</span>
+            <span class="n">trl</span><span class="o">.</span><span class="n">trials</span> <span class="o">-=</span> <span class="n">cores</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trials</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">trl</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">trl</span><span class="o">.</span><span class="n">as_task</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">params_to_id</span><span class="p">[</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">],</span>
+                <span class="n">cores</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep_cores</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">params_to_ntrials</span><span class="p">[</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">params_to_task</span><span class="p">[</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_progress</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">trl</span><span class="o">.</span><span class="n">as_task</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">module</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hparams</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params_to_id</span><span class="p">[</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">],</span>
+            <span class="n">trl</span><span class="o">.</span><span class="n">trials</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sweep_cores</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">listeners</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params_to_ntrials</span><span class="p">[</span><span class="n">trl</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ParamsTaskQueue.get_next_task"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.get_next_task">[docs]</a>    <span class="k">def</span> <span class="nf">get_next_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cores</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_next_task</span><span class="p">(</span><span class="n">cores</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;starting task </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="ParamsTaskQueue.have_more_tasks"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.ParamsTaskQueue.have_more_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">have_more_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expecting_more_trials</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len</span></div>
+
+
+<div class="viewcode-block" id="Sweeper"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.Sweeper">[docs]</a><span class="k">class</span> <span class="nc">Sweeper</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;The instance of the class which performs all the individual operations</span>
+<span class="sd">    required for sweeping over an arbitrary number of architectural</span>
+<span class="sd">    parameters. Everything within this class occurs on the main thread.</span>
+
+<span class="sd">    :ivar module_name: the module which contains the model, dataset, loss,</span>
+<span class="sd">        and accuracy style. The model function has N parameters, where</span>
+<span class="sd">        N is the number of parameters the param selector gives us.</span>
+<span class="sd">    :ivar ParamSelector param_selector: the object which selects which</span>
+<span class="sd">        combination of parameters to test</span>
+<span class="sd">    :ivar ParamsTaskQueue tasks: the tasks that we know we are ready to</span>
+<span class="sd">        perform. These are being immediately dispatched to other threads</span>
+<span class="sd">        according to the number of cores required.</span>
+<span class="sd">    :ivar int sweep_cores: the number of actual physical cores that we assign</span>
+<span class="sd">        to sweeping. Note that this differs from the argument to sweep.</span>
+<span class="sd">    :ivar str folder: the path to the folder we are saving things in.</span>
+<span class="sd">        we actually store stuff at folder/points for the most part.</span>
+<span class="sd">    :ivar HyperparameterSettings hparams: the hyperparameter settings used for</span>
+<span class="sd">        hyperparameter tuning.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">param_selector</span><span class="p">:</span> <span class="n">ps</span><span class="o">.</span><span class="n">ParamSelector</span><span class="p">,</span>
+                 <span class="n">tasks</span><span class="p">:</span> <span class="n">ParamsTaskQueue</span><span class="p">,</span> <span class="n">sweep_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hparams</span><span class="p">:</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">HyperparameterSettings</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">module_name</span> <span class="o">=</span> <span class="n">module_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_selector</span> <span class="o">=</span> <span class="n">param_selector</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="n">tasks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sweep_cores</span> <span class="o">=</span> <span class="n">sweep_cores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hparams</span> <span class="o">=</span> <span class="n">hparams</span>
+
+<div class="viewcode-block" id="Sweeper.add_tasks"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.Sweeper.add_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">add_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds as many tasks to the TaskQueue as the parameter selector will</span>
+<span class="sd">        provide, without causing the tasks list to exceed the given limit. This</span>
+<span class="sd">        will also update tasks.expecting_more_tasks.</span>
+
+<span class="sd">        This must ensure that we don&#39;t enqueue multiple tasks which have the</span>
+<span class="sd">        same hyperparameters, however we can update tasks to add more trials.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">expecting_more_trials</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param_selector</span><span class="o">.</span><span class="n">has_more_trials</span><span class="p">()</span>
+               <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">limit</span><span class="p">):</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">param_selector</span><span class="o">.</span><span class="n">get_next_trials</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">res</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="n">prms</span><span class="p">,</span> <span class="n">trls</span> <span class="o">=</span> <span class="n">res</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">add_task_by_params</span><span class="p">(</span><span class="n">prms</span><span class="p">,</span> <span class="n">trls</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">expecting_more_trials</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Sweeper.store_params_lookup"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.Sweeper.store_params_lookup">[docs]</a>    <span class="k">def</span> <span class="nf">store_params_lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Stores the parameters that corresponded to each of the arbitrarily</span>
+<span class="sd">        named folders in folder/points. This only works when we just swept</span>
+<span class="sd">        and hence the details are still in memory.</span>
+
+<span class="sd">        Produces the following files:</span>
+
+<span class="sd">        folder/points/</span>
+<span class="sd">            params_lookup.pt</span>
+<span class="sd">                Contains a pickled tuple of two dictionaries. The first</span>
+<span class="sd">                dictionary goes form parameter tuples to corresponding ids</span>
+<span class="sd">                (names of folders). The second goes from ids to parameter</span>
+<span class="sd">                tuples.</span>
+<span class="sd">            params.csv</span>
+<span class="sd">                A human-readable variant of params_lookup. A CSV file where</span>
+<span class="sd">                the rows are &lt;id&gt;,&lt;params&gt;. Each individual parameter is given</span>
+<span class="sd">                its own column. The first row is used for descriptions and</span>
+<span class="sd">                should be skipped when parsing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">params_to_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">params_to_id</span>
+        <span class="n">ids_to_param</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">v</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">params_to_id</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+        <span class="n">pickled_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="s1">&#39;params_lookup.pt&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">pickled_file</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">((</span><span class="n">params_to_id</span><span class="p">,</span> <span class="n">ids_to_param</span><span class="p">),</span> <span class="n">outfile</span><span class="p">)</span>
+
+        <span class="n">csv_filen</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="s1">&#39;params.csv&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">csv_filen</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
+            <span class="n">csv_writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csv_file</span><span class="p">)</span>
+            <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s1">&#39;Identifier / Folder Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Parameters (one per column)&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">iden</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">ids_to_param</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="n">iden</span><span class="p">]</span>
+                <span class="n">row</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">row</span><span class="p">]</span>
+                <span class="n">csv_writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Sweeper.collate_files"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.Sweeper.collate_files">[docs]</a>    <span class="k">def</span> <span class="nf">collate_files</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Collates the information found in each of the sweeps into locations</span>
+<span class="sd">        which are more readily accessible. This only requires that the folder</span>
+<span class="sd">        is set correctly and store_params_lookup has been called.</span>
+
+<span class="sd">        Produces the following files:</span>
+
+<span class="sd">        folder/points/</span>
+<span class="sd">            funcres.pt</span>
+<span class="sd">                Contains a pickled list of tuples of the following form:</span>
+
+<span class="sd">                (params, min lr, max lr, bs, perfs_train, losses_train,</span>
+<span class="sd">                 perfs_val, losses_val)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pickled_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="s1">&#39;params_lookup.pt&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">pickled_file</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+            <span class="n">params_to_id</span><span class="p">,</span> <span class="n">ids_to_param</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">iden</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">ids_to_param</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">pfolder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">iden</span><span class="p">))</span>
+            <span class="n">hpfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pfolder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">,</span> <span class="s1">&#39;final.json&#39;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">hpfile</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="n">hps</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+            <span class="n">lr_min</span> <span class="o">=</span> <span class="n">hps</span><span class="p">[</span><span class="s1">&#39;lr_start&#39;</span><span class="p">]</span>
+            <span class="n">lr_max</span> <span class="o">=</span> <span class="n">hps</span><span class="p">[</span><span class="s1">&#39;lr_end&#39;</span><span class="p">]</span>
+            <span class="n">bs</span> <span class="o">=</span> <span class="n">hps</span><span class="p">[</span><span class="s1">&#39;batch_size&#39;</span><span class="p">]</span>
+
+            <span class="n">resfile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pfolder</span><span class="p">,</span> <span class="s1">&#39;results.npz&#39;</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">resfile</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="n">l_train</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_loss_train&#39;</span><span class="p">]</span>
+                <span class="n">p_train</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_perf_train&#39;</span><span class="p">]</span>
+                <span class="n">l_val</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_loss_val&#39;</span><span class="p">]</span>
+                <span class="n">p_val</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="s1">&#39;final_perf_val&#39;</span><span class="p">]</span>
+
+            <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">params</span><span class="p">,</span> <span class="n">lr_min</span><span class="p">,</span> <span class="n">lr_max</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">p_train</span><span class="p">,</span> <span class="n">l_train</span><span class="p">,</span>
+                        <span class="n">p_val</span><span class="p">,</span> <span class="n">l_val</span><span class="p">))</span>
+
+        <span class="n">fres_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="s1">&#39;funcres.pt&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fres_file</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="sweep"><a class="viewcode-back" href="../../../index.html#ignite_simple.gen_sweep.sweeper.sweep">[docs]</a><span class="k">def</span> <span class="nf">sweep</span><span class="p">(</span><span class="n">module_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+          <span class="n">param_selector</span><span class="p">:</span> <span class="n">ps</span><span class="o">.</span><span class="n">ParamSelector</span><span class="p">,</span>
+          <span class="n">sweep_cores</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+          <span class="n">hparams</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">HyperparameterSettings</span><span class="p">],</span>
+          <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Performs the given architectural parameter search on the problem defined</span>
+<span class="sd">    in the given module.</span>
+
+<span class="sd">    :param str module_name: the path to the module which contains the</span>
+<span class="sd">        model / dataset / loss / accuracy style, where the model accepts</span>
+<span class="sd">        the parameters which are being swept (one argument per parameter).</span>
+<span class="sd">    :param ParamSelector param_selector: what decides what parameters to be</span>
+<span class="sd">        sent. Note that this is structured so it can utilize partial sweeps</span>
+<span class="sd">        to inform further search, although the best performance requires</span>
+<span class="sd">        that it can give more than one trial at a time.</span>
+<span class="sd">    :param int sweep_cores: the number of cores that are used for sweeping</span>
+<span class="sd">        parameters. This is important both for being able to replicate the</span>
+<span class="sd">        results of the sweep and in terms of performance. If this number</span>
+<span class="sd">        exceeds the number of physical cores, it will be simulated in a way</span>
+<span class="sd">        that correctly utilizes the available resources.</span>
+
+<span class="sd">        A higher number of sweep cores gives more accurate and consistent</span>
+<span class="sd">        hyperparameters, which is essential for meaningful comparisons</span>
+<span class="sd">        between architectures. 4 is a reasonable starting place.</span>
+<span class="sd">    :param HyperparameterSettings hparams: either the hyperparameter settings</span>
+<span class="sd">        to use or a name of a preset (&#39;fastest&#39;, &#39;fast&#39;, &#39;slow&#39;, &#39;slowest&#39;)</span>
+<span class="sd">        that is used for sweeping hyperparameters. This value will be modified</span>
+<span class="sd">        to ensure we are simulating sweep_cores correctly if necessary.</span>
+<span class="sd">    :param str folder: where to save the output to. the main output that</span>
+<span class="sd">        one will typically want to use is</span>
+
+<span class="sd">        folder/points/</span>
+<span class="sd">            funcres.pt: contains a list of tuples where each tuple is</span>
+<span class="sd">                of the form (params, lr_min, lr_max, bs, perf_train,</span>
+<span class="sd">                loss_train, perf_val, loss_val). The performance and</span>
+<span class="sd">                loss are expressed as an array with one element per</span>
+<span class="sd">                trial.</span>
+<span class="sd">            params_lookup.pt: contains a tuple of two dictionaries,</span>
+<span class="sd">                where the first is params_to_ids and goes from a</span>
+<span class="sd">                tuple of parameters to the corresponding name of</span>
+<span class="sd">                the folder in folder/points which is the result</span>
+<span class="sd">                of the model_manager train, and the second has</span>
+<span class="sd">                the keys/values swapped (ids to params).</span>
+
+<span class="sd">    This returns the unpickled content in folder/points/funcres.pt, which is</span>
+<span class="sd">    a list of tuples of the form</span>
+
+<span class="sd">    .. code:: python</span>
+
+<span class="sd">        (params: tuple,</span>
+<span class="sd">        lr_min: float,</span>
+<span class="sd">        lr_max: float,</span>
+<span class="sd">        bs: int,</span>
+<span class="sd">        perf_train: np.ndarray #  (shape=(trials,)),</span>
+<span class="sd">        loss_train: np.ndarray #  (shape=(trials,)),</span>
+<span class="sd">        perf_val: np.ndarray #  (shape=(trials,)),</span>
+<span class="sd">        loss_val: np.ndarray #  (shape=(trials,))</span>
+<span class="sd">        )</span>
+
+<span class="sd">    As is typical, loss is non-negative and lower is better. Performance is</span>
+<span class="sd">    between 0 and 1 and higher is better.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">module_name</span> <span class="o">=</span> <span class="n">mutils</span><span class="o">.</span><span class="n">fix_imports</span><span class="p">((</span><span class="n">module_name</span><span class="p">,))[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_physical_cores</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">hparams</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span><span class="n">hparams</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">sweep_cores</span> <span class="o">&gt;</span> <span class="n">n_physical_cores</span><span class="p">:</span>
+        <span class="n">hparams</span><span class="o">.</span><span class="n">lr_min_inits</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">hparams</span><span class="o">.</span><span class="n">lr_min_inits</span><span class="p">,</span> <span class="n">sweep_cores</span><span class="p">)</span>
+        <span class="n">hparams</span><span class="o">.</span><span class="n">batch_rn_min_inits</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">hparams</span><span class="o">.</span><span class="n">batch_rn_min_inits</span><span class="p">,</span> <span class="n">sweep_cores</span><span class="p">)</span>
+        <span class="n">hparams</span><span class="o">.</span><span class="n">batch_pt_min_inits</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="n">hparams</span><span class="o">.</span><span class="n">batch_pt_min_inits</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">sweep_cores</span> <span class="o">//</span> <span class="n">hparams</span><span class="o">.</span><span class="n">batch_pts</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">sweep_cores</span> <span class="o">=</span> <span class="n">n_physical_cores</span>
+
+    <span class="n">tasks</span> <span class="o">=</span> <span class="n">ParamsTaskQueue</span><span class="p">(</span>
+        <span class="n">n_physical_cores</span><span class="p">,</span> <span class="n">sweep_cores</span><span class="p">,</span> <span class="n">module_name</span><span class="p">,</span> <span class="n">hparams</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">param_selector</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">sweeper</span> <span class="o">=</span> <span class="n">Sweeper</span><span class="p">(</span><span class="n">module_name</span><span class="p">,</span> <span class="n">param_selector</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">sweep_cores</span><span class="p">,</span>
+                      <span class="n">folder</span><span class="p">,</span> <span class="n">hparams</span><span class="p">)</span>
+    <span class="n">sweeper</span><span class="o">.</span><span class="n">add_tasks</span><span class="p">()</span>
+
+    <span class="n">disp</span><span class="o">.</span><span class="n">dispatch</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">n_physical_cores</span><span class="p">,</span>
+                  <span class="p">(</span><span class="s1">&#39;ignite_simple.model_manager&#39;</span><span class="p">,),</span>
+                  <span class="n">sweeper</span><span class="o">.</span><span class="n">add_tasks</span><span class="p">)</span>
+    <span class="n">sweeper</span><span class="o">.</span><span class="n">store_params_lookup</span><span class="p">()</span>
+    <span class="n">sweeper</span><span class="o">.</span><span class="n">collate_files</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;points&#39;</span><span class="p">,</span> <span class="s1">&#39;funcres.pt&#39;</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">res</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

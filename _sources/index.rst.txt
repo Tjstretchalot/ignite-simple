@@ -90,6 +90,22 @@ ignite_simple.dispatcher
 .. automodule:: ignite_simple.dispatcher
    :members:
 
+
+General Sweeping Module
+=======================
+
+ignite_simple.gen_sweep.param_selectors
+=======================================
+
+.. automodule:: ignite_simple.gen_sweep.param_selectors
+   :members:
+
+ignite_simple.gen_sweep.sweeper
+===============================
+
+.. automodule:: ignite_simple.gen_sweep.sweeper
+   :members:
+
 Indices and tables
 ==================
 

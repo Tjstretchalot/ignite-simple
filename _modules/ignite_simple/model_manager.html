@@ -151,6 +151,7 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">logging.config</span>
 <span class="kn">import</span> <span class="nn">ignite_simple</span>  <span class="c1"># pylint: disable=unused-import</span>
 <span class="kn">import</span> <span class="nn">ignite_simple.hyperparams</span> <span class="k">as</span> <span class="nn">hparams</span>
 <span class="kn">import</span> <span class="nn">ignite_simple.analarams</span> <span class="k">as</span> <span class="nn">aparams</span>
@@ -224,6 +225,15 @@
 <span class="k">def</span> <span class="nf">_trial</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">trial_folder</span><span class="p">,</span>
            <span class="n">with_throughtime</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
            <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">num_epochs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s1">&#39;logging-worker.conf&#39;</span><span class="p">):</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">fileConfig</span><span class="p">(</span><span class="s1">&#39;logging-worker.conf&#39;</span><span class="p">)</span>
+
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Starting trial: accuracy_style=</span><span class="si">%s</span><span class="s1">, lr_start=</span><span class="si">%s</span><span class="s1">, lr_end=</span><span class="si">%s</span><span class="s1">, &#39;</span>
+                 <span class="o">+</span> <span class="s1">&#39;batch_size=</span><span class="si">%s</span><span class="s1">, cycle_time_epochs=</span><span class="si">%s</span><span class="s1">, num_epochs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                 <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
+                 <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">num_epochs</span><span class="p">)</span>
+
     <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">)</span>
 
     <span class="n">train_set</span><span class="p">,</span> <span class="n">val_set</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">)</span>
@@ -398,7 +408,14 @@
         <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">num_epochs</span>
     <span class="p">)</span>
 
-    <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">tnr_settings</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">trainer</span><span class="o">.</span><span class="n">train</span><span class="p">(</span><span class="n">tnr_settings</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;Exception encountered while training during sweep&#39;</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Finished trial&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="train"><a class="viewcode-back" href="../../index.html#ignite_simple.model_manager.train">[docs]</a><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="n">model_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
           <span class="n">dataset_loader</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
@@ -577,12 +594,16 @@
     <span class="n">loss_loader</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">fix_imports</span><span class="p">(</span><span class="n">loss_loader</span><span class="p">)</span>
 
     <span class="n">hyperparameters</span> <span class="o">=</span> <span class="n">hparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span><span class="n">hyperparameters</span><span class="p">)</span>
+    <span class="n">skip_analysis</span> <span class="o">=</span> <span class="n">analysis</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span>
     <span class="n">analysis</span> <span class="o">=</span> <span class="n">aparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
     <span class="n">allow_later_analysis_up_to</span> <span class="o">=</span> <span class="n">aparams</span><span class="o">.</span><span class="n">get_settings</span><span class="p">(</span>
         <span class="n">allow_later_analysis_up_to</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">cores</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
         <span class="n">cores</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">(</span><span class="n">logical</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Starting trial with model args </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">, dataset args </span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                  <span class="n">model_loader</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">model_loader</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">dataset_loader</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                  <span class="n">dataset_loader</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">is_continuation</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
         <span class="n">tstr</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
@@ -602,10 +623,14 @@
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">continuing</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Tuning learning rate and batch size...&#39;</span><span class="p">)</span>
-        <span class="n">tuner</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="s1">&#39;inv-loss&#39;</span><span class="p">,</span>
-                   <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">),</span> <span class="n">cores</span><span class="p">,</span>
-                   <span class="n">hyperparameters</span><span class="p">,</span>
-                   <span class="n">allow_later_analysis_up_to</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">tuner</span><span class="o">.</span><span class="n">tune</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="s1">&#39;inv-loss&#39;</span><span class="p">,</span>
+                       <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">),</span> <span class="n">cores</span><span class="p">,</span>
+                       <span class="n">hyperparameters</span><span class="p">,</span>
+                       <span class="n">allow_later_analysis_up_to</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s1">&#39;An error occurred while tuning&#39;</span><span class="p">)</span>
+            <span class="k">raise</span>
 
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;hparams&#39;</span><span class="p">,</span> <span class="s1">&#39;final.json&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
         <span class="n">hparam_final</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
@@ -626,41 +651,55 @@
     <span class="k">if</span> <span class="n">trial_offset</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">continuing</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Performing trials...&#39;</span><span class="p">)</span>
-    <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">num_trials</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">last_print_trial</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">trials</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">trials_strict</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No trials -&gt; skipping collating and analyzing&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+
     <span class="n">with_throughtime</span> <span class="o">=</span> <span class="n">allow_later_analysis_up_to</span><span class="o">.</span><span class="n">training_metric_imgs</span>
-    <span class="k">while</span> <span class="n">num_trials</span> <span class="o">&lt;</span> <span class="n">trials</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">trials_strict</span> <span class="ow">and</span> <span class="n">num_trials</span> <span class="o">&lt;</span> <span class="n">cores</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">cores</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">last_print_trial</span> <span class="o">&lt;</span> <span class="n">num_trials</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Started up to trial </span><span class="si">%s</span><span class="s1">...&#39;</span><span class="p">,</span> <span class="n">num_trials</span><span class="p">)</span>
-                <span class="n">last_print_trial</span> <span class="o">=</span> <span class="n">num_trials</span>
+    <span class="k">if</span> <span class="n">cores</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Performing at least </span><span class="si">%s</span><span class="s1"> trials across </span><span class="si">%s</span><span class="s1"> cores...&#39;</span><span class="p">,</span>
+                    <span class="n">trials</span><span class="p">,</span> <span class="n">cores</span><span class="p">)</span>
+        <span class="n">processes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_trials</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">last_print_trial</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">num_trials</span> <span class="o">&lt;</span> <span class="n">trials</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">trials_strict</span> <span class="ow">and</span> <span class="n">num_trials</span> <span class="o">&lt;</span> <span class="n">cores</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">cores</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">last_print_trial</span> <span class="o">&lt;</span> <span class="n">num_trials</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Started up to trial </span><span class="si">%s</span><span class="s1">...&#39;</span><span class="p">,</span> <span class="n">num_trials</span><span class="p">)</span>
+                    <span class="n">last_print_trial</span> <span class="o">=</span> <span class="n">num_trials</span>
 
-            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
-                    <span class="n">processes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-            <span class="k">continue</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">processes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+                        <span class="n">processes</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="k">continue</span>
 
-        <span class="n">proc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span>
-            <span class="n">target</span><span class="o">=</span><span class="n">_trial</span><span class="p">,</span>
-            <span class="n">args</span><span class="o">=</span><span class="p">(</span>
-                <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;trials&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial_offset</span> <span class="o">+</span> <span class="n">num_trials</span><span class="p">)),</span>
-                <span class="n">with_throughtime</span><span class="p">,</span>
-                <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
-                <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">epochs</span>
+            <span class="n">proc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span>
+                <span class="n">target</span><span class="o">=</span><span class="n">_trial</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;trials&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial_offset</span> <span class="o">+</span> <span class="n">num_trials</span><span class="p">)),</span>
+                    <span class="n">with_throughtime</span><span class="p">,</span>
+                    <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
+                    <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">epochs</span>
+                <span class="p">)</span>
             <span class="p">)</span>
-        <span class="p">)</span>
-        <span class="n">proc</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-        <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span>
-        <span class="n">num_trials</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">proc</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="n">processes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proc</span><span class="p">)</span>
+            <span class="n">num_trials</span> <span class="o">+=</span> <span class="mi">1</span>
 
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for </span><span class="si">%s</span><span class="s1"> trials to complete...&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Waiting for </span><span class="si">%s</span><span class="s1"> trials to complete...&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">processes</span><span class="p">))</span>
 
-    <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
-        <span class="n">proc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">proc</span> <span class="ow">in</span> <span class="n">processes</span><span class="p">:</span>
+            <span class="n">proc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Performing </span><span class="si">%s</span><span class="s1"> trials (single core)...&#39;</span><span class="p">,</span> <span class="n">trials</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">num_trials</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">trials</span><span class="p">):</span>
+            <span class="n">_trial</span><span class="p">(</span><span class="n">model_loader</span><span class="p">,</span> <span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span>
+                   <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;trials&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">trial_offset</span> <span class="o">+</span> <span class="n">num_trials</span><span class="p">)),</span>
+                   <span class="n">with_throughtime</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">lr_start</span><span class="p">,</span> <span class="n">lr_end</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span>
+                   <span class="n">cycle_time_epochs</span><span class="p">,</span> <span class="n">epochs</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished trial </span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">num_trials</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">trials</span><span class="p">)</span>
 
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Collating data...&#39;</span><span class="p">)</span>
 
@@ -707,17 +746,18 @@
                         <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_ap</span><span class="p">]</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to_ap</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;throughtime.npz&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">infile</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip_collate</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">skipped_sample</span><span class="p">:</span>
-                        <span class="n">skipped_sample</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">to_ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="p">)])</span>
-                    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_collate</span><span class="p">:</span>
-                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_ap</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">with_throughtime</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">trial_folder</span><span class="p">,</span> <span class="s1">&#39;throughtime.npz&#39;</span><span class="p">))</span> <span class="k">as</span> <span class="n">infile</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">infile</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">skip_collate</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">skipped_sample</span><span class="p">:</span>
+                            <span class="n">skipped_sample</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to_ap</span><span class="p">)</span>
+                        <span class="n">to_ap</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">val</span><span class="p">)])</span>
+                        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_collate</span><span class="p">:</span>
+                            <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">to_ap</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to_ap</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">to_collate</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
         <span class="n">to_collate</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -744,11 +784,12 @@
             <span class="n">perfs_val_smoothed</span><span class="o">=</span><span class="n">autosmooth</span><span class="p">(</span><span class="n">to_collate</span><span class="p">[</span><span class="s1">&#39;perfs_val&#39;</span><span class="p">]),</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">continuing</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">continuing</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;analysis&#39;</span><span class="p">)):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cleaning old analysis folder...&#39;</span><span class="p">)</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">folder</span><span class="p">,</span> <span class="s1">&#39;analysis&#39;</span><span class="p">))</span>
 
-    <span class="n">analyze</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">analysis</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">cores</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_analysis</span><span class="p">:</span>
+        <span class="n">analyze</span><span class="p">(</span><span class="n">dataset_loader</span><span class="p">,</span> <span class="n">loss_loader</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">analysis</span><span class="p">,</span> <span class="n">accuracy_style</span><span class="p">,</span> <span class="n">cores</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
