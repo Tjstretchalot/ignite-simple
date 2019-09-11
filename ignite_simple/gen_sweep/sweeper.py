@@ -494,15 +494,17 @@ def sweep(module_name: str,
     This returns the unpickled content in folder/points/funcres.pt, which is
     a list of tuples of the form
 
-    (params: tuple,
-     lr_min: float,
-     lr_max: float,
-     bs: int,
-     perf_train: np.ndarray (shape=(trials,)),
-     loss_train: np.ndarray (shape=(trials,)),
-     perf_val: np.ndarray (shape=(trials,)),
-     loss_val: np.ndarray (shape=(trials,))
-    )
+    .. code:: python
+
+        (params: tuple,
+        lr_min: float,
+        lr_max: float,
+        bs: int,
+        perf_train: np.ndarray #  (shape=(trials,)),
+        loss_train: np.ndarray #  (shape=(trials,)),
+        perf_val: np.ndarray #  (shape=(trials,)),
+        loss_val: np.ndarray #  (shape=(trials,))
+        )
 
     As is typical, loss is non-negative and lower is better. Performance is
     between 0 and 1 and higher is better.

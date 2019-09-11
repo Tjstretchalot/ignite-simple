@@ -87,7 +87,7 @@ def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
 
     logger = logging.getLogger(__name__)
     logger.debug('Starting trial: accuracy_style=%s, lr_start=%s, lr_end=%s, '
-                 + 'batch_size=%s, cycle_time_epochs=%s, num_epochs=%s'),
+                 + 'batch_size=%s, cycle_time_epochs=%s, num_epochs=%s',
                  accuracy_style, lr_start, lr_end, batch_size,
                  cycle_time_epochs, num_epochs)
 

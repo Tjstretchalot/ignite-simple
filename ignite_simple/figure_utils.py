@@ -62,7 +62,7 @@ def _filtered_savefig(filter_, fig, path, *args, **kwargs):
 
 def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str,
              filter_: typing.Optional[typing.Callable] = None):
-    """Saves the given figure with many different commonly used figure sizes,
+    r"""Saves the given figure with many different commonly used figure sizes,
     resizing labels and titles as appropriate. This technique works only for
     a single axis plot, since for other styles different font sizes would be
     appropriate.
@@ -70,9 +70,11 @@ def save_fig(fig: Figure, ax: Axes, title: str, outfile_wo_ext: str,
     :param Figure fig: The figure to save
     :param Axes ax: The axis on the figure
     :param str title: The title of the plot
+    :param str outfile_wo_ext: where to save the figure, omitting the file
+        extension (as many files may be saved)
     :param optional[callable] filter_: if not None, a callable object which
         accepts a string which is a (possibly relative) path to a file which
-        will only be saved if the result of filter_ is True.
+        will only be saved if the result of filter\_ is True.
     """
     filter_ = filter_ if filter_ is not None else lambda x: True
 
