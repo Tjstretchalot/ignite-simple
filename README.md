@@ -3,6 +3,9 @@
 This module provides the necessary functionality for rapidly prototyping
 machine learning models on conventional datasets.
 
+This also contains ignite_simple.gen_sweep for sweeping across other
+parameters. See corresponding readme at ignite_simple/gen_sweep/README.md
+
 ## Usage
 
 You must explicitly specify the model, training set, validation set, and the
