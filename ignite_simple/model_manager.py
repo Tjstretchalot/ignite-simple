@@ -255,7 +255,17 @@ def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
         lr_start, lr_end, cycle_time_epochs, num_epochs
     )
 
-    trainer.train(tnr_settings)
+    try:
+        trainer.train(tnr_settings)
+    except:
+        traceback.print_exc()
+
+        import uuid
+
+        out_file = uuid.uuid4() + '_error.log'
+        with open(out_file, 'w') as outf:
+            traceback.print_exc(file=outf)
+        raise
 
 def train(model_loader: typing.Tuple[str, str, tuple, dict],
           dataset_loader: typing.Tuple[str, str, tuple, dict],

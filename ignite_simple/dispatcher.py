@@ -15,6 +15,8 @@ from queue import Empty
 from pympanim.zeromqqueue import ZeroMQQueue
 import traceback
 from sortedcontainers import SortedList
+import logging.config
+import os
 
 class Task:
     """A description of a task.
@@ -258,6 +260,8 @@ def _dispatcher(imps, jobq, ackq, sleep_delay):
     for imp in imps:
         importlib.import_module(imp)
 
+    if os.path.exists('logging-worker.conf'):
+        logging.config.fileConfig('logging-worker.conf')
     jobq = ZeroMQQueue.deser(jobq)
     ackq = ZeroMQQueue.deser(ackq)
 

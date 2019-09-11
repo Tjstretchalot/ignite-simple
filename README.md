@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
 which will result in the following command-line arguments:
 
-```
+```text
 usage: helper.py [-h] [--folder FOLDER] [--hparams HPARAMS]
                  [--analysis ANALYSIS] [--analysis_up_to ANALYSIS_UP_TO]
                  [--trials TRIALS] [--not_continuation] [--cores CORES]

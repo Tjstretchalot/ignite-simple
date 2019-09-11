@@ -20,8 +20,8 @@ class TrainSettings:
     :ivar str accuracy_style: one of the following constants:
 
         * classification
-            labels are integers which correspond to the class,
-            outputs are one-hot encoded classes
+            labels are one-hot encoded classes,
+            outputs are one-hot encoded classes.
         * multiclass
             labels are one-hot encoded multi-class labels, outputs are the same
         * inv-loss
