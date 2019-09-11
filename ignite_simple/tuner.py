@@ -271,7 +271,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
     if np.isnan(lrs.sum()):
         clip_at = np.isnan(lrs.sum(0)).argmax()
         if clip_at > 0:
-            new_lr_end = lrs[clip_at - 1]
+            new_lr_end = lrs[0, clip_at - 1]
         else:
             new_lr_end = (lr_start + 0.01 * (lr_end - lr_start))
 
