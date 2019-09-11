@@ -285,7 +285,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
             return _select_lr_from(
                 model_loader, dataset_loader, loss_loader, accuracy_style,
                 outfile, cores, settings, store_up_to, logger,
-                cycle_size_epochs, batch_size, lr_start, new_lr_end)
+                cycle_time_epochs, batch_size, lr_start, new_lr_end)
 
         lrs = lrs[:, :clip_at]
         lr_perfs = lr_perfs[:, :clip_at]
