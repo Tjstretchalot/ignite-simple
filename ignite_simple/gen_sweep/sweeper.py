@@ -21,6 +21,12 @@ logger = logging.getLogger(__name__)
 def _post_hparam_sweep(listeners: typing.Iterable[ps.SweepListener],
                        params: tuple, mm_folder: str):
     filen = os.path.join(mm_folder, 'hparams', 'final.json')
+    if not os.path.exists(filen):
+        logger = logging.getLogger(__name__)
+        logger.error('Expected file %s to exist, corresponding with hparams'
+                     + ' for params %s, but it does not', params)
+        raise FileNotFoundError(filen)
+
     with open(filen, 'r') as infile:
         final = json.load(infile)
 
@@ -35,7 +41,14 @@ def _post_hparam_sweep(listeners: typing.Iterable[ps.SweepListener],
 
 def _post_trials(listeners: typing.Iterable[ps.SweepListener],
                  params: tuple, mm_folder: str, start_at_trial_ind: int):
-    with np.load(os.path.join(mm_folder, 'results.npz')) as infile:
+    filen = os.path.join(mm_folder, 'results.npz')
+    if not os.path.exists(filen):
+        logger = logging.getLogger(__name__)
+        logger.error('Expected file %s to exist, corresponding with results'
+                     + ' for params %s, but it does not', params)
+        raise FileNotFoundError(filen)
+
+    with np.load(filen) as infile:
         l_train = infile['final_loss_train'][start_at_trial_ind:]
         p_train = infile['final_perf_train'][start_at_trial_ind:]
         l_val = infile['final_loss_val'][start_at_trial_ind:]

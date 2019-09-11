@@ -8,6 +8,7 @@ import psutil
 import os
 import datetime
 import logging
+import logging.config
 import ignite_simple  # pylint: disable=unused-import
 import ignite_simple.hyperparams as hparams
 import ignite_simple.analarams as aparams
@@ -81,6 +82,15 @@ def _init_cpe(cpe, tnr):
 def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
            with_throughtime, accuracy_style, lr_start, lr_end, batch_size,
            cycle_time_epochs, num_epochs):
+    if os.path.exists('logging-worker.conf'):
+        logging.config.fileConfig('logging-worker.conf')
+
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting trial: accuracy_style=%s, lr_start=%s, lr_end=%s, '
+                 + 'batch_size=%s, cycle_time_epochs=%s, num_epochs=%s'),
+                 accuracy_style, lr_start, lr_end, batch_size,
+                 cycle_time_epochs, num_epochs)
+
     os.makedirs(trial_folder)
 
     train_set, val_set = utils.invoke(dataset_loader)
@@ -259,13 +269,10 @@ def _trial(model_loader, dataset_loader, loss_loader, trial_folder,
         trainer.train(tnr_settings)
     except:
         traceback.print_exc()
-
-        import uuid
-
-        out_file = uuid.uuid4() + '_error.log'
-        with open(out_file, 'w') as outf:
-            traceback.print_exc(file=outf)
+        logger.exception('Exception encountered while training during sweep')
         raise
+
+    logger.debug('Finished trial')
 
 def train(model_loader: typing.Tuple[str, str, tuple, dict],
           dataset_loader: typing.Tuple[str, str, tuple, dict],
@@ -451,6 +458,9 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
     if cores == 'all':
         cores = psutil.cpu_count(logical=False)
     logger = logging.getLogger(__name__)
+    logger.debug('Starting trial with model args %s, %s, dataset args %s %s',
+                  model_loader[2], model_loader[3], dataset_loader[2],
+                  dataset_loader[3])
 
     if not is_continuation and os.path.exists(folder):
         tstr = str(datetime.datetime.now()).replace(' ', '_').replace(':', '-')

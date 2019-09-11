@@ -262,6 +262,8 @@ def _dispatcher(imps, jobq, ackq, sleep_delay):
 
     if os.path.exists('logging-worker.conf'):
         logging.config.fileConfig('logging-worker.conf')
+
+    logger = logging.getLogger(__name__)
     jobq = ZeroMQQueue.deser(jobq)
     ackq = ZeroMQQueue.deser(ackq)
 
@@ -285,6 +287,7 @@ def _dispatcher(imps, jobq, ackq, sleep_delay):
             tocall(*task.args, **task.kwargs)
         except:  # noqa: E722
             traceback.print_exc()
+            logger.exception('Dispatcher encountered an error')
         ackq.put('ack')
 
     jobq.close()
