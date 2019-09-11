@@ -246,6 +246,7 @@ class MainToWorkerConnection:
         """Shuts down the worker"""
         self.jobq.put(('shutdown',))
         self.process.join()
+        self.is_ready() # try to ensure callbacks handled
         self.jobq.close()
         self.ackq.close()
         self.process = None
