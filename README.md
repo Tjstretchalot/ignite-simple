@@ -149,6 +149,15 @@ is a one-hot encoding of the label). Multi-class is for when the labels are
 one-hot encoded class labels extended to potentially multiple ones. `inv-loss`
 uses 1/(loss+1) as the performance metric instead of accuracy.
 
+Note: both classification and multiclass support more an arbitrary number
+of classes of images, but classification says that each image has exactly
+one class and multiclass says that each image may have more than one class.
+Multiclass uses a >=0.5 thresholding on the output, classification uses
+argmax. This does not effect training or model selection, only output.
+
+In both cases, the output of the network should be (batch, num labels)
+and the targets should be (batch, num labels).
+
 ## Automatic hyperparameter tuning
 
 Valid presets are `fastest`, `fast`, `slow`, and `slowest`.

@@ -226,19 +226,18 @@ class TrainState:
         self.loss = loss
         self.evaluator = evaluator
 
-def _multiclass_threshold(output):
+def _multilabel_threshold(output):
     y_pred, y = output
     y_pred = y_pred.clone()
     y_pred[y_pred < 0.5] = 0
     y_pred[y_pred >= 0.5] = 1
     return y_pred, y
 
-def _binaryclass_threshold(output):
+def _singlelabel_threshold(output):
     y_pred, y = output[0].detach(), output[1].detach()
-    ny_pred = y_pred.argmax(1)
-    ny = y
-    if len(y.shape) > 1:
-        ny = y.argmax(1)
+    ny_pred = torch.zeros_like(y_pred)
+    ny_pred[torch.arange(y_pred.shape[0]), y_pred.argmax(1)] = 1
+    ny = y if len(y.shape) == 1 else y.argmax(1)
     return ny_pred, ny
 
 def _inv_loss(loss):
@@ -272,7 +271,7 @@ def train(settings: TrainSettings) -> None:
 
     metrics = {'loss': ignite.metrics.Loss(loss)}
     if settings.accuracy_style == 'classification':
-        metrics['accuracy'] = ignite.metrics.Accuracy(_binaryclass_threshold)
+        metrics['accuracy'] = ignite.metrics.Accuracy(_singlelabel_threshold)
         metrics['perf'] = ignite.metrics.MetricsLambda(
             _iden, metrics['accuracy'])
     elif settings.accuracy_style == 'multiclass':

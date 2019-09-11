@@ -488,41 +488,51 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
             logger.info('No trials -> skipping collating and analyzing')
             return
 
-    logger.info('Performing trials...')
-    processes = []
-    num_trials = 0
-    last_print_trial = 0
     with_throughtime = allow_later_analysis_up_to.training_metric_imgs
-    while num_trials < trials or (not trials_strict and num_trials < cores):
-        if len(processes) >= cores:
-            if last_print_trial < num_trials:
-                logger.info('Started up to trial %s...', num_trials)
-                last_print_trial = num_trials
+    if cores > 1:
+        logger.info('Performing at least %s trials across %s cores...',
+                    trials, cores)
+        processes = []
+        num_trials = 0
+        last_print_trial = 0
+        while num_trials < trials or (not trials_strict and num_trials < cores):
+            if len(processes) >= cores:
+                if last_print_trial < num_trials:
+                    logger.info('Started up to trial %s...', num_trials)
+                    last_print_trial = num_trials
 
-            time.sleep(0.1)
-            for i in range(len(processes) - 1, -1, -1):
-                if not processes[i].is_alive():
-                    processes.pop(i)
-            continue
+                time.sleep(0.1)
+                for i in range(len(processes) - 1, -1, -1):
+                    if not processes[i].is_alive():
+                        processes.pop(i)
+                continue
 
-        proc = mp.Process(
-            target=_trial,
-            args=(
-                model_loader, dataset_loader, loss_loader,
-                os.path.join(folder, 'trials', str(trial_offset + num_trials)),
-                with_throughtime,
-                accuracy_style, lr_start, lr_end, batch_size,
-                cycle_time_epochs, epochs
+            proc = mp.Process(
+                target=_trial,
+                args=(
+                    model_loader, dataset_loader, loss_loader,
+                    os.path.join(folder, 'trials', str(trial_offset + num_trials)),
+                    with_throughtime,
+                    accuracy_style, lr_start, lr_end, batch_size,
+                    cycle_time_epochs, epochs
+                )
             )
-        )
-        proc.start()
-        processes.append(proc)
-        num_trials += 1
+            proc.start()
+            processes.append(proc)
+            num_trials += 1
 
-    logger.info('Waiting for %s trials to complete...', len(processes))
+        logger.info('Waiting for %s trials to complete...', len(processes))
 
-    for proc in processes:
-        proc.join()
+        for proc in processes:
+            proc.join()
+    else:
+        logger.info('Performing %s trials (single core)...', trials)
+        for num_trials in range(trials):
+            _trial(model_loader, dataset_loader, loss_loader,
+                   os.path.join(folder, 'trials', str(trial_offset + num_trials)),
+                   with_throughtime, accuracy_style, lr_start, lr_end, batch_size,
+                   cycle_time_epochs, epochs)
+            logger.info('Finished trial %s/%s', num_trials + 1, trials)
 
     logger.info('Collating data...')
 
