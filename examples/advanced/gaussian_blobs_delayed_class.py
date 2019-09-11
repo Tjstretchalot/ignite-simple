@@ -30,7 +30,7 @@ FOLDER_SINGLE = os.path.join('out', 'advanced', 'gaussian_blobs_delayed_class', 
 TRIALS_TO_FIND_HPARAMS = 3#6
 TRIALS_WITH_FOUND_HPARAMS = 3#12
 HPARAMS = 'fastest'#'fast'
-G_VALUES = (0, 0.5, 0.9, 1.1, 2) # list(range(0, 2.01, 0.1)) = (0, 0.1, ..., 1.9, 2)
+G_VALUES = (0, 0.5, 0.9, 1.1, 2) # list(float(f) for f in np.arange(0., 2.01, 0.1)) = (0, 0.1, ..., 1.9, 2)
 
 def gaussian_blobs(means: torch.tensor, std: float, num_samples_per_blob: int,
                    odim: int) -> typing.Tuple[torch.tensor, torch.tensor]:

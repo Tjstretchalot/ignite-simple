@@ -240,7 +240,7 @@ class ParamsTaskQueue(disp.TaskQueue, ps.SweepListener):
         #   remove from params_to_task
         #   add to in_progress
         #   return built disp.Task
-        if cores > self.sweep_cores and self.sweeps:
+        if cores >= self.sweep_cores and self.sweeps:
             swp: ParamsTask = self.sweeps.pop()
             del self.params_to_sweeps_ind[swp.params]
             self._len -= 1
