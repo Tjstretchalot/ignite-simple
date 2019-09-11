@@ -645,6 +645,10 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     bss = result['bss'][0]
     bs_perfs = result['perfs']
+    if np.sum(np.isnan(bs_perfs)) > 0:
+        logger.debug('Batch size sweep exploded on some initializations')
+        bs_perfs[np.isnan(bs_perfs)] = 0
+
     bs_sweep_trials = int(bs_perfs.shape[0])
 
     window_size = smooth_window_size(bs_perfs.shape[1])
