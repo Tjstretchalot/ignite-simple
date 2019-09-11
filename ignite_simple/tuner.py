@@ -275,6 +275,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         else:
             new_lr_end = (lr_start + 0.01 * (lr_end - lr_start))
 
+        clip_at //= 2
         new_lr_end = max(lr_start + 0.05 * (lr_end - lr_start),
                          lr_start + 0.5 * (new_lr_end - lr_start))
 
