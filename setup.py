@@ -19,11 +19,11 @@ setuptools.setup(
     install_requires=['pca3dvis', 'torch', 'numpy', 'matplotlib', 'scipy',
                       'pyzmq', 'beautifulsoup4', 'pytorch-ignite', 'psutil',
                       'sortedcontainers'],
-    classifiers=(
+    classifiers=[
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'License :: CC0 1.0 Universal (CC0 1.0) Public Domain Dedication',
-        'Topic :: Utilities'),
+        'Topic :: Utilities'],
     python_requires='>=3.6',
 )
