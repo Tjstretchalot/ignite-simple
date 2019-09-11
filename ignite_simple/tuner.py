@@ -309,7 +309,15 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         lr_perfs, window_size, 1, deriv=1)
     mean_smoothed_lr_perf_derivs = smoothed_lr_perf_derivs.mean(0)
 
-    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs)
+    # we trim a bit off the search since gradients are weird around
+    # edges + the first little part is garbage typically. only makes
+    # a difference for unstable models and it really helps there
+    search_start_ind = lrs.shape[0] // 10
+    search_end_ind = 9 * search_start_ind
+
+    lr_min, lr_max = find_with_derivs(
+        lrs[search_start_ind:search_end_ind],
+        lse_smoothed_lr_perf_then_derivs[search_start_ind:search_end_ind])
 
     np.savez_compressed(
         outfile,
