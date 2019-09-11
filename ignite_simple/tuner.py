@@ -270,6 +270,23 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
     lr_perfs = result['perfs']
     if np.isnan(lrs.sum()):
         clip_at = np.isnan(lrs.sum(0)).argmax()
+        if clip_at > 0:
+            new_lr_end = lrs[clip_at - 1]
+        else:
+            new_lr_end = (lr_start + 0.01 * (lr_end - lr_start))
+
+        new_lr_end = max(lr_start + 0.05 * (lr_end - lr_start),
+                         lr_start + 0.5 * (new_lr_end - lr_start))
+
+        if new_lr_end < lr_start + 0.1 * (lr_end - lr_start):
+            logger.debug(
+                'Got too many nans, resweeping with lr range reduced to '
+                + f'{lr_start}/{new_lr_end}')
+            return _select_lr_from(
+                model_loader, dataset_loader, loss_loader, accuracy_style,
+                outfile, cores, settings, store_up_to, logger,
+                cycle_size_epochs, batch_size, lr_start, new_lr_end)
+
         lrs = lrs[:, :clip_at]
         lr_perfs = lr_perfs[:, :clip_at]
 
@@ -647,6 +664,9 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     bs_perfs = result['perfs']
     if np.sum(np.isnan(bs_perfs)) > 0:
         logger.debug('Batch size sweep exploded on some initializations')
+        logger.debug('Forcibly enabling second LR sweep')
+        settings.rescan_lr_after_bs = True
+
         bs_perfs[np.isnan(bs_perfs)] = 0
 
     bs_sweep_trials = int(bs_perfs.shape[0])
