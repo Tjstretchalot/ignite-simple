@@ -424,9 +424,18 @@ def _select_batch_size_from(model_loader, dataset_loader, loss_loader,
         for trial in range(loops):
             fname = os.path.join(folder, f'{i}_{trial}.npz')
             with np.load(fname) as infile:
-                trials.append(infile['final_perf'])
+                final_perf = infile['final_perf']
+                if np.isnan(final_perf).sum() > 0:
+                    logger.debug('Found some nans, treating them as inf bad')
+                    final_perf[np.isnan(final_perf)] = 0
+                trials.append(final_perf)
+
                 if incl_raw:
-                    trials_raw.append(infile['perf'])
+                    perf = infile['perf']
+                    if np.isnan(perf).sum() > 0:
+                        logger.debug('Found some nans in raw perfs')
+                        perf[np.isnan(perf)] = 0
+                    trials_raw.append(perf)
             os.remove(fname)
         trials = np.concatenate(trials)
 
@@ -741,3 +750,5 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             },
             outfile
         )
+
+    logger.debug('Tuning completed successfully')

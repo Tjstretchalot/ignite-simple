@@ -480,10 +480,14 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
 
     if not continuing:
         logger.info('Tuning learning rate and batch size...')
-        tuner.tune(model_loader, dataset_loader, loss_loader, 'inv-loss',
-                   os.path.join(folder, 'hparams'), cores,
-                   hyperparameters,
-                   allow_later_analysis_up_to)
+        try:
+            tuner.tune(model_loader, dataset_loader, loss_loader, 'inv-loss',
+                       os.path.join(folder, 'hparams'), cores,
+                       hyperparameters,
+                       allow_later_analysis_up_to)
+        except:
+            logger.exception('An error occurred while tuning')
+            raise
 
     with open(os.path.join(folder, 'hparams', 'final.json')) as infile:
         hparam_final = json.load(infile)
