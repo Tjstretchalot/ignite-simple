@@ -235,7 +235,7 @@ def single_gain(gain: float):
         (__name__, 'dataset', tuple(), dict()),
         (__name__, 'loss', tuple(), dict()),
         folder=os.path.join(FOLDER_SINGLE, str(gain)),
-        hyperparameters='fastest',
+        hyperparameters=hparams,
         analysis='images-min',
         allow_later_analysis_up_to='videos',
         accuracy_style=accuracy_style,
