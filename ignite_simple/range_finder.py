@@ -153,7 +153,7 @@ def find_with_derivs(xs: np.ndarray,
     for i in range(candidates.shape[0] - 1):
         st = candidates[i]
         en = candidates[i + 1]
-        change = (xs[end] - xs[st] if select_with_width_only
+        change = (xs[en] - xs[st] if select_with_width_only
                   else np.trapz(derivs[st:en], xs[st:en]))
         if change > best_change:
             best_candidate = i
