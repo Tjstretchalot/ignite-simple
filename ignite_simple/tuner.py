@@ -336,7 +336,9 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         lr_perfs, window_size, 1, deriv=1)
     mean_smoothed_lr_perf_derivs = smoothed_lr_perf_derivs.mean(0)
 
-    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs,
+    lse_smoothed_lr_perf_then_derivs_then_smooth = scipy.signal.savgol_filter(
+        lse_smoothed_lr_perf_then_derivs, window_size, 1)
+    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs_then_smooth,
                                       grads_width_only)
 
     np.savez_compressed(
@@ -348,6 +350,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         smoothed_perf_derivs=smoothed_lr_perf_derivs,
         mean_smoothed_perf_derivs=mean_smoothed_lr_perf_derivs,
         lse_smoothed_perf_then_derivs=lse_smoothed_lr_perf_then_derivs,
+        lse_smoothed_perf_then_derivs_then_smooth=lse_smoothed_lr_perf_then_derivs_then_smooth,
         lr_range=np.array([lr_min, lr_max]))
 
     logger.info('Learning rate range: [%s, %s) (found from %s trials)',
@@ -574,6 +577,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
                     smoothed derivatives because then derivatives will tend
                     to be positive everywhere, so we have to smooth first,
                     then take lse, then take derivative
+                lse_smoothed_perf_then_derivs_then_smooth=np.ndarray[
+                    number of batches]. the smoothed variant of the pervious
                 lr_range=np.ndarray[2]
                     min, max for the good range of learning rates
             bs_vs_perf.npz  (bs=batch_size)

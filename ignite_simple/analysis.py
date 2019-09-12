@@ -341,6 +341,7 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         lr_vs_perf_deriv_*.(img)
                         lr_vs_smoothed_perf_deriv_*.(img)
                         lr_vs_lse_smoothed_perf_then_deriv_*.(img)
+                        lr_vs_lse_smoothed_perf_then_deriv_then_smooth_*.(img)
                     batch/
                         i/ (where i=0,1,...)
                             batch_vs_perf.(img)
@@ -667,6 +668,31 @@ def analyze(dataset_loader: typing.Tuple[str, str, tuple, dict],
                         'lse_smoothed_perf_then_derivs',
                         slice(None),
                         os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv')
+                    ),
+                    {
+                        'folder': filter_folder,
+                        'images': imgs_to_produce
+                    },
+                    1
+                ))
+
+            if not futils.fig_exists(
+                    os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv_then_smooth'),
+                    imgs_filter):
+                tasks.append(dispatcher.Task(
+                    __name__,
+                    '_rawplot',
+                    (
+                        source,
+                        futils.make_vs_title(
+                            'LR', 'Deriv of LSE of Smoothed 1/(loss+1) (Smoothed)'),
+                        'Learning Rate',
+                        '1/(loss+1) Deriv wrt. LR',
+                        'lrs',
+                        slice(None),
+                        'lse_smoothed_perf_then_derivs_then_smooth',
+                        slice(None),
+                        os.path.join(out_folder, 'lr_vs_lse_smoothed_perf_then_deriv_then_smooth')
                     ),
                     {
                         'folder': filter_folder,
