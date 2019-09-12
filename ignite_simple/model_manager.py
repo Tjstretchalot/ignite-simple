@@ -558,6 +558,8 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
                    cycle_time_epochs, epochs)
             logger.info('Finished trial %s/%s', num_trials + 1, trials)
 
+        num_trials = trials
+
     logger.info('Collating data...')
 
     # This is a bit messy and a bit repetitive, but trying to break it out
@@ -571,52 +573,78 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
     skip_collate = {'settings', 'epochs'}
     skipped_sample = dict()
     if continuing:
+        logger.debug('Fetching previous information...')
         with np.load(res_file) as infile:
             for key, val in infile.items():
                 if key in skip_collate:
                     skipped_sample[key] = val
+                    logger.debug('Stored value for %s (skip_sample)', key)
                 else:
                     to_collate[key] = [val]
+                    logger.debug('Stored a value for %s', key)
         os.remove(res_file)
         if with_throughtime:
+            logger.debug('Fetching previous throughtime information')
             with np.load(tt_file) as infile:
                 for key, val in infile.items():
                     if key in skip_collate:
                         skipped_sample[key] = val
+                        logger.debug('Stored value for %s (skip_sample, tt)', key)
                     else:
                         to_collate[key] = [val]
+                        logger.debug('Stored value for %s (tt)', key)
 
             os.remove(tt_file)
 
+    logger.debug('Fetching trial information (trial_offset=%s, num_trials=%s)',
+                 trial_offset, num_trials)
     for trial in range(trial_offset, trial_offset + num_trials):
         trial_folder = os.path.join(folder, 'trials', str(trial))
+        logger.debug('Fetching info from trial %s at %s',
+                     trial, trial_folder)
         with open(os.path.join(trial_folder, 'result.json'), 'r') as infile:
             inparsed = json.load(infile)
             for key, val in inparsed.items():
                 key = f'final_{key}'
+                logger.debug('Considering key %s from trial %s', key, trial)
                 if key in skip_collate:
                     if key not in skipped_sample:
                         skipped_sample[key] = val
+                        logger.debug('Storing in skipped_sample')
+                    else:
+                        logger.debug('Skipping')
                 else:
                     to_ap = np.stack([np.array(val)])
                     if key not in to_collate:
                         to_collate[key] = [to_ap]
+                        logger.debug('Storing in to_collate (first)')
                     else:
                         to_collate[key].append(to_ap)
+                        logger.debug('Storing in to_collate (now have %s)',
+                                     len(to_collate[key]))
         if with_throughtime:
+            logger.debug('Fetching through time info from trial %s', trial)
             with np.load(os.path.join(trial_folder, 'throughtime.npz')) as infile:
                 for key, val in infile.items():
                     if key in skip_collate:
                         if key not in skipped_sample:
                             skipped_sample[key] = val
+                            logger.debug('Storing in skipped_sample')
+                        else:
+                            logger.debug('Skipping')
                     else:
                         to_ap = np.stack([np.array(val)])
                         if key not in to_collate:
                             to_collate[key] = [to_ap]
+                            logger.debug('Storing in to_collate (first)')
                         else:
                             to_collate[key].append(to_ap)
+                            logger.debug('Storing in to_collate (now have %s)',
+                                         len(to_collate[key]))
 
+    logger.debug('Collating collected values')
     for key, val in tuple(to_collate.items()):
+        logger.debug('Collating %s', key)
         to_collate[key] = np.concatenate(val, axis=0)
 
     np.savez_compressed(
@@ -646,4 +674,7 @@ def train(model_loader: typing.Tuple[str, str, tuple, dict],
         shutil.rmtree(os.path.join(folder, 'analysis'))
 
     if not skip_analysis:
+        logger.debug('Model manager delegating to analysis')
         analyze(dataset_loader, loss_loader, folder, analysis, accuracy_style, cores)
+
+    logger.debug('Model manager exitted normally')

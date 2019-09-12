@@ -17,11 +17,13 @@ import os
 import uuid
 import multiprocessing as mp
 import logging
+import logging.config
 import time
 import scipy.signal
 import scipy.special
 import json
 import math
+import traceback
 
 _valldr = utils.create_partial_loader
 _task_loader = utils.task_loader
@@ -51,6 +53,11 @@ def _increment(cur, tnr, state):
 def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                 accuracy_style, lr_start, lr_end, batch_size,
                 cycle_time_epochs, warmup_lr, warmup_batch, warmup_pts):
+    if os.path.exists('logging-worker.conf'):
+        logging.config.fileConfig('logging-worker.conf')
+
+    logger = logging.getLogger(__name__)
+    logger.debug('LR vs Perf worker started')
     train_set, _ = utils.invoke(dataset_loader)
     task_loader = (
         __name__,
@@ -96,8 +103,16 @@ def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
         cycle_time_epochs,
         cycle_time_epochs // 2
     )
-    ignite_simple.trainer.train(tnr_settings)
+
+    try:
+        ignite_simple.trainer.train(tnr_settings)
+    except:
+        traceback.print_exc()
+        logger.exception('LR vs Perf worker encountered an exception')
+        raise
+
     np.savez_compressed(outfile, lrs=lrs, perfs=perfs)
+    logger.debug('LR vs Perf worker finished normally')
 
 def _task_loader_bs(dataset_loader, batch_start, batch_end, epochs):
     train_set, val_set = utils.invoke(dataset_loader)
@@ -139,6 +154,12 @@ def _store_last_bs(perfs, cur, tnr, state):
 def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                    accuracy_style, batch_start, batch_end, lr_start, lr_end,
                    cycle_time_epochs):
+    if os.path.exists('logging-worker.conf'):
+        logging.config.fileConfig('logging-worker.conf')
+
+    logger = logging.getLogger(__name__)
+    logger.debug('Batch vs Perf worker started')
+
     train_set, _ = utils.invoke(dataset_loader)
 
     # N = 0.5 * k * (k + 1)
@@ -180,8 +201,16 @@ def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
         2,
         1
     )
-    ignite_simple.trainer.train(tnr_settings)
+
+    try:
+        ignite_simple.trainer.train(tnr_settings)
+    except:
+        traceback.print_exc()
+        logger.exception('Error encountered during BS sweep')
+        raise
+
     np.savez_compressed(outfile, bss=bss, perfs=perfs)
+    logger.debug('BS vs Perf worker finished normally')
 
 def _store_perf(perfs, cur, num_to_val, tnr, state):
     valldr = _valldr(state.train_set, num_to_val)
