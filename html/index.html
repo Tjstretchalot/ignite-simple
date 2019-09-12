@@ -37,7 +37,8 @@
             convolution). The derivative of 1/(loss+1) with respect to learning rate of this
             smoothed filter was approximated as described <a
                 href="https://docs.scipy.org/doc/numpy/reference/generated/numpy.gradient.html">here</a>.
-            Then the smallest set of intervals in which within each interval the derivative was
+            This result was again smoothed with the same linear convolution. Then the smallest set of intervals
+            in which within each interval the derivative was
             strictly positive was calculated, such that every point where the derivative was
             positive was in one of the intervals in this set. From there, the widest interval was
             determined. If this interval had long tails, i.e., if it was possible to reduce the
@@ -114,8 +115,9 @@
         </p>
         <p>After this process, there was a trial dimension, x dimension (batch sizes), and y
             dimension which was transformed to 1/(loss+1). A good range for batch sizes was selected
-            at this point using precisely the same technique as for learning rate at this stage. The
-            result was that good batch sizes fall between <span
+            at this point using almost the same technique as for learning rate at this stage. The
+            only difference is that the derivative of the LSE was not smoothed as it was not found
+            to be necessary. The result was that good batch sizes fall between <span
                 id="batch-sweep-result-min">TODO</span> and <span
                 id="batch-sweep-result-max">TODO</span>. </p>
         <section id="batch-size-sweep-fastest">
@@ -213,7 +215,7 @@
             interval, this was done (see <a
                 href="https://github.com/Tjstretchalot/ignite-simple/blob/master/ignite_simple/range_finder.py">range_finder.py</a>
             for details). </p>
-        <p>After this process, it was concluded that learning rat es between <span
+        <p>After this process, it was concluded that learning rates between <span
                 id="lr-sweep-result-min">TODO</span> and <span id="lr-sweep-result-max">TODO</span>
             were reasonable for the given batch size.</p>
         <div class="figures hparam-figures">

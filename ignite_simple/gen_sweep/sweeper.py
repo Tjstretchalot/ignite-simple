@@ -24,7 +24,7 @@ def _post_hparam_sweep(listeners: typing.Iterable[ps.SweepListener],
     if not os.path.exists(filen):
         logger = logging.getLogger(__name__)
         logger.error('Expected file %s to exist, corresponding with hparams'
-                     + ' for params %s, but it does not', params)
+                     + ' for params %s, but it does not', filen, params)
         raise FileNotFoundError(filen)
 
     with open(filen, 'r') as infile:
@@ -45,7 +45,7 @@ def _post_trials(listeners: typing.Iterable[ps.SweepListener],
     if not os.path.exists(filen):
         logger = logging.getLogger(__name__)
         logger.error('Expected file %s to exist, corresponding with results'
-                     + ' for params %s, but it does not', params)
+                     + ' for params %s, but it does not', filen, params)
         raise FileNotFoundError(filen)
 
     with np.load(filen) as infile:

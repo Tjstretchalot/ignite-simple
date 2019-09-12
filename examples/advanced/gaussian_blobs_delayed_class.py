@@ -228,10 +228,23 @@ def single_gain(gain: float):
 
     hparams = hyperparameters.fastest()
     hparams.lr_min_inits = 16 # finding learning rate for RNNs is hard
-    hparams.lr_width_only_gradients = True # we prefer most steady
+    hparams.lr_width_only_gradients = True # we prefer most steady. This often
+    # has no effect, but can help if you choose to reduce lr_min_inits.
 
-    # The correct learning rate range, which this is able to find occassionally,
-    # is about (0.01, 0.02). However, the improvement in this range is slow.
+    # It's very important that the learning rate go as high as at least
+    # 0.02 for the model to perform at optimal efficiency. There is a
+    # very strong plateau between about 0.005 and 0.1 wherein increasing
+    # the learning rate does not appear to help, and then a dramatic
+    # improvement between 0.01 and 0.02, and then increasing LR much further
+    # can cause gradient explosion and catostrophic failure (NaN or performing
+    # no better than chance).
+
+    # Typically this is able to find a range like (2e-05, 0.02) which achieves
+    # optimal performance reasonably fast, converging slower but more
+    # consistently than (0.01, 0.02).
+
+    # This was all determined by inspecting the plots that came out of this
+    # function call then testing LRs inspired by those plots.
 
     dataset(True)
     ignite_simple.train(
