@@ -130,12 +130,17 @@ def find_with_derivs(xs: np.ndarray,
     """Finds the range in derivs wherein the derivative is always
     positive. From these intervals, this returns specifically the one with
     the greatest integral. If select_with_width_only is true, we find the
-    interval with the greatest width amongth those found instead.
+    interval with the greatest width amongst those found instead.
 
     :param np.ndarray xs: with shape `(points,)`, the x-values corresponding to
         the derivatives
 
     :param np.ndarray derivs: with shape `(points,)`, the relevant derivatives
+
+    :param bool select_with_width_only: Change the reason for selecting
+        intervals from greatest integral to greatest width in xs. This
+        is helpful if least sensitivity is preferred or one is concerned
+        that the derivs are very noisy
 
     :returns: the `(min, max)` for the best interval in xs that has positive
         derivative in ys. Where multiple such intervals exist, this is the
@@ -153,7 +158,8 @@ def find_with_derivs(xs: np.ndarray,
     for i in range(candidates.shape[0] - 1):
         st = candidates[i]
         en = candidates[i + 1]
-        change = (xs[en] - xs[st] if select_with_width_only
+        change = (xs[min(en, len(derivs) - 1)] - xs[st]
+                  if select_with_width_only
                   else np.trapz(derivs[st:en], xs[st:en]))
         if change > best_change:
             best_candidate = i
