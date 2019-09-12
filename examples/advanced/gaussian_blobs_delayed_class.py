@@ -4,7 +4,7 @@ clusters.
 """
 import ignite_simple.utils
 import ignite_simple
-import ignite_simple.hyperparameters as hyperparameters
+import ignite_simple.hyperparams as hyperparameters
 import torch
 import torch.utils.data as tdata
 import numpy as np
