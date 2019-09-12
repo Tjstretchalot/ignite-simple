@@ -91,8 +91,8 @@ def handle(module=None):
         help='Level of hyperparameter tuning, one of \'fastest\', \'fast\', '
         + '\'slow\', and \'slowest\'')
     parser.add_argument(
-        '--analysis', type=str, default='images',
-        help='Level of analysis to perform, typically images or videos')
+        '--analysis', type=str, default='images-min',
+        help='Level of analysis to perform, typically images-min or videos')
     parser.add_argument(
         '--analysis_up_to', type=str, default='videos',
         help='Level of analysis that will be possible without repeating '

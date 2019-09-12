@@ -50,10 +50,29 @@ def _increment(cur, tnr, state):
 
 def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
                 accuracy_style, lr_start, lr_end, batch_size,
-                cycle_time_epochs):
+                cycle_time_epochs, warmup_lr, warmup_batch, warmup_pts):
     train_set, _ = utils.invoke(dataset_loader)
+    task_loader = (
+        __name__,
+        '_task_loader',
+        (dataset_loader, batch_size, True, True),
+        dict())
 
     num_train_iters = (len(train_set) // batch_size) * (cycle_time_epochs // 2)
+
+    warmed_up_model_loader = (
+        'ignite_simple.utils',
+        'model_loader_with_warmup',
+        (
+            model_loader,
+            task_loader,
+            loss_loader,
+            warmup_lr,
+            warmup_batch,
+            warmup_pts
+        ),
+        dict()
+    )
 
     cur_iter = [0]
     num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
@@ -62,9 +81,8 @@ def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     perfs = np.zeros(num_train_iters)
 
     tnr_settings = ignite_simple.trainer.TrainSettings(
-        accuracy_style, model_loader, loss_loader,
-        (__name__, '_task_loader',
-         (dataset_loader, batch_size, True, True), dict()),
+        accuracy_style, warmed_up_model_loader, loss_loader,
+        task_loader,
         (
             (Events.ITERATION_COMPLETED,
              (__name__, '_store_lr_and_perf',
@@ -144,7 +162,9 @@ def _batch_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
     num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
 
     tnr_settings = ignite_simple.trainer.TrainSettings(
-        accuracy_style, model_loader, loss_loader,
+        accuracy_style,
+        model_loader,
+        loss_loader,
         (__name__, '_task_loader_bs',
          (dataset_loader, batch_start, batch_end, epochs), dict()),
         (
@@ -250,7 +270,8 @@ def _run_and_collate(fn, kwargs, cores,
 def _select_lr_from(model_loader, dataset_loader, loss_loader,
                     accuracy_style, outfile, cores, settings,
                     store_up_to, logger, cycle_time_epochs,
-                    batch_size, lr_start, lr_end) -> typing.Tuple[int, int]:
+                    batch_size, lr_start, lr_end,
+                    warmup_lr, warmup_batch, warmup_pts) -> typing.Tuple[int, int]:
     result = _run_and_collate(
         _lr_vs_perf, {
             'model_loader': model_loader,
@@ -260,7 +281,10 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
             'lr_start': lr_start,
             'lr_end': lr_end,
             'batch_size': batch_size,
-            'cycle_time_epochs': cycle_time_epochs
+            'cycle_time_epochs': cycle_time_epochs,
+            'warmup_lr': warmup_lr,
+            'warmup_batch': warmup_batch,
+            'warmup_pts': warmup_pts
         }, cores, settings.lr_min_inits
     )
 
@@ -286,7 +310,8 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
             return _select_lr_from(
                 model_loader, dataset_loader, loss_loader, accuracy_style,
                 outfile, cores, settings, store_up_to, logger,
-                cycle_time_epochs, batch_size, lr_start, new_lr_end)
+                cycle_time_epochs, batch_size, lr_start, new_lr_end,
+                warmup_lr, warmup_batch, warmup_pts)
 
         lrs = lrs[:, :clip_at]
         lr_perfs = lr_perfs[:, :clip_at]
@@ -309,15 +334,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         lr_perfs, window_size, 1, deriv=1)
     mean_smoothed_lr_perf_derivs = smoothed_lr_perf_derivs.mean(0)
 
-    # we trim a bit off the search since gradients are weird around
-    # edges + the first little part is garbage typically. only makes
-    # a difference for unstable models and it really helps there
-    search_start_ind = lrs.shape[0] // 10
-    search_end_ind = 9 * search_start_ind
-
-    lr_min, lr_max = find_with_derivs(
-        lrs[search_start_ind:search_end_ind],
-        lse_smoothed_lr_perf_then_derivs[search_start_ind:search_end_ind])
+    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs)
 
     np.savez_compressed(
         outfile,
@@ -629,13 +646,17 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     logger.info('Performing initial learning rate sweep...')
     init_batch_size = 64
     init_cycle_time = int(np.clip(150000 // len(train_set), 2, 5) * 2)
+    warmup_pts = len(train_set) // 10
+    warmup_batch = 64
+    warmup_lr = 1e-8
 
     lr_min, lr_max, lr_initial_window_size, lr_initial_trials = (
         _select_lr_from(
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf.npz'), cores, settings,
             store_up_to, logger, init_cycle_time, init_batch_size,
-            settings.lr_start, settings.lr_end
+            settings.lr_start, settings.lr_end,
+            warmup_lr, warmup_batch, warmup_pts
         )
     )
     initial_lr_sweep_result_min, initial_lr_sweep_result_max = lr_min, lr_max
@@ -735,7 +756,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf2.npz'), cores, settings,
             store_up_to, logger, init_cycle_time, init_batch_size,
-            second_min_lr, second_max_lr
+            second_min_lr, second_max_lr,
+            warmup_lr, warmup_batch, warmup_pts
         )
     else:
         second_min_lr = float('nan')
@@ -780,6 +802,9 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
                 'second_lr_window_size': second_lr_window_size,
                 'lr_sweep_result_min': lr_min,
                 'lr_sweep_result_max': lr_max,
+                'warmup_pts': warmup_pts,
+                'warmup_lr': warmup_lr,
+                'warmup_batch': warmup_batch
             },
             outfile
         )

@@ -275,7 +275,7 @@ def train(settings: TrainSettings) -> None:
         metrics['perf'] = ignite.metrics.MetricsLambda(
             _iden, metrics['accuracy'])
     elif settings.accuracy_style == 'multiclass':
-        metrics['accuracy'] = ignite.metrics.Accuracy(_multiclass_threshold,
+        metrics['accuracy'] = ignite.metrics.Accuracy(_multilabel_threshold,
                                                       is_multilabel=True)
         metrics['perf'] = ignite.metrics.MetricsLambda(
             _iden, metrics['accuracy'])

@@ -107,6 +107,51 @@ def task_loader(dataset_loader, batch_size, shuffle, drop_last):
         train_set, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last)
     return train_set, val_set, train_loader
 
+def model_loader_with_warmup(model_loader, task_loader, loss_loader,
+                             learning_rate, batch_size, num_points):
+    """Loads the specified model after training it for the specified number of
+    points with the given fixed learning rate and batch size. This is helpful
+    for warming up models with a small learning rate / large batch size / small
+    number of points prior to investigating performance. This uses SGD.
+
+    :param model_loader: the model loader (str, str, tuple, dict)
+    :param task_loader: the task loader (str, str, tuple, dict)
+    :param loss_loader: the loss loader (str, str, tuple, dict)
+    :param learning_rate: the fixed learning rate during warmup
+    :param batch_size: the fixed batch size during warmup
+    :param num_points: we will run approximately num_points samples through
+        the model
+    """
+    train_set, val_set, train_loader = invoke(task_loader)
+    criterion = invoke(loss_loader)
+    raw_model = invoke(model_loader)
+
+    if isinstance(raw_model, tuple):
+        model = raw_model[1]
+    else:
+        model = raw_model
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    with torch.set_grad_enabled(True):
+        npoints = 0
+        for i, batch in enumerate(train_loader):
+            inputs, labels = batch
+            optimizer.zero_grad()
+
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            npoints += inputs.shape[0]
+            if npoints >= num_points:
+                break
+
+    return raw_model
+
+
+
+
 def split(full: data.Dataset,
           val_perc: float,
           filen: str = None) -> typing.Tuple[data.Dataset, data.Dataset]:

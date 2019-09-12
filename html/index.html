@@ -22,6 +22,13 @@
                 id="initial-lr-num-trials">TODO</span> different random initializations of the
             model. For analysis, we ignored learning rates at or greater than the lowest learning
             rate that caused network explosion (NaNs) in any of the trials.</p>
+
+        <p>Prior to starting the sweep for each model, the model was "warmed up" to reduce the
+            bias toward the beginning where improvements are faster. The model was warmed up for
+            <span id="warmup-pts">TODO</span> samples with a fixed learning rate of
+            <span id="warmup-lr">TODO</span> and batch size of <span id="warmup-batch">TODO</span>.
+        </p>
+
         <p>After this process, there was a trial dimension, x dimension (learning rates), and y
             dimension which was transformed to 1/(loss+1). The trial dimension was coalesced using
             <a href="https://en.wikipedia.org/wiki/LogSumExp">LogSumExp</a>. The result was then
@@ -177,6 +184,11 @@
             randomly from the training set and the loss was calculated and stored (without
             propagating any gradients for these points). This was repeated for <span
                 id="second-lr-num-trials">TODO</span> different random initializations of the model.
+        </p>
+        <p>Prior to starting the sweep for each model, the model was "warmed up" to reduce the
+            bias toward the beginning where improvements are faster. The model was warmed up for
+            <span id="warmup-pts">TODO</span> samples with a fixed learning rate of
+            <span id="warmup-lr">TODO</span> and batch size of <span id="warmup-batch">TODO</span>.
         </p>
         <p>After this process, there was a trial dimension, x dimension (learning rates), and y
             dimension which was transformed to 1/(loss+1). The trial dimension was coalesced using
