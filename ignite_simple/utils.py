@@ -134,18 +134,19 @@ def model_loader_with_warmup(model_loader, task_loader, loss_loader,
     optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
     with torch.set_grad_enabled(True):
         npoints = 0
-        for i, batch in enumerate(train_loader):
-            inputs, labels = batch
-            optimizer.zero_grad()
+        while npoints < num_points:
+            for i, batch in enumerate(train_loader):
+                inputs, labels = batch
+                optimizer.zero_grad()
 
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
 
-            npoints += inputs.shape[0]
-            if npoints >= num_points:
-                break
+                npoints += inputs.shape[0]
+                if npoints >= num_points:
+                    break
 
     return raw_model
 

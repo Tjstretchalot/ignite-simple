@@ -40,11 +40,24 @@ class HyperparameterSettings:
     :ivar bool rescan_lr_after_bs: if True, the learning rate is scanned once
         more after we tweak the batch size. otherwise, we use the same ratio
         of learning rate to batch size as we found in the first sweep.
+
+    :ivar float warmup_lr: Decides the learning rate which is used to warmup
+        models prior to a learning rate sweep. Should be fairly low. Has no
+        effect if warmup_pts <= 0
+
+    :ivar int warmup_batch: Decides the batch size which is used to warmup
+        models prior to a learning rate sweep. Should be fairly high. Has no
+        effect if warmup_pts <= 0
+
+    :ivar union[int, float] warmup_pts: The number of points to warmup models prior to
+        learning rate sweeps. Should be low for stable models and higher for
+        unstable models. Use an int for points, float for epochs
     """
     def __init__(self, lr_start: float, lr_end: float, lr_min_inits: int,
                  batch_start: int, batch_end: int, batch_rn_min_inits: int,
                  batch_pts: int, batch_pt_min_inits: int,
-                 rescan_lr_after_bs: bool):
+                 rescan_lr_after_bs: bool, warmup_lr: float,
+                 warmup_batch: int, warmup_pts: typing.Union[int, float]):
         self.lr_start = lr_start
         self.lr_end = lr_end
         self.lr_min_inits = lr_min_inits
@@ -54,6 +67,9 @@ class HyperparameterSettings:
         self.batch_pts = batch_pts
         self.batch_pt_min_inits = batch_pt_min_inits
         self.rescan_lr_after_bs = rescan_lr_after_bs
+        self.warmup_lr = warmup_lr
+        self.warmup_batch = warmup_batch
+        self.warmup_pts = warmup_pts
 
     def __repr__(self):
         return f'HyperparameterSettings(**{self.__dict__})'
@@ -70,6 +86,9 @@ def fastest() -> HyperparameterSettings:
         batch_pts=0,
         batch_pt_min_inits=0,
         rescan_lr_after_bs=False,
+        warmup_lr=1e-6,
+        warmup_batch=64,
+        warmup_pts=0.1,
     )
 
 def fast() -> HyperparameterSettings:
@@ -84,6 +103,9 @@ def fast() -> HyperparameterSettings:
         batch_pts=3,
         batch_pt_min_inits=1,
         rescan_lr_after_bs=False,
+        warmup_lr=1e-6,
+        warmup_batch=64,
+        warmup_pts=0.1,
     )
 
 def slow() -> HyperparameterSettings:
@@ -98,6 +120,9 @@ def slow() -> HyperparameterSettings:
         batch_pts=12,
         batch_pt_min_inits=3,
         rescan_lr_after_bs=True,
+        warmup_lr=1e-6,
+        warmup_batch=64,
+        warmup_pts=0.1,
     )
 
 def slowest() -> HyperparameterSettings:
@@ -112,6 +137,9 @@ def slowest() -> HyperparameterSettings:
         batch_pts=24,
         batch_pt_min_inits=10,
         rescan_lr_after_bs=True,
+        warmup_lr=1e-6,
+        warmup_batch=64,
+        warmup_pts=0.1,
     )
 
 NAME_TO_PRESET = {

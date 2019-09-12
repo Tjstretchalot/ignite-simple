@@ -72,7 +72,7 @@ def _lr_vs_perf(model_loader, dataset_loader, loss_loader, outfile,
             warmup_pts
         ),
         dict()
-    )
+    ) if warmup_pts > 0 else model_loader
 
     cur_iter = [0]
     num_to_val = min(NUM_TO_VAL_MAX, len(train_set))
@@ -646,9 +646,12 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     logger.info('Performing initial learning rate sweep...')
     init_batch_size = 64
     init_cycle_time = int(np.clip(150000 // len(train_set), 2, 5) * 2)
-    warmup_pts = len(train_set) // 10
-    warmup_batch = 64
-    warmup_lr = 1e-8
+    if isinstance(settings.warmup_pts, float):
+        warmup_pts = int(len(train_set) * settings.warmup_pts)
+    else:
+        warmup_pts = settings.warmup_pts
+    warmup_batch = settings.warmup_batch
+    warmup_lr = settings.warmup_lr
 
     lr_min, lr_max, lr_initial_window_size, lr_initial_trials = (
         _select_lr_from(

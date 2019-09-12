@@ -4,6 +4,7 @@ clusters.
 """
 import ignite_simple.utils
 import ignite_simple
+import ignite_simple.hyperparameters as hyperparameters
 import torch
 import torch.utils.data as tdata
 import numpy as np
@@ -12,7 +13,7 @@ import os
 import typing
 from scipy.spatial.distance import cdist
 
-INPUT_DIM = 3
+INPUT_DIM = 2
 CLUSTER_STD = 0.005
 N_CLUSTERS = 60
 POINTS_PER_CLUST = 50000 // N_CLUSTERS
@@ -22,7 +23,7 @@ CLUSTER_MIN_SEP = CLUSTER_STD * (0.59943537 * ((INPUT_DIM - 1) ** 0.57832581) + 
 
 HIDDEN_SIZE = 128
 SEQ_LENGTH = 10  # first is input, last+1 is readout
-OUTPUT_DIM = 3
+OUTPUT_DIM = 2
 DATASET_FILE = os.path.join('datasets', 'advanced', 'gaussian_blobs_delayed_class')
 
 FOLDER = os.path.join('out', 'advanced', 'gaussian_blobs_delayed_class', 'sweep')
@@ -225,6 +226,9 @@ def single_gain(gain: float):
     if os.path.exists('logging.conf'):
         logging.config.fileConfig('logging.conf')
 
+    hparams = hyperparameters.fastest()
+    hparams.lr_min_inits = 16 # finding learning rate for RNNs is hard
+
     dataset(True)
     ignite_simple.train(
         (__name__, 'model', (float(gain),), dict()),
@@ -238,14 +242,14 @@ def single_gain(gain: float):
         trials=1,
         is_continuation=True,
         history_folder=os.path.join(FOLDER_SINGLE, 'history'),
-        cores=1,#'all',
+        cores='all',
         trials_strict=False
     )
 
 
 if __name__ == '__main__':
-    if not os.path.exists(FOLDER):
-        main()
-    replot()
+    # if not os.path.exists(FOLDER):
+    #     main()
+    # replot()
 
-    # single_gain(1.1)
+    single_gain(0.4)
