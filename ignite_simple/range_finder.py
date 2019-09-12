@@ -125,10 +125,12 @@ def trim_range_derivs(xs: np.ndarray,
     return (x_st_ind, x_en_ind)
 
 def find_with_derivs(xs: np.ndarray,
-                     derivs: np.ndarray) -> typing.Tuple[float, float]:
+                     derivs: np.ndarray,
+                     select_with_width_only: bool = False) -> typing.Tuple[float, float]:
     """Finds the range in derivs wherein the derivative is always
     positive. From these intervals, this returns specifically the one with
-    the greatest integral.
+    the greatest integral. If select_with_width_only is true, we find the
+    interval with the greatest width amongth those found instead.
 
     :param np.ndarray xs: with shape `(points,)`, the x-values corresponding to
         the derivatives
@@ -151,7 +153,8 @@ def find_with_derivs(xs: np.ndarray,
     for i in range(candidates.shape[0] - 1):
         st = candidates[i]
         en = candidates[i + 1]
-        change = np.trapz(derivs[st:en], xs[st:en])
+        change = (xs[end] - xs[st] if select_with_width_only
+                  else np.trapz(derivs[st:en], xs[st:en]))
         if change > best_change:
             best_candidate = i
             best_change = change

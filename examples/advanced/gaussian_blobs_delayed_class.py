@@ -228,6 +228,10 @@ def single_gain(gain: float):
 
     hparams = hyperparameters.fastest()
     hparams.lr_min_inits = 16 # finding learning rate for RNNs is hard
+    hparams.lr_width_only_gradients = True # we prefer most steady
+
+    # The correct learning rate range, which this is able to find occassionally,
+    # is about (0.01, 0.02). However, the improvement in this range is slow.
 
     dataset(True)
     ignite_simple.train(

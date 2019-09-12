@@ -271,6 +271,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
                     accuracy_style, outfile, cores, settings,
                     store_up_to, logger, cycle_time_epochs,
                     batch_size, lr_start, lr_end,
+                    grads_width_only,
                     warmup_lr, warmup_batch, warmup_pts) -> typing.Tuple[int, int]:
     result = _run_and_collate(
         _lr_vs_perf, {
@@ -311,6 +312,7 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
                 model_loader, dataset_loader, loss_loader, accuracy_style,
                 outfile, cores, settings, store_up_to, logger,
                 cycle_time_epochs, batch_size, lr_start, new_lr_end,
+                grads_width_only,
                 warmup_lr, warmup_batch, warmup_pts)
 
         lrs = lrs[:, :clip_at]
@@ -334,7 +336,8 @@ def _select_lr_from(model_loader, dataset_loader, loss_loader,
         lr_perfs, window_size, 1, deriv=1)
     mean_smoothed_lr_perf_derivs = smoothed_lr_perf_derivs.mean(0)
 
-    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs)
+    lr_min, lr_max = find_with_derivs(lrs, lse_smoothed_lr_perf_then_derivs,
+                                      grads_width_only)
 
     np.savez_compressed(
         outfile,
@@ -658,7 +661,7 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf.npz'), cores, settings,
             store_up_to, logger, init_cycle_time, init_batch_size,
-            settings.lr_start, settings.lr_end,
+            settings.lr_start, settings.lr_end, settings.lr_width_only_gradients,
             warmup_lr, warmup_batch, warmup_pts
         )
     )
@@ -759,7 +762,7 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf2.npz'), cores, settings,
             store_up_to, logger, init_cycle_time, init_batch_size,
-            second_min_lr, second_max_lr,
+            second_min_lr, second_max_lr, settings.lr_width_only_gradients,
             warmup_lr, warmup_batch, warmup_pts
         )
     else:
@@ -807,7 +810,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
                 'lr_sweep_result_max': lr_max,
                 'warmup_pts': warmup_pts,
                 'warmup_lr': warmup_lr,
-                'warmup_batch': warmup_batch
+                'warmup_batch': warmup_batch,
+                'lr_width_only_gradients': settings.lr_width_only_gradients
             },
             outfile
         )

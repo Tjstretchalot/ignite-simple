@@ -14,6 +14,10 @@ class HyperparameterSettings:
         Note that when multiple physical cores are available they will be
         utilized since this process is well-suited to parallelization
 
+    :ivar bool lr_width_only_gradients: if True, when deciding the best range
+        for learning rate, we prefer the widest range over the greatest
+        integral for the derivative. We still clip with the integral.
+
     :ivar int batch_start: the smallest batch size that is checked during the
         initial reasonableness sweep (a single pass)
 
@@ -57,10 +61,12 @@ class HyperparameterSettings:
                  batch_start: int, batch_end: int, batch_rn_min_inits: int,
                  batch_pts: int, batch_pt_min_inits: int,
                  rescan_lr_after_bs: bool, warmup_lr: float,
-                 warmup_batch: int, warmup_pts: typing.Union[int, float]):
+                 warmup_batch: int, warmup_pts: typing.Union[int, float],
+                 lr_width_only_gradients: bool):
         self.lr_start = lr_start
         self.lr_end = lr_end
         self.lr_min_inits = lr_min_inits
+        self.lr_width_only_gradients = lr_width_only_gradients
         self.batch_start = batch_start
         self.batch_end = batch_end
         self.batch_rn_min_inits = batch_rn_min_inits
@@ -80,6 +86,7 @@ def fastest() -> HyperparameterSettings:
         lr_start=1e-6,
         lr_end=1,
         lr_min_inits=1,
+        lr_width_only_gradients=False,
         batch_start=16,
         batch_end=128,
         batch_rn_min_inits=1,
@@ -97,6 +104,7 @@ def fast() -> HyperparameterSettings:
         lr_start=1e-6,
         lr_end=1,
         lr_min_inits=1,
+        lr_width_only_gradients=False,
         batch_start=16,
         batch_end=128,
         batch_rn_min_inits=1,
@@ -114,6 +122,7 @@ def slow() -> HyperparameterSettings:
         lr_start=1e-8,
         lr_end=1,
         lr_min_inits=3,
+        lr_width_only_gradients=False,
         batch_start=16,
         batch_end=128,
         batch_rn_min_inits=3,
@@ -131,6 +140,7 @@ def slowest() -> HyperparameterSettings:
         lr_start=1e-8,
         lr_end=1,
         lr_min_inits=10,
+        lr_width_only_gradients=False,
         batch_start=8,  # <8 might sometimes be better, but is painfully
         batch_end=512,  # slow computationally
         batch_rn_min_inits=10,
