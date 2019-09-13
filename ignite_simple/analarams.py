@@ -166,6 +166,18 @@ def video() -> AnalysisSettings:
     res.typical_run_pca3dvis_draft = False
     return res
 
+def images_min_plus_pca3dvis() -> AnalysisSettings:
+    """Images min preset plus the pca3dvis video for one trial
+
+    :returns: the images-min+video preset for analysis settings, which is
+        the images-min preset with the pca3dvis video
+    :rtype: AnalysisSettings
+    """
+    res = images_min()
+    res.typical_run_pca3dvis = True
+    res.typical_run_pca3dvis_draft = False
+    return res
+
 NAME_TO_PRESET = {
     'none': none,
     'text': text,
@@ -173,6 +185,8 @@ NAME_TO_PRESET = {
     'image': images,
     'images-min': images_minimum,
     'images_min': images_minimum,
+    'images-min+pca3dvis': images_min_plus_pca3dvis,
+    'images_min+pca3dvis': images_min_plus_pca3dvis,
     'images-minimum': images_minimum,
     'images_minimum': images_minimum,
     'animation-draft': animations_draft,
