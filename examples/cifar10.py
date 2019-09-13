@@ -12,7 +12,7 @@ import torch
 
 def model():
     return (
-        torchluent.FluentModule((3, 28, 28))
+        torchluent.FluentModule((3, 32, 32))
         .verbose()
         .conv2d(32, 3, padding=1)
         .operator('PReLU')
@@ -49,4 +49,7 @@ loss = torch.nn.CrossEntropyLoss
 accuracy_style = 'classification'
 
 if __name__ == '__main__':
-    ignite_simple.helper.handle(__name__)
+    #ignite_simple.helper.handle(__name__)
+    mdl = model()
+    print()
+    print(mdl)
