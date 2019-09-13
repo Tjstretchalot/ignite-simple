@@ -13,7 +13,6 @@ import torch
 def model():
     return (
         torchluent.FluentModule((3, 32, 32))
-        .verbose()
         .conv2d(32, 3, padding=1)
         .operator('PReLU')
         .conv2d(32, 3, padding=1)
