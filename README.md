@@ -170,13 +170,19 @@ dramatically effect model performance. The methodology is inspired by
 [Cyclical Learning Rates for Training Neural Networks, 2017](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7926641).
 
 For tuning the learning rate, a reasonable cycle size is used and the process
-is analagous to that described by the paper.
+is analagous to that described by the paper. A very small number of warmup
+cycles at a low learning rate are included which improves stability on
+some models without effecting most models, and can be disabled by setting the
+instance of `hyperparams.HyperparameterSettings` to have `warmup_pts=0`. This
+is typically 10% of an epoch trained with minibatched SGD with batch size 64
+and a fixed learning rate of 1e-6.
 
 The batch size is found in a similar way - vary the batch size upward linearly
 over a few epochs. The range of batch sizes where the accuracy increased is
 found, and then batch sizes are randomly drawn from that range and tested for
 a few epochs. The batch size with the highest accuracy at the end of the short
-test is used.
+test is used. Warmup is not used for batch size currently as it does not seem
+to benefit any models.
 
 The hyperparameter presets correspond roughly to:
     - How many trials to average tests over (i.e., for learning rate it can be
@@ -193,9 +199,9 @@ for a final model.
 
 ## Automatic analysis
 
-Valid presets are `none`, `text`, `images`, `images-min`, `animations-draft`,
-`animations`, `video-draft`, and `video`.  See `ignite_simple.analarams` for
-details.
+Valid presets are `none`, `text`, `images`, `images-min`, `images-min+pca3dvis`,
+`animations-draft`, `animations`, `video-draft`, and `video`.  See
+`ignite_simple.analarams` for details.
 
 If unsure, choose `images-min` and then upgrade to `images` or `video` for
 final analysis or for additional information as necessary.
