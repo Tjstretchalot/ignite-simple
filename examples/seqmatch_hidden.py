@@ -18,7 +18,7 @@ HPARAMS = 'fastest'  # rnns aren't the most stable so consider increasing
 TRIALS_TO_FIND_HPARAMS = 3
 TRIALS_WITH_FOUND_HPARAMS = 3
 SEQ_LENGTHS = 10
-SIZES_TO_CHECK = [8, 64, 128, 256]
+SIZES_TO_CHECK = [8, 16, 32, 64, 128, 256]
 # Alternatives: [1, 2, 4, 8, 16, 32, 64, 128, 256]
 # list(range(8, 256+1, 8)) = [8, 16, 24, ..., 256]
 
