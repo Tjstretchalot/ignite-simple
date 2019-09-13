@@ -49,7 +49,4 @@ loss = torch.nn.CrossEntropyLoss
 accuracy_style = 'classification'
 
 if __name__ == '__main__':
-    #ignite_simple.helper.handle(__name__)
-    mdl = model()
-    print()
-    print(mdl)
+    ignite_simple.helper.handle(__name__)
