@@ -36,16 +36,19 @@ def model():
         .build()
     )
 
-def dataset():
+def dataset(download=False):
     transform = torchvision.transforms.ToTensor()
     train_set = torchvision.datasets.CIFAR10(
-        'datasets/cifar10', download=True, transform=transform)
+        'datasets/cifar10', download=download, transform=transform)
     val_set = torchvision.datasets.CIFAR10(
-        'datasets/cifar10', train=False, download=True, transform=transform)
+        'datasets/cifar10', train=False, download=download,
+        transform=transform)
+
     return train_set, val_set
 
 loss = torch.nn.CrossEntropyLoss
 accuracy_style = 'classification'
 
 if __name__ == '__main__':
+    dataset(True)
     ignite_simple.helper.handle(__name__)
