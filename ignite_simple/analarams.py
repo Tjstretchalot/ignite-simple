@@ -173,7 +173,7 @@ def images_min_plus_pca3dvis() -> AnalysisSettings:
         the images-min preset with the pca3dvis video
     :rtype: AnalysisSettings
     """
-    res = images_min()
+    res = images_minimum()
     res.typical_run_pca3dvis = True
     res.typical_run_pca3dvis_draft = False
     return res
