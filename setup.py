@@ -4,7 +4,7 @@ import os
 
 setuptools.setup(
     name='ignite_simple',
-    version='0.0.11',
+    version='0.0.12a',
     author='Timothy Moore',
     author_email='mtimothy984@gmail.com',
     description='Easily train pytorch models with automatic LR and BS tuning',

@@ -686,6 +686,8 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
     lr_sweep_epochs = settings.lr_sweep_len
     if isinstance(lr_sweep_epochs, int):
         lr_sweep_epochs = lr_sweep_epochs / len(train_set)
+    lr_sweep_epochs = int(lr_sweep_epochs)
+
     if isinstance(settings.warmup_pts, float):
         warmup_pts = int(len(train_set) * settings.warmup_pts)
     else:
