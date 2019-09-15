@@ -1,7 +1,4 @@
-"""Train a model inspired by
-https://appliedmachinelearning.blog/2018/03/24/achieving-90-accuracy-in-object-recognition-task-on-cifar-10-dataset-with-keras-convolutional-neural-networks/
-
-Further simplified.
+"""Train a deep convolutional net on cifar10
 """
 
 import torchluent
@@ -13,25 +10,16 @@ import torch
 def model():
     return (
         torchluent.FluentModule((3, 32, 32))
-        .conv2d(32, 3, padding=1)
-        .operator('Tanh')
-        .conv2d(32, 3, padding=1)
-        .operator('Tanh')
-        .maxpool2d(2)
-        .operator('Dropout', 0.2)
-        .conv2d(64, 3, padding=1)
-        .operator('Tanh')
-        .conv2d(64, 3, padding=1)
-        .operator('Tanh')
-        .maxpool2d(2)
-        .operator('Dropout', 0.3)
-        .conv2d(128, 3, padding=1)
-        .operator('Tanh')
-        .conv2d(128, 3, padding=1)
-        .operator('Tanh')
-        .maxpool2d(2)
-        .operator('Dropout', 0.4)
+        .verbose()
+        .conv2d(32, 5, padding=3, stride=5)
+        .operator('PReLU')
+        .conv2d(64, 3, padding=1, stride=3)
+        .operator('PReLU')
         .flatten()
+        .dense(256)
+        .operator('Tanh')
+        .dense(256)
+        .operator('Tanh')
         .dense(10)
         .build()
     )
