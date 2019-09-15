@@ -682,7 +682,10 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
 
     logger.info('Performing initial learning rate sweep...')
     init_batch_size = 64
-    init_cycle_time = int(np.clip(150000 // len(train_set), 2, 5) * 2)
+    init_cycle_time = int(np.clip(300000 // len(train_set), 2, 10) * 2)
+    lr_sweep_epochs = settings.lr_sweep_len
+    if isinstance(lr_sweep_epochs, int):
+        lr_sweep_epochs = lr_sweep_epochs / len(train_set)
     if isinstance(settings.warmup_pts, float):
         warmup_pts = int(len(train_set) * settings.warmup_pts)
     else:
@@ -694,7 +697,7 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
         _select_lr_from(
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf.npz'), cores, settings,
-            store_up_to, logger, init_cycle_time, init_batch_size,
+            store_up_to, logger, lr_sweep_epochs * 2, init_batch_size,
             settings.lr_start, settings.lr_end, settings.lr_width_only_gradients,
             warmup_lr, warmup_batch, warmup_pts
         )
@@ -795,7 +798,7 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
         lr_min, lr_max, second_lr_window_size, second_lr_num_trials = _select_lr_from(
             model_loader, dataset_loader, loss_loader, accuracy_style,
             os.path.join(folder, 'lr_vs_perf2.npz'), cores, settings,
-            store_up_to, logger, init_cycle_time, init_batch_size,
+            store_up_to, logger, lr_sweep_epochs * 2, init_batch_size,
             second_min_lr, second_max_lr, settings.lr_width_only_gradients,
             warmup_lr, warmup_batch, warmup_pts
         )
@@ -818,6 +821,7 @@ def tune(model_loader: typing.Tuple[str, str, tuple, dict],
             {
                 'initial_batch_size': init_batch_size,
                 'initial_cycle_time': init_cycle_time,
+                'initial_lr_sweep_epochs': lr_sweep_epochs,
                 'initial_min_lr': settings.lr_start,
                 'initial_max_lr': settings.lr_end,
                 'initial_lr_num_to_val': initial_lr_num_to_val,

@@ -9,6 +9,12 @@ class HyperparameterSettings:
 
     :ivar float lr_end: the largest learning rate that is checked
 
+    :ivar union[int, float] lr_sweep_len: either an int for the number of
+        samples that will go into the learning rate sweep or a float for
+        the number of epochs that will go into the lr sweep. The learning
+        rate will be linearly increased over this many points from lr_start
+        to lr_end
+
     :ivar int lr_min_inits: the minimum number of model initializations that
         are averaged together and then smoothed to get the lr-vs-accuracy plot.
         Note that when multiple physical cores are available they will be
@@ -57,7 +63,9 @@ class HyperparameterSettings:
         learning rate sweeps. Should be low for stable models and higher for
         unstable models. Use an int for points, float for epochs
     """
-    def __init__(self, lr_start: float, lr_end: float, lr_min_inits: int,
+    def __init__(self, lr_start: float, lr_end: float,
+                 lr_sweep_len: typing.Union[int, float],
+                 lr_min_inits: int,
                  batch_start: int, batch_end: int, batch_rn_min_inits: int,
                  batch_pts: int, batch_pt_min_inits: int,
                  rescan_lr_after_bs: bool, warmup_lr: float,
@@ -65,6 +73,7 @@ class HyperparameterSettings:
                  lr_width_only_gradients: bool):
         self.lr_start = lr_start
         self.lr_end = lr_end
+        self.lr_sweep_len = lr_sweep_len
         self.lr_min_inits = lr_min_inits
         self.lr_width_only_gradients = lr_width_only_gradients
         self.batch_start = batch_start
@@ -85,6 +94,7 @@ def fastest() -> HyperparameterSettings:
     return HyperparameterSettings(
         lr_start=1e-6,
         lr_end=1,
+        lr_sweep_len=4.,
         lr_min_inits=1,
         lr_width_only_gradients=False,
         batch_start=16,
@@ -103,6 +113,7 @@ def fast() -> HyperparameterSettings:
     return HyperparameterSettings(
         lr_start=1e-6,
         lr_end=1,
+        lr_sweep_len=6.,
         lr_min_inits=1,
         lr_width_only_gradients=False,
         batch_start=16,
@@ -121,6 +132,7 @@ def slow() -> HyperparameterSettings:
     return HyperparameterSettings(
         lr_start=1e-8,
         lr_end=1,
+        lr_sweep_len=12.,
         lr_min_inits=3,
         lr_width_only_gradients=False,
         batch_start=16,
@@ -139,6 +151,7 @@ def slowest() -> HyperparameterSettings:
     return HyperparameterSettings(
         lr_start=1e-8,
         lr_end=1,
+        lr_sweep_len=20.,
         lr_min_inits=10,
         lr_width_only_gradients=False,
         batch_start=8,  # <8 might sometimes be better, but is painfully

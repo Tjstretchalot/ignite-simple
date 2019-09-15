@@ -6,6 +6,8 @@ import ignite_simple
 import ignite_simple.helper
 import torchvision
 import torch
+import os
+import ignite_simple.hyperparams as hyperparams
 
 def model():
     return (
@@ -42,4 +44,22 @@ accuracy_style = 'classification'
 
 if __name__ == '__main__':
     dataset(True)
-    ignite_simple.helper.handle(__name__)
+    hparams = hyperparams.slow()
+    hparams.lr_sweep_len = 20.
+    hparams.batch_pts = 3
+
+    ignite_simple.train(
+        (__name__, 'model', tuple(), dict()),
+        (__name__, 'dataset', tuple(), dict()),
+        (__name__, 'loss', tuple(), dict()),
+        folder=os.path.join('out', 'examples', 'cifar10', 'current'),
+        hyperparameters=hparams,
+        analysis='images-min',
+        allow_later_analysis_up_to='images-min',
+        accuracy_style=accuracy_style,
+        trials=1,
+        is_continuation=False,
+        history_folder=os.path.join('out', 'examples', 'cifar10', 'history'),
+        cores='all',
+        trials_strict=False
+    )
