@@ -10,12 +10,13 @@ import torch
 def model():
     return (
         torchluent.FluentModule((3, 32, 32))
-        .conv2d(16, 5, padding=3, stride=5)
+        .conv2d(32, 5, padding=3, stride=5)
         .operator('PReLU')
-        .conv2d(32, 3, padding=1, stride=3)
+        .conv2d(64, 3, padding=1, stride=3)
         .operator('PReLU')
         .flatten()
-        .dense(128)
+        .dense(512)
+        .operator('Dropout', 0.5)
         .operator('Tanh')
         .dense(10)
         .build()
